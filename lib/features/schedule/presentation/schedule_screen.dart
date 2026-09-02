@@ -257,14 +257,7 @@ class _ScheduleScreenState extends State<ScheduleScreen> {
                 Container(width: 1, height: 40, color: AppColors.borderColor),
 
                 Expanded(
-                  child: GestureDetector(
-            onTap: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const LeaveRequestScreen(),
-                ),
-              );
-            },child: _AttendanceValue(value: '1', label: 'LEAVE/ABSENT', valueColor: const Color(0xFFBA1A1A))),
+                  child: _AttendanceValue(value: '1', label: 'LEAVE/ABSENT', valueColor: const Color(0xFFBA1A1A)),
                 ),
               ],
             ),

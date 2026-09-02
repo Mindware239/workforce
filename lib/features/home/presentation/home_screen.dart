@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/features/notification/presentation/notification.dart';
+import 'package:workforce/features/schedule/presentation/leave_request.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -264,7 +266,13 @@ class _HomeScreenState extends State<HomeScreen> {
               _QuickAction(
                 icon: 'assets/icons/leave.svg',
                 title: 'Leave Requests',
-                onTap: () {},
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const LeaveRequestScreen(),
+                    ),
+                  );
+                },
               ),
 
               _QuickAction(
@@ -272,7 +280,13 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: 'Notifications',
                 subtitle: '2 unread messages',
                 showNotificationDot: true,
-                onTap: () {},
+                onTap: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const NotificationScreen(),
+                    ),
+                  );
+                },
                 isLast: true,
               ),
             ],

@@ -29,6 +29,12 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
+      appBar: AppBar(
+        centerTitle: true,
+        backgroundColor: AppColors.whiteBackgroundColor,
+        surfaceTintColor: AppColors.whiteBackgroundColor,
+       
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
