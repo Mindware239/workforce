@@ -16,8 +16,7 @@ dependencies:
 
  
   cupertino_icons: ^1.0.8
-  flutter_bloc: ^9.1.1
-  bloc: ^9.2.1
+ 
   get_it: ^9.2.1
   go_router: ^17.5.0
   json_annotation: ^4.12.0
@@ -29,6 +28,7 @@ dependencies:
   fluttertoast: ^10.0.0
   image_picker: ^1.2.3
   permission_handler: ^13.0.1
+  flutter_riverpod: ^2.6.1
 
 dev_dependencies:
   flutter_test:

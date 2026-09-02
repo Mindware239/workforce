@@ -1,7 +1,7 @@
 import 'package:go_router/go_router.dart';
 
-import 'package:workforce/features/dashboard/screens/dashboard_screen.dart';
-import 'package:workforce/features/splash/screen/splash_screen.dart';
+import 'package:workforce/features/dashboard/presentation/dashboard_screen.dart';
+import 'package:workforce/features/splash/presentation/splash_screen.dart';
 
 import 'package:workforce/features/home/presentation/home_screen.dart';
 import 'package:workforce/features/attendence/presentation/attendence_screen.dart';
