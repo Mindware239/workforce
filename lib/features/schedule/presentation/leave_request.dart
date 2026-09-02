@@ -33,7 +33,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
         centerTitle: true,
         backgroundColor: AppColors.whiteBackgroundColor,
         surfaceTintColor: AppColors.whiteBackgroundColor,
-       
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -41,7 +40,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-            
               _buildHeader(),
 
               const SizedBox(height: 16),
@@ -159,6 +157,22 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
             controller: startDateController,
             hint: 'mm/dd/yyyy',
             suffixIcon: Icons.calendar_today_outlined,
+            readOnly: true,
+            onTap: () async {
+              final DateTime? picked = await showDatePicker(
+                context: context,
+                initialDate: DateTime.now(),
+                firstDate: DateTime(2020),
+                lastDate: DateTime(2100),
+              );
+
+              if (picked != null) {
+                startDateController.text =
+                    '${picked.month.toString().padLeft(2, '0')}/'
+                    '${picked.day.toString().padLeft(2, '0')}/'
+                    '${picked.year}';
+              }
+            },
           ),
 
           const SizedBox(height: 8),
@@ -166,9 +180,25 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
           _FieldLabel('End Date'),
 
           _TextField(
-            controller: endDateController,
+            controller: startDateController,
             hint: 'mm/dd/yyyy',
             suffixIcon: Icons.calendar_today_outlined,
+            readOnly: true,
+            onTap: () async {
+              final DateTime? picked = await showDatePicker(
+                context: context,
+                initialDate: DateTime.now(),
+                firstDate: DateTime(2020),
+                lastDate: DateTime(2100),
+              );
+
+              if (picked != null) {
+                startDateController.text =
+                    '${picked.month.toString().padLeft(2, '0')}/'
+                    '${picked.day.toString().padLeft(2, '0')}/'
+                    '${picked.year}';
+              }
+            },
           ),
 
           const SizedBox(height: 8),
@@ -279,7 +309,6 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
     );
   }
 
- 
   Widget _buildRecentRequests() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -459,13 +488,14 @@ class _FieldLabel extends StatelessWidget {
   }
 }
 
-
 class _TextField extends StatelessWidget {
   final TextEditingController controller;
   final String? hint;
   final IconData? suffixIcon;
   final int maxLines;
   final TextInputType? keyboardType;
+  final VoidCallback? onTap;
+  final bool readOnly;
 
   const _TextField({
     required this.controller,
@@ -473,6 +503,8 @@ class _TextField extends StatelessWidget {
     this.suffixIcon,
     this.maxLines = 1,
     this.keyboardType,
+    this.onTap,
+    this.readOnly = false,
   });
 
   @override
@@ -481,6 +513,8 @@ class _TextField extends StatelessWidget {
       controller: controller,
       maxLines: maxLines,
       keyboardType: keyboardType,
+      readOnly: readOnly,
+      onTap: onTap,
       style: GoogleFonts.inter(fontSize: 14, color: AppColors.textColor),
       decoration: InputDecoration(
         hintText: hint,
@@ -510,7 +544,6 @@ class _TextField extends StatelessWidget {
   }
 }
 
-
 class _DropdownField extends StatelessWidget {
   final String value;
   final ValueChanged<String?> onChanged;
@@ -527,22 +560,22 @@ class _DropdownField extends StatelessWidget {
     return DropdownButtonFormField<String>(
       value: value,
       onChanged: onChanged,
-      style: GoogleFonts.inter(fontSize: 7, color: AppColors.textColor),
+      style: GoogleFonts.inter(fontSize: 12, color: AppColors.textColor),
       icon: const Icon(
         Icons.keyboard_arrow_down_rounded,
-        size: 13,
+        size: 16,
         color: AppColors.mutedColor,
       ),
       decoration: InputDecoration(
         contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         isDense: true,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
-          borderSide: const BorderSide(color: AppColors.borderColor, width: .8),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.borderColor, width: 1),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
-          borderSide: const BorderSide(color: AppColors.borderColor, width: .8),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.borderColor, width: 1),
         ),
       ),
       items: items
@@ -553,7 +586,6 @@ class _DropdownField extends StatelessWidget {
     );
   }
 }
-
 
 class _RecentRequest extends StatelessWidget {
   final IconData icon;
