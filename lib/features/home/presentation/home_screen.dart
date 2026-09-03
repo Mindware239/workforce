@@ -1,11 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/features/attendence/data/attendance_repository.dart';
+import 'package:workforce/features/auth/providers/auth_provider.dart';
+import 'package:workforce/features/home/presentation/widget/current_date_text.dart';
 import 'package:workforce/features/notification/presentation/notification.dart';
 import 'package:workforce/features/schedule/presentation/leave_request.dart';
 
-class HomeScreen extends StatefulWidget {
+class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
   static const Color backgroundColor = Color(0xFFFFE0E6);
@@ -15,12 +22,147 @@ class HomeScreen extends StatefulWidget {
   static const Color mutedColor = Color(0xFF585E6F);
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class _HomeScreenState extends ConsumerState<HomeScreen> {
+  Future<void> _startShift() async {
+    bool loadingShown = false;
+
+    try {
+      // Show loading
+      loadingShown = true;
+
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) {
+          return const Center(child: CircularProgressIndicator());
+        },
+      );
+
+      // Check location permission
+      LocationPermission permission = await Geolocator.checkPermission();
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+
+      // Permission denied
+      if (permission == LocationPermission.denied ||
+          permission == LocationPermission.deniedForever) {
+        if (mounted && loadingShown) {
+          Navigator.of(context).pop();
+          loadingShown = false;
+        }
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Location permission is required to start your shift.',
+            ),
+          ),
+        );
+
+        return;
+      }
+
+      // Get current location
+      final position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+
+      debugPrint('📍 Latitude: ${position.latitude}');
+      debugPrint('📍 Longitude: ${position.longitude}');
+      debugPrint('📍 Accuracy: ${position.accuracy}');
+
+      // Check office geofence
+      final response = await ref
+          .read(attendanceRepositoryProvider)
+          .checkGeofence(
+            lat: position.latitude,
+            lng: position.longitude,
+            accuracy: position.accuracy,
+          );
+
+      debugPrint('📍 Geofence result: $response');
+
+      if (!mounted) return;
+
+      // Close loading dialog
+      if (loadingShown) {
+        Navigator.of(context).pop();
+        loadingShown = false;
+      }
+
+      final data = response['data'];
+
+      // Invalid/missing geofence response
+      if (data == null) {
+        context.push(AppRoutes.locationVerificationUnsuccessful);
+        return;
+      }
+
+      final isWithinFence = data['isWithinFence'] == true;
+
+      final distanceMeters = data['distanceMeters'];
+      final allowedRadiusMeters = data['allowedRadiusMeters'];
+
+      debugPrint('📍 Within fence: $isWithinFence');
+      debugPrint('📏 Distance: $distanceMeters m');
+      debugPrint('⭕ Allowed radius: $allowedRadiusMeters m');
+
+      // ❌ Outside office geofence
+      if (!isWithinFence) {
+        debugPrint('❌ User is outside office geofence');
+
+        context.push(
+          AppRoutes.locationVerificationUnsuccessful,
+          extra: distanceMeters is num ? distanceMeters.toDouble() : null,
+        );
+
+        return;
+      }
+
+      // ✅ User is inside office geofence
+      debugPrint('✅ User is inside office geofence');
+
+      context.push(
+        AppRoutes.faceCapture,
+        extra: {
+          'latitude': position.latitude,
+          'longitude': position.longitude,
+          'accuracy': position.accuracy,
+        },
+      );
+    } catch (e, stackTrace) {
+      debugPrint('❌ Start Shift error: $e');
+      debugPrint('$stackTrace');
+
+      // Close loading only if it is still open
+      if (mounted && loadingShown) {
+        Navigator.of(context).pop();
+        loadingShown = false;
+      }
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
+
+    final String fullName = user?['fullName']?.toString() ?? 'Employee';
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
       body: SafeArea(
@@ -32,9 +174,10 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               _buildHeader(),
               const SizedBox(height: 8),
-              _buildDate(),
+              CurrentDateText(),
+              // _buildDate(),
               const SizedBox(height: 8),
-              _buildGreeting(),
+              _buildGreeting(fullName),
               const SizedBox(height: 16),
               _buildShiftCard(),
               const SizedBox(height: 16),
@@ -100,20 +243,9 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildDate() {
+  Widget _buildGreeting(String fullName) {
     return Text(
-      'Monday, October 16',
-      style: GoogleFonts.inter(
-        fontSize: 12,
-        fontWeight: FontWeight.normal,
-        color: const Color(0xFF585E6F),
-      ),
-    );
-  }
-
-  Widget _buildGreeting() {
-    return Text(
-      'Good morning, Alex',
+      'Good morning, $fullName',
       style: GoogleFonts.inter(
         fontSize: 30,
         fontWeight: FontWeight.bold,
@@ -193,7 +325,10 @@ class _HomeScreenState extends State<HomeScreen> {
             width: double.infinity,
             height: 48,
             child: ElevatedButton.icon(
-              onPressed: () {},
+              onPressed: () {
+                // context.push(AppRoutes.faceCapture);
+                _startShift();
+              },
               style: ElevatedButton.styleFrom(
                 backgroundColor: HomeScreen.primaryColor,
                 foregroundColor: Colors.white,

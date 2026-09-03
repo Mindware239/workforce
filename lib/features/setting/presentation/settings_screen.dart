@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:workforce/app/routes/app_routes.dart';
+import 'package:workforce/core/services/auth_service.dart';
+import 'package:workforce/core/services/secure_storage.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/features/notification/presentation/notification.dart';
 import 'package:workforce/features/onboarding/presentation/screen/language_selection_screen.dart';
-import 'package:workforce/features/onboarding/presentation/screen/verification_unsuccessful_screen.dart';
+import 'package:workforce/features/attendence/presentation/verification_unsuccessful_screen.dart';
 import 'package:workforce/features/setting/presentation/help_support_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -15,6 +19,21 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   bool isDarkMode = false;
+
+  Future<void> _logout() async {
+  final secureStorage = SecureStorage();
+
+  // Remove JWT and saved employee data
+  await secureStorage.clearAuth();
+
+  // Update authentication state
+  AuthService.logout();
+
+  if (!mounted) return;
+
+  // Go to login and remove previous navigation history
+  context.go(AppRoutes.login);
+}
 
   @override
   Widget build(BuildContext context) {
@@ -195,7 +214,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Widget _buildLogoutButton() {
     return GestureDetector(
       onTap: () {
-        // TODO: logout
+         _logout();
       },
       child: Container(
         width: double.infinity,

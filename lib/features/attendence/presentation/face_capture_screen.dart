@@ -1,50 +1,131 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:workforce/app/routes/app_routes.dart';
 
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 import 'package:workforce/features/onboarding/presentation/widget/workforce_brand.dart';
 
-import 'photo_preview_screen.dart';
-
-class FaceCaptureScreen extends StatefulWidget {
+class FaceCaptureScreen extends ConsumerStatefulWidget {
   const FaceCaptureScreen({super.key});
 
   @override
-  State<FaceCaptureScreen> createState() => _FaceCaptureScreenState();
+  ConsumerState<FaceCaptureScreen> createState() => _FaceCaptureScreenState();
 }
 
-class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
+class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
   final ImagePicker _picker = ImagePicker();
 
+  bool _isLoading = false;
+
   Future<void> _takePhoto() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
     try {
+      // 1. Check location service
+      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+
+      debugPrint('Location service enabled: $serviceEnabled');
+
+      if (!serviceEnabled) {
+        _showMessage('Please turn on location services and try again.');
+        return;
+      }
+
+      // 2. Check location permission
+      LocationPermission permission = await Geolocator.checkPermission();
+
+      debugPrint('Location permission: $permission');
+
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+
+        debugPrint('Location permission after request: $permission');
+      }
+
+      if (permission == LocationPermission.denied) {
+        _showMessage('Location permission is required for attendance.');
+        return;
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        _showMessage(
+          'Location permission is permanently denied. '
+          'Please enable it from Settings.',
+        );
+        return;
+      }
+
+      // 3. Get location
+      debugPrint('Getting current location...');
+
+      final Position position = await Geolocator.getCurrentPosition(
+        locationSettings: const LocationSettings(
+          accuracy: LocationAccuracy.high,
+        ),
+      );
+
+      debugPrint('Latitude: ${position.latitude}');
+      debugPrint('Longitude: ${position.longitude}');
+      debugPrint('Accuracy: ${position.accuracy}');
+
+      // 4. Capture photo
+      debugPrint('Opening camera...');
+
       final XFile? photo = await _picker.pickImage(
         source: ImageSource.camera,
         preferredCameraDevice: CameraDevice.front,
         imageQuality: 90,
       );
 
+      debugPrint('Photo: ${photo?.path}');
+
       if (!mounted || photo == null) {
         return;
       }
 
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => PhotoPreviewScreen(imagePath: photo.path),
-        ),
+      // 5. Open preview
+      context.push(
+        AppRoutes.photoPreview,
+        extra: {
+          'imagePath': photo.path,
+          'latitude': position.latitude,
+          'longitude': position.longitude,
+          'accuracy': position.accuracy,
+        },
       );
-    } catch (e) {
+    } catch (e, stackTrace) {
+      debugPrint('================================');
+      debugPrint('ATTENDANCE CAPTURE ERROR');
+      debugPrint('ERROR: $e');
+      debugPrint('STACK TRACE: $stackTrace');
+      debugPrint('================================');
+
       if (!mounted) return;
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Unable to access the camera. Please try again.'),
-        ),
-      );
+      _showMessage(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
+  }
+
+  void _showMessage(String message) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -59,7 +140,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
             children: [
               const SizedBox(height: 24),
 
-              WorkforceBrand(),
+              const WorkforceBrand(),
 
               const SizedBox(height: 24),
 
@@ -77,8 +158,12 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
 
               WorkforcePrimaryButton(
                 icon: Icons.camera_alt,
-                title: "Take Photo",
-                onPressed: _takePhoto,
+                title: _isLoading ? 'Please wait...' : 'Take Photo',
+                onPressed: () {
+                  if (!_isLoading) {
+                    _takePhoto();
+                  }
+                },
               ),
 
               const SizedBox(height: 12),
@@ -165,7 +250,7 @@ class _FaceCaptureScreenState extends State<FaceCaptureScreen> {
       height: 48,
       child: OutlinedButton(
         onPressed: () {
-          Navigator.pop(context);
+          context.pop();
         },
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.primaryFillColor,

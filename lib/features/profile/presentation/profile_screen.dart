@@ -1,28 +1,45 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/features/auth/providers/auth_provider.dart';
+import 'package:workforce/features/profile/presentation/bank_details_widget.dart';
 import 'package:workforce/features/setting/presentation/settings_screen.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
 
   @override
-  State<ProfileScreen> createState() => _ProfileScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+    final user = authState.user;
 
-class _ProfileScreenState extends State<ProfileScreen> {
-  @override
-  Widget build(BuildContext context) {
+    debugPrint("Hello:-->'$user?.toString()'");
+
+    final String fullName = user?['fullName']?.toString() ?? 'Employee';
+    final String employeeId = user?['employeeId']?.toString() ?? '-';
+    final String mobileNumber = user?['mobileNumber']?.toString() ?? '-';
+    final String email = user?['email']?.toString() ?? '-';
+    final String role = user?['role']?.toString() ?? '-';
+    final String organizationName =
+        user?['organizationName']?.toString() ?? '-';
+    final String workspaceId = user?['workspaceId']?.toString() ?? '-';
+    final String organizationId =
+        user?['organizationId']?.toString() ?? '-';
+
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
-       appBar: AppBar(
-         backgroundColor: AppColors.whiteBackgroundColor,
-          surfaceTintColor: AppColors.whiteBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: AppColors.whiteBackgroundColor,
+        surfaceTintColor: AppColors.whiteBackgroundColor,
         actions: [
           IconButton(
             onPressed: () {
-              Navigator.of(context)
-                  .push(MaterialPageRoute(builder: (context) => const SettingsScreen()));
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const SettingsScreen(),
+                ),
+              );
             },
             icon: const Icon(
               Icons.settings_outlined,
@@ -33,22 +50,33 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          // physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.all(
-            16
-          ),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _buildProfileHeader(),
-        
+              _buildProfileHeader(
+                fullName: fullName,
+                employeeId: employeeId,
+              ),
+
               const SizedBox(height: 24),
-        
-              _buildEmploymentDetails(),
-        
+
+              _buildEmploymentDetails(
+                role: role,
+                mobileNumber: mobileNumber,
+                email: email,
+              ),
+
               const SizedBox(height: 16),
-        
-              _buildWorkplace(),
+
+              _buildWorkplace(
+                organizationName: organizationName,
+                workspaceId: workspaceId,
+                organizationId: organizationId,
+              ),
+               const SizedBox(height: 16),
+
+              BankDetailsWidget()
             ],
           ),
         ),
@@ -56,18 +84,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  
-  Widget _buildProfileHeader() {
+  Widget _buildProfileHeader({
+    required String fullName,
+    required String employeeId,
+  }) {
     return Column(
       children: [
-        // Profile photo
         Container(
           width: 128,
           height: 128,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             shape: BoxShape.circle,
-           
-            
           ),
           child: ClipOval(
             child: Image.asset(
@@ -87,10 +114,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 7),
 
         Text(
-          'Alex Sharma',
+          fullName,
+          textAlign: TextAlign.center,
           style: GoogleFonts.inter(
             fontSize: 30,
-            
             fontWeight: FontWeight.bold,
             color: AppColors.textColor,
           ),
@@ -99,7 +126,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         const SizedBox(height: 4),
 
         Text(
-          'ID: EMP-0142',
+          'ID: $employeeId',
           style: GoogleFonts.inter(
             fontSize: 12,
             fontWeight: FontWeight.w400,
@@ -140,13 +167,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  
-  Widget _buildEmploymentDetails() {
+  Widget _buildEmploymentDetails({
+    required String role,
+    required String mobileNumber,
+    required String email,
+  }) {
     return _ProfileCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _CardHeader(
+          const _CardHeader(
             icon: Icons.business_center_outlined,
             title: 'Employment Details',
           ),
@@ -154,23 +184,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
           const SizedBox(height: 8),
 
           _DetailItem(
+            label: 'ROLE',
+            value: role,
+          ),
+
+          _DetailItem(
+            label: 'MOBILE NUMBER',
+            value: mobileNumber,
+          ),
+
+          _DetailItem(
+            label: 'EMAIL',
+            value: email,
+          ),
+
+          const _DetailItem(
             label: 'DEPARTMENT',
-            value: 'Production',
-          ),
-
-          _DetailItem(
-            label: 'DESIGNATION',
-            value: 'Machine Operator',
-          ),
-
-          _DetailItem(
-            label: 'JOINING DATE',
-            value: 'Jan 12, 2022',
-          ),
-
-          _DetailItem(
-            label: 'REPORTING MANAGER',
-            value: ' Sarah Chen',
+            value: 'Not available',
             isLast: true,
           ),
         ],
@@ -178,16 +208,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  
-  Widget _buildWorkplace() {
+  Widget _buildWorkplace({
+    required String organizationName,
+    required String workspaceId,
+    required String organizationId,
+  }) {
     return _ProfileCard(
-      padding: const EdgeInsets.all(
-       16
-      ),
+      padding: const EdgeInsets.all(16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _CardHeader(
+          const _CardHeader(
             icon: Icons.location_on_outlined,
             title: 'Workplace',
           ),
@@ -196,12 +227,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
           Container(
             width: double.infinity,
-            // height: 55,
-            padding: const EdgeInsets.all(
-              8
-            ),
+            padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-            
               borderRadius: BorderRadius.circular(8),
               border: Border.all(
                 color: AppColors.borderColor,
@@ -217,7 +244,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     color: const Color(0xFF3525CD).withValues(
                       alpha: 0.1,
                     ),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
                     Icons.business,
@@ -228,31 +255,43 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
                 const SizedBox(width: 8),
 
-                Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'PRIMARY LOCATION',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                        letterSpacing: .2,
-                        color: AppColors.mutedColor,
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'ORGANIZATION',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w500,
+                          letterSpacing: .2,
+                          color: AppColors.mutedColor,
+                        ),
                       ),
-                    ),
 
-                    const SizedBox(height: 2),
+                      const SizedBox(height: 2),
 
-                    Text(
-                      'HQ – Factory Floor',
-                      style: GoogleFonts.inter(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textColor,
+                      Text(
+                        organizationName,
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textColor,
+                        ),
                       ),
-                    ),
-                  ],
+
+                      const SizedBox(height: 2),
+
+                      Text(
+                        'Workspace: $workspaceId',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: AppColors.mutedColor,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -269,9 +308,7 @@ class _ProfileCard extends StatelessWidget {
 
   const _ProfileCard({
     required this.child,
-    this.padding = const EdgeInsets.all(
-     16,
-    ),
+    this.padding = const EdgeInsets.all(16),
   });
 
   @override
@@ -280,7 +317,6 @@ class _ProfileCard extends StatelessWidget {
       width: double.infinity,
       padding: padding,
       decoration: BoxDecoration(
-        
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
           color: AppColors.borderColor,
@@ -310,9 +346,7 @@ class _CardHeader extends StatelessWidget {
           size: 20,
           color: AppColors.primaryFillColor,
         ),
-
         const SizedBox(width: 8),
-
         Text(
           title,
           style: GoogleFonts.inter(
@@ -341,9 +375,7 @@ class _DetailItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        vertical: 8,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         border: isLast
             ? null

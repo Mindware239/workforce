@@ -1,24 +1,19 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 
 import 'package:workforce/features/attendence/presentation/attendence_screen.dart';
+import 'package:workforce/features/dashboard/providers/dashboard_provider.dart';
 import 'package:workforce/features/home/presentation/home_screen.dart';
 import 'package:workforce/features/profile/presentation/profile_screen.dart';
 import 'package:workforce/features/schedule/presentation/schedule_screen.dart';
 
-class DashboardPage extends StatefulWidget {
+class DashboardPage extends ConsumerWidget {
   final int index;
 
   const DashboardPage({super.key, this.index = 0});
-
-  @override
-  State<DashboardPage> createState() => _DashboardPageState();
-}
-
-class _DashboardPageState extends State<DashboardPage> {
-  late int selectedIndex;
 
   static const List<Widget> screens = [
     HomeScreen(),
@@ -28,43 +23,33 @@ class _DashboardPageState extends State<DashboardPage> {
   ];
 
   @override
-  void initState() {
-    super.initState();
-    selectedIndex = _validateIndex(widget.index);
-  }
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedIndex = ref.watch(dashboardTabProvider);
 
-  int _validateIndex(int index) {
-    if (index < 0 || index >= screens.length) {
-      return 0;
-    }
-
-    return index;
-  }
-
-  @override
-  void didUpdateWidget(DashboardPage oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
-    if (oldWidget.index != widget.index) {
-      setState(() {
-        selectedIndex = _validateIndex(widget.index);
+    // Set initial tab if a specific index was passed.
+    if (index != 0 && selectedIndex == 0) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(dashboardTabProvider.notifier).state = _validateIndex(index);
       });
     }
-  }
 
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       body: IndexedStack(index: selectedIndex, children: screens),
       bottomNavigationBar: _DashboardBottomNav(
         currentIndex: selectedIndex,
         onTap: (index) {
-          setState(() {
-            selectedIndex = index;
-          });
+          ref.read(dashboardTabProvider.notifier).state = index;
         },
       ),
     );
+  }
+
+  static int _validateIndex(int index) {
+    if (index < 0 || index >= screens.length) {
+      return 0;
+    }
+
+    return index;
   }
 }
 
@@ -138,7 +123,7 @@ class _DashboardBottomNav extends StatelessWidget {
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                               color: isSelected
-                                   ? AppColors.selectedColor
+                                  ? AppColors.selectedColor
                                   : AppColors.unSelectedColor,
                             ),
                           ),

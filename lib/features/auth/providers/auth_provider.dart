@@ -28,7 +28,7 @@ class AuthState {
     return AuthState(
       status: status ?? this.status,
       user: user ?? this.user,
-      errorMessage: errorMessage ?? this.errorMessage,
+      errorMessage: errorMessage,
     );
   }
 }
@@ -44,22 +44,21 @@ class AuthNotifier extends Notifier<AuthState> {
   }
 
   Future<void> login({
-    required String employeeId,
-    required String password,
+    required String mobileNumber,
   }) async {
     state = state.copyWith(
       status: AuthStatus.loading,
+      errorMessage: null,
     );
 
     try {
-      final result = await repository.login(
-        employeeId: employeeId,
-        password: password,
+      final user = await repository.login(
+        mobileNumber: mobileNumber,
       );
 
       state = state.copyWith(
         status: AuthStatus.success,
-        user: result['user'],
+        user: user,
       );
     } catch (e) {
       state = state.copyWith(
@@ -67,6 +66,31 @@ class AuthNotifier extends Notifier<AuthState> {
         errorMessage: e.toString(),
       );
     }
+  }
+
+  // Restore employee data after app restart
+  Future<void> restoreSession() async {
+    try {
+      final user = await repository.getSavedUser();
+
+      if (user == null) {
+        return;
+      }
+
+      state = state.copyWith(
+        status: AuthStatus.success,
+        user: user,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        status: AuthStatus.error,
+        errorMessage: e.toString(),
+      );
+    }
+  }
+
+  void reset() {
+    state = const AuthState();
   }
 }
 

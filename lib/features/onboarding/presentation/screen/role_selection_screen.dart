@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/core/styles/app_colors.dart';
-import 'package:workforce/features/onboarding/presentation/screen/employee_login_screen.dart';
+import 'package:workforce/features/auth/presentation/employee_login_screen.dart';
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 import 'package:workforce/features/onboarding/presentation/widget/radio_circle.dart';
 

@@ -1,17 +1,35 @@
 import 'package:dio/dio.dart';
+import 'package:workforce/core/services/secure_storage.dart';
 
 class ApiClient {
   late final Dio dio;
 
-  ApiClient() {
+  final SecureStorage secureStorage;
+
+  ApiClient({
+    required this.secureStorage,
+  }) {
     dio = Dio(
       BaseOptions(
-        baseUrl: 'https://your-api.com/api',
-        connectTimeout: const Duration(seconds: 15),
-        receiveTimeout: const Duration(seconds: 15),
+        baseUrl: 'https://workforce.orkuts.com/api',
+        connectTimeout: const Duration(seconds: 30),
+        receiveTimeout: const Duration(seconds: 30),
         headers: {
-          'Content-Type': 'application/json',
           'Accept': 'application/json',
+        },
+      ),
+    );
+
+    dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) async {
+          final token = await secureStorage.getToken();
+
+          if (token != null && token.isNotEmpty) {
+            options.headers['Authorization'] = 'Bearer $token';
+          }
+
+          handler.next(options);
         },
       ),
     );

@@ -22,7 +22,7 @@ class _VerificationUnsuccessfulScreenState
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
-              const SizedBox(height: 26),
+              const SizedBox(height: 24),
 
               // ERROR ICON
               _buildErrorIcon(),
@@ -199,4 +199,6 @@ class _VerificationUnsuccessfulScreenState
       ),
     );
   }
+
+
 }

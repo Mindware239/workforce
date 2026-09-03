@@ -168,8 +168,8 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
 
               if (picked != null) {
                 startDateController.text =
-                    '${picked.month.toString().padLeft(2, '0')}/'
                     '${picked.day.toString().padLeft(2, '0')}/'
+                    '${picked.month.toString().padLeft(2, '0')} '
                     '${picked.year}';
               }
             },
@@ -180,7 +180,7 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
           _FieldLabel('End Date'),
 
           _TextField(
-            controller: startDateController,
+            controller: endDateController,
             hint: 'mm/dd/yyyy',
             suffixIcon: Icons.calendar_today_outlined,
             readOnly: true,
@@ -193,9 +193,9 @@ class _LeaveRequestScreenState extends State<LeaveRequestScreen> {
               );
 
               if (picked != null) {
-                startDateController.text =
-                    '${picked.month.toString().padLeft(2, '0')}/'
+                endDateController.text =
                     '${picked.day.toString().padLeft(2, '0')}/'
+                    '${picked.month.toString().padLeft(2, '0')}/'
                     '${picked.year}';
               }
             },
