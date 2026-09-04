@@ -16,6 +16,22 @@ class SecureStorage {
     await storage.write(key: _userKey, value: jsonEncode(user));
   }
 
+   Future<void> write({
+    required String key,
+    required String value,
+  }) async {
+    await storage.write(
+      key: key,
+      value: value,
+    );
+  }
+
+  Future<String?> read({
+    required String key,
+  }) async {
+    return storage.read(key: key);
+  }
+
   Future<Map<String, dynamic>?> getUser() async {
     final value = await storage.read(key: _userKey);
 

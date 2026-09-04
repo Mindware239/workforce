@@ -18,6 +18,7 @@ class DashboardPage extends ConsumerWidget {
   static const List<Widget> screens = [
     HomeScreen(),
     AttendanceScreen(),
+    // AttendanceHistoryScreen(),
     ScheduleScreen(),
     ProfileScreen(),
   ];

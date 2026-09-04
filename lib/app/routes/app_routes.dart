@@ -1,10 +1,15 @@
 import 'package:go_router/go_router.dart';
+import 'package:workforce/features/attendence/presentation/attendance_history_screen.dart';
 import 'package:workforce/features/attendence/presentation/location_verification_unsuccessful.dart';
 import 'package:workforce/features/auth/presentation/employee_login_screen.dart';
 import 'package:workforce/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:workforce/features/attendence/presentation/face_capture_screen.dart';
 import 'package:workforce/features/attendence/presentation/photo_preview_screen.dart';
 import 'package:workforce/features/attendence/presentation/verification_unsuccessful_screen.dart';
+import 'package:workforce/features/leave/presentation/leave_request.dart';
+import 'package:workforce/features/notification/presentation/notification.dart';
+import 'package:workforce/features/profile/presentation/documnet_screen.dart';
+import 'package:workforce/features/schedule/presentation/monthly_summary.dart';
 import 'package:workforce/features/splash/presentation/splash_screen.dart';
 import 'package:workforce/features/home/presentation/home_screen.dart';
 import 'package:workforce/features/attendence/presentation/attendence_screen.dart';
@@ -18,14 +23,20 @@ class AppRoutes {
 
   static const String home = '/dashboard/home';
   static const String attendance = '/dashboard/attendance';
+  static const String attendanceHistory = '/dashboard/attendanceHistory';
   static const String schedule = '/dashboard/schedule';
   static const String profile = '/dashboard/profile';
+  static const String document = '/dashboard/document';
+  static const String notification = '/dashboard/notification';
 
   static const String faceCapture = '/dashboard/faceCapture';
   static const String photoPreview = '/dashboard/photo-preview';
-  static const String verificationUnsuccessful = '/dashboard/verification-unsuccessful';
+  static const String verificationUnsuccessful =
+      '/dashboard/verification-unsuccessful';
   static const locationVerificationUnsuccessful =
       '/dashboard/location-verification-unsuccessful';
+  static const String leaveRequest = '/dashboard/leaveRequest';
+  static const String monthlySummary = '/dashboard/monthlySummary';
 
   static final List<RouteBase> routes = [
     GoRoute(
@@ -63,6 +74,21 @@ class AppRoutes {
       name: 'verificationUnsuccessful',
       builder: (context, state) {
         return const VerificationUnsuccessfulScreen();
+      },
+    ),
+    GoRoute(
+      path: leaveRequest,
+      name: 'leaveRequest',
+      builder: (context, state) {
+        return const LeaveRequestScreen();
+      },
+    ),
+
+    GoRoute(
+      path: monthlySummary,
+      name: 'monthlySummary',
+      builder: (context, state) {
+        return const MonthlySummaryScreen();
       },
     ),
     GoRoute(
@@ -108,6 +134,14 @@ class AppRoutes {
     ),
 
     GoRoute(
+      path: attendanceHistory,
+      name: 'attendanceHistory',
+      builder: (context, state) {
+        return const AttendanceHistoryScreen();
+      },
+    ),
+
+    GoRoute(
       path: schedule,
       name: 'schedule',
       builder: (context, state) {
@@ -120,6 +154,21 @@ class AppRoutes {
       name: 'profile',
       builder: (context, state) {
         return const ProfileScreen();
+      },
+    ),
+
+    GoRoute(
+      path: document,
+      name: 'document',
+      builder: (context, state) {
+        return const DocumentsScreen();
+      },
+    ),
+    GoRoute(
+      path: notification,
+      name: 'notification',
+      builder: (context, state) {
+        return const NotificationScreen();
       },
     ),
   ];

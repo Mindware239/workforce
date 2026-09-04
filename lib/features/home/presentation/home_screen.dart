@@ -7,10 +7,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/features/attendence/data/attendance_repository.dart';
+import 'package:workforce/features/attendence/providers/attendance_provider.dart';
 import 'package:workforce/features/auth/providers/auth_provider.dart';
 import 'package:workforce/features/home/presentation/widget/current_date_text.dart';
-import 'package:workforce/features/notification/presentation/notification.dart';
-import 'package:workforce/features/schedule/presentation/leave_request.dart';
+import 'package:workforce/features/notification/providers/notification_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -158,7 +158,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(attendanceProvider.notifier).getDashboard();
+      ref.read(notificationProvider.notifier).fetchNotifications();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final notificationState = ref.watch(notificationProvider);
+
     final authState = ref.watch(authProvider);
     final user = authState.user;
 
@@ -183,7 +195,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               const SizedBox(height: 16),
               _buildStats(),
               const SizedBox(height: 16),
-              _buildQuickActions(),
+              _buildQuickActions(notificationState),
             ],
           ),
         ),
@@ -256,11 +268,87 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildShiftCard() {
+    final attendanceState = ref.watch(attendanceProvider);
+
+    final dashboard = attendanceState.dashboard;
+
+    final today = dashboard?['today'];
+
+    final schedule = dashboard?['schedule'];
+
+    if (attendanceState.isLoadingDashboard && dashboard == null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.borderColor, width: 1),
+        ),
+        child: const SizedBox(
+          height: 116,
+          child: Center(child: CircularProgressIndicator()),
+        ),
+      );
+    }
+
+    if (schedule == null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: AppColors.borderColor, width: 1),
+        ),
+        child: Text(
+          'Shift schedule is not available.',
+          style: GoogleFonts.inter(fontSize: 14, color: AppColors.mutedColor),
+        ),
+      );
+    }
+
+    final standardEntryTime = schedule['standardEntryTime']?.toString();
+
+    final standardExitTime = schedule['standardExitTime']?.toString();
+
+    final shiftTime = _formatShiftTime(standardEntryTime, standardExitTime);
+
+    final hasCheckedIn = today != null && today['entryTime'] != null;
+
+    final hasCheckedOut = today != null && today['exitTime'] != null;
+
+    final status = today?['status']?.toString().toLowerCase();
+
+    String statusText;
+    IconData statusIcon;
+    Color statusColor;
+    Color statusBackground;
+
+    if (hasCheckedOut) {
+      statusText = 'Completed';
+      statusIcon = Icons.check_circle_outline;
+      statusColor = const Color(0xFF137333);
+      statusBackground = const Color(0xFFE6F4EA);
+    } else if (hasCheckedIn) {
+      if (status == 'late') {
+        statusText = 'Checked In • Late';
+      } else {
+        statusText = 'Checked In';
+      }
+
+      statusIcon = Icons.access_time;
+      statusColor = AppColors.primaryFillColor;
+      statusBackground = const Color(0xFFE8D8FF);
+    } else {
+      statusText = 'Upcoming';
+      statusIcon = Icons.access_time;
+      statusColor = AppColors.primaryFillColor;
+      statusBackground = const Color(0xFFE8D8FF);
+    }
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        // color: cardColor,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.borderColor, width: 1),
       ),
@@ -278,28 +366,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   color: AppColors.mutedColor,
                 ),
               ),
+
               const Spacer(),
+
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE8D8FF),
+                  color: statusBackground,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(
-                      Icons.access_time,
-                      size: 12,
-                      color: AppColors.primaryFillColor,
-                    ),
-                    SizedBox(width: 4),
+                    Icon(statusIcon, size: 12, color: statusColor),
+
+                    const SizedBox(width: 4),
+
                     Text(
-                      'Upcoming',
+                      statusText,
                       style: GoogleFonts.inter(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
-                        color: AppColors.primaryFillColor,
+                        color: statusColor,
                       ),
                     ),
                   ],
@@ -311,7 +399,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           const SizedBox(height: 5),
 
           Text(
-            '9:00 AM – 5:00 PM',
+            shiftTime,
             style: GoogleFonts.inter(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -321,49 +409,122 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
           const SizedBox(height: 10),
 
-          SizedBox(
-            width: double.infinity,
-            height: 48,
-            child: ElevatedButton.icon(
-              onPressed: () {
-                // context.push(AppRoutes.faceCapture);
-                _startShift();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: HomeScreen.primaryColor,
-                foregroundColor: Colors.white,
-                elevation: 0,
-                padding: EdgeInsets.zero,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
+          if (!hasCheckedIn)
+            SizedBox(
+              width: double.infinity,
+              height: 48,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  _startShift();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: HomeScreen.primaryColor,
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  padding: EdgeInsets.zero,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                icon: const Icon(Icons.play_arrow_outlined, size: 16),
+                label: Text(
+                  'Start Shift',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
               ),
-              icon: const Icon(Icons.play_arrow_outlined, size: 16),
-              label: Text(
-                'Start Shift',
+            )
+          else if (!hasCheckedOut)
+            Container(
+              width: double.infinity,
+              height: 48,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF0ECF9),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Shift in progress',
                 style: GoogleFonts.inter(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
+                  color: AppColors.primaryFillColor,
+                ),
+              ),
+            )
+          else
+            Container(
+              width: double.infinity,
+              height: 48,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                color: const Color(0xFFE6F4EA),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Text(
+                'Shift completed',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF137333),
                 ),
               ),
             ),
-          ),
         ],
       ),
     );
   }
 
+  String _formatShiftTime(String? start, String? end) {
+    if (start == null || end == null) {
+      return '--';
+    }
+
+    return '${_formatTime(start)} – ${_formatTime(end)}';
+  }
+
+  String _formatTime(String value) {
+    try {
+      final parts = value.split(':');
+
+      if (parts.length < 2) {
+        return value;
+      }
+
+      int hour = int.parse(parts[0]);
+      final minute = parts[1];
+
+      final period = hour >= 12 ? 'PM' : 'AM';
+
+      hour = hour % 12;
+
+      if (hour == 0) {
+        hour = 12;
+      }
+
+      return '$hour:$minute $period';
+    } catch (_) {
+      return value;
+    }
+  }
+
   Widget _buildStats() {
+    final attendanceState = ref.watch(attendanceProvider);
+
+    final dashboard = attendanceState.dashboard;
+
     return Row(
       children: [
-        Expanded(child: _AttendanceCard()),
+        Expanded(child: _AttendanceCard(dashboard: dashboard)),
         const SizedBox(width: 8),
-        Expanded(child: _ProductivityCard()),
+        Expanded(child: _ProductivityCard(dashboard: dashboard)),
       ],
     );
   }
 
-  Widget _buildQuickActions() {
+  Widget _buildQuickActions(NotificationState notificationState) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -389,38 +550,38 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               _QuickAction(
                 icon: 'assets/icons/clock.svg',
                 title: 'Attendance History',
-                onTap: () {},
+                onTap: () {
+                  context.push(AppRoutes.attendanceHistory);
+                },
               ),
 
               _QuickAction(
                 icon: 'assets/icons/summary.svg',
                 title: 'Monthly Summary',
-                onTap: () {},
+                onTap: () {
+                  context.push(AppRoutes.monthlySummary);
+                },
               ),
 
               _QuickAction(
                 icon: 'assets/icons/leave.svg',
                 title: 'Leave Requests',
                 onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const LeaveRequestScreen(),
-                    ),
-                  );
+                  context.push(AppRoutes.leaveRequest);
                 },
               ),
 
               _QuickAction(
                 icon: 'assets/icons/notification.svg',
                 title: 'Notifications',
-                subtitle: '2 unread messages',
-                showNotificationDot: true,
+                subtitle: notificationState.unreadCount == 0
+                    ? 'No unread messages'
+                    : '${notificationState.unreadCount} unread '
+                          '${notificationState.unreadCount == 1 ? 'message' : 'messages'}',
+                showNotificationDot: notificationState.unreadCount > 0,
+
                 onTap: () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const NotificationScreen(),
-                    ),
-                  );
+                  context.push(AppRoutes.notification);
                 },
                 isLast: true,
               ),
@@ -433,10 +594,68 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 class _AttendanceCard extends StatelessWidget {
-  const _AttendanceCard();
+  final Map<String, dynamic>? dashboard;
+
+  const _AttendanceCard({this.dashboard});
+
+  String _formatMinutes(int minutes) {
+    final hours = minutes ~/ 60;
+    final mins = minutes % 60;
+
+    if (hours == 0) {
+      return '${mins}m';
+    }
+
+    if (mins == 0) {
+      return '${hours}h';
+    }
+
+    return '${hours}h ${mins}m';
+  }
 
   @override
   Widget build(BuildContext context) {
+    final today = dashboard?['today'];
+    final schedule = dashboard?['schedule'];
+
+    final int workingMinutes =
+        int.tryParse(today?['totalWorkingMinutes']?.toString() ?? '0') ?? 0;
+
+    final int standardMinutes =
+        int.tryParse(
+          schedule?['standardWorkingHoursMinutes']?.toString() ?? '0',
+        ) ??
+        0;
+
+    final double progress = standardMinutes > 0
+        ? (workingMinutes / standardMinutes).clamp(0.0, 1.0)
+        : 0.0;
+
+    final status = today?['status']?.toString().toLowerCase();
+
+    final lateMinutes =
+        int.tryParse(today?['lateMinutes']?.toString() ?? '0') ?? 0;
+
+    String statusText;
+
+    if (today == null) {
+      statusText = 'Not checked in';
+    } else if (today['exitTime'] != null) {
+      if (status == 'late') {
+        statusText = lateMinutes > 0
+            ? 'Late by $lateMinutes min'
+            : 'Shift completed';
+      } else {
+        statusText = 'Shift completed';
+      }
+    } else if (status == 'late') {
+      statusText = lateMinutes > 0
+          ? 'Late by $lateMinutes min'
+          : 'Late check-in';
+    } else {
+      statusText = 'On Time, Check-in';
+    }
+
     return Container(
       height: 120,
       padding: const EdgeInsets.all(12),
@@ -450,8 +669,14 @@ class _AttendanceCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.person_outline, size: 16, color: Color(0xFF75666C)),
-              SizedBox(width: 4),
+              const Icon(
+                Icons.person_outline,
+                size: 16,
+                color: Color(0xFF75666C),
+              ),
+
+              const SizedBox(width: 4),
+
               Text(
                 'ATTENDANCE',
                 style: GoogleFonts.inter(
@@ -470,15 +695,18 @@ class _AttendanceCard extends StatelessWidget {
             text: TextSpan(
               children: [
                 TextSpan(
-                  text: '5h 30m',
+                  text: _formatMinutes(workingMinutes),
                   style: GoogleFonts.inter(
                     fontSize: 20,
                     fontWeight: FontWeight.w700,
                     color: AppColors.textColor,
                   ),
                 ),
+
                 TextSpan(
-                  text: ' / 8h',
+                  text: standardMinutes > 0
+                      ? ' / ${_formatMinutes(standardMinutes)}'
+                      : '',
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: AppColors.mutedColor,
@@ -493,17 +721,21 @@ class _AttendanceCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(4),
             child: LinearProgressIndicator(
-              value: .68,
+              value: progress,
               minHeight: 6,
-              backgroundColor: Color(0xFFE4E1EE),
-              valueColor: AlwaysStoppedAnimation(AppColors.primaryFillColor),
+              backgroundColor: const Color(0xFFE4E1EE),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                AppColors.primaryFillColor,
+              ),
             ),
           ),
 
           const SizedBox(height: 6),
 
           Text(
-            'On Time, Check-in',
+            statusText,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.inter(fontSize: 11, color: AppColors.mutedColor),
           ),
         ],
@@ -513,10 +745,25 @@ class _AttendanceCard extends StatelessWidget {
 }
 
 class _ProductivityCard extends StatelessWidget {
-  const _ProductivityCard();
+  final Map<String, dynamic>? dashboard;
+
+  const _ProductivityCard({this.dashboard});
 
   @override
   Widget build(BuildContext context) {
+    final productivity = dashboard?['productivity'];
+
+    final int percent =
+        int.tryParse(productivity?['percent']?.toString() ?? '0') ?? 0;
+
+    final int previousPercent =
+        int.tryParse(productivity?['previousPercent']?.toString() ?? '0') ?? 0;
+
+    final int deltaPercent =
+        int.tryParse(productivity?['deltaPercent']?.toString() ?? '0') ?? 0;
+
+    final bool isPositive = deltaPercent >= 0;
+
     return Container(
       height: 120,
       padding: const EdgeInsets.all(12),
@@ -530,8 +777,10 @@ class _ProductivityCard extends StatelessWidget {
         children: [
           Row(
             children: [
-              Icon(Icons.trending_up, size: 16, color: Color(0xFF75666C)),
-              SizedBox(width: 4),
+              const Icon(Icons.trending_up, size: 16, color: Color(0xFF75666C)),
+
+              const SizedBox(width: 4),
+
               Text(
                 'PRODUCTIVITY',
                 style: GoogleFonts.inter(
@@ -547,11 +796,11 @@ class _ProductivityCard extends StatelessWidget {
           const SizedBox(height: 6),
 
           Text(
-            '92%',
+            '$percent%',
             style: GoogleFonts.inter(
               fontSize: 30,
               fontWeight: FontWeight.bold,
-              color: Color(0xFF302329),
+              color: const Color(0xFF302329),
               height: 1,
             ),
           ),
@@ -560,14 +809,29 @@ class _ProductivityCard extends StatelessWidget {
 
           Row(
             children: [
-              Icon(Icons.arrow_upward, size: 10, color: Color(0xFF16A34A)),
+              Icon(
+                isPositive ? Icons.arrow_upward : Icons.arrow_downward,
+                size: 10,
+                color: isPositive
+                    ? const Color(0xFF16A34A)
+                    : const Color(0xFFBA1A1A),
+              ),
+
               const SizedBox(width: 4),
-              Text(
-                '+4% from last week',
-                style: GoogleFonts.inter(
-                  fontSize: 11,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF16A34A),
+
+              Expanded(
+                child: Text(
+                  '${isPositive ? '+' : ''}$deltaPercent% '
+                  'from last week',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: isPositive
+                        ? const Color(0xFF16A34A)
+                        : const Color(0xFFBA1A1A),
+                  ),
                 ),
               ),
             ],

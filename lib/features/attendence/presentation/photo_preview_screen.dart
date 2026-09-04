@@ -5,11 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:workforce/app/routes/app_routes.dart';
 
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/features/attendence/providers/attendance_provider.dart';
-
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 
 class PhotoPreviewScreen extends ConsumerStatefulWidget {
@@ -33,6 +31,10 @@ class PhotoPreviewScreen extends ConsumerStatefulWidget {
 class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
   bool _isSubmitting = false;
 
+  // =========================================================
+  // USE PHOTO / FACE ATTENDANCE
+  // =========================================================
+
   Future<void> _usePhoto() async {
     if (_isSubmitting) return;
 
@@ -40,41 +42,78 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
       _isSubmitting = true;
     });
 
-    final success = await ref
-        .read(attendanceProvider.notifier)
-        .checkIn(
-          photoPath: widget.imagePath,
-          lat: widget.latitude,
-          lng: widget.longitude,
-          accuracy: widget.accuracy,
-        );
+    try {
+      debugPrint('========================================');
+      debugPrint('📷 FACE ATTENDANCE');
+      debugPrint('📷 Image: ${widget.imagePath}');
+      debugPrint('📍 Latitude: ${widget.latitude}');
+      debugPrint('📍 Longitude: ${widget.longitude}');
+      debugPrint('📍 Accuracy: ${widget.accuracy}');
+      debugPrint('========================================');
 
-    if (!mounted) return;
+      // =======================================================
+      // Call Attendance Provider
+      // =======================================================
 
-    setState(() {
-      _isSubmitting = false;
-    });
+      final success = await ref
+          .read(attendanceProvider.notifier)
+          .checkIn(
+            attendanceType: 'face',
+            photoPath: widget.imagePath,
+            lat: widget.latitude,
+            lng: widget.longitude,
+            accuracy: widget.accuracy,
+          );
 
-    final attendanceState = ref.read(attendanceProvider);
+      if (!mounted) return;
 
-    if (success) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(const SnackBar(content: Text('Check-in successful')));
+      final attendanceState = ref.read(attendanceProvider);
 
-      // Return to the previous screen after successful check-in.
-      Navigator.pop(context, true);
-    } else {
-      // ScaffoldMessenger.of(context).showSnackBar(
-      //   SnackBar(
-      //     content: Text(
-      //       attendanceState.message ??
-      //           'Unable to check in. Please try again.',
-      //     ),
-      //   ),
-      // );
-      context.push(AppRoutes.verificationUnsuccessful);
+      // =======================================================
+      // SUCCESS
+      // =======================================================
+
+      if (success) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('Check-in successful')));
+
+        // Return to previous screen.
+        context.pop(true);
+
+        return;
+      }
+
+      // =======================================================
+      // ERROR
+      // =======================================================
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            attendanceState.message ?? 'Unable to check in. Please try again.',
+          ),
+        ),
+      );
+    } catch (e) {
+      debugPrint('❌ FACE ATTENDANCE ERROR: $e');
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
+
+  // =========================================================
+  // BUILD
+  // =========================================================
 
   @override
   Widget build(BuildContext context) {
@@ -106,16 +145,24 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
 
               const SizedBox(height: 16),
 
+              // =================================================
+              // USE PHOTO
+              // =================================================
               WorkforcePrimaryButton(
                 title: _isSubmitting ? 'Checking In...' : 'Use This Photo',
                 icon: Icons.check_circle_outline,
-                onPressed: () {
-                  if (!_isSubmitting) _usePhoto();
-                },
+                onPressed: _isSubmitting
+                    ? () {}
+                    : () {
+                        _usePhoto();
+                      },
               ),
 
               const SizedBox(height: 12),
 
+              // =================================================
+              // RETAKE
+              // =================================================
               _buildRetakeButton(context),
             ],
           ),
@@ -123,6 +170,10 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
       ),
     );
   }
+
+  // =========================================================
+  // PHOTO
+  // =========================================================
 
   Widget _buildPhoto() {
     return ClipRRect(
@@ -135,6 +186,10 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
       ),
     );
   }
+
+  // =========================================================
+  // PHOTO INFO
+  // =========================================================
 
   Widget _buildPhotoInfo() {
     return Container(
@@ -216,16 +271,25 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
     );
   }
 
+  // =========================================================
+  // LOCATION TEXT
+  // =========================================================
+
   String _locationText() {
     final lat = widget.latitude.toStringAsFixed(6);
     final lng = widget.longitude.toStringAsFixed(6);
 
     if (widget.accuracy != null) {
-      return '$lat, $lng · Accuracy ${widget.accuracy!.toStringAsFixed(0)}m';
+      return '$lat, $lng · Accuracy '
+          '${widget.accuracy!.toStringAsFixed(0)}m';
     }
 
     return '$lat, $lng';
   }
+
+  // =========================================================
+  // DATE / TIME
+  // =========================================================
 
   String _currentDateTime() {
     final now = DateTime.now();
@@ -252,11 +316,16 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
         : now.hour;
 
     final minute = now.minute.toString().padLeft(2, '0');
+
     final period = now.hour >= 12 ? 'PM' : 'AM';
 
     return '${months[now.month - 1]} ${now.day}, '
         '${now.year} · $hour:$minute $period';
   }
+
+  // =========================================================
+  // SECURITY MESSAGE
+  // =========================================================
 
   Widget _buildSecurityMessage() {
     return SizedBox(
@@ -264,7 +333,9 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
       child: Column(
         children: [
           SvgPicture.asset('assets/icons/face.svg', width: 16, height: 16),
+
           const SizedBox(height: 8),
+
           Text(
             'Make sure your face is clearly visible, well-lit, '
             'and not obstructed before continuing.',
@@ -276,6 +347,10 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
     );
   }
 
+  // =========================================================
+  // SECURITY IDENTITY
+  // =========================================================
+
   Widget _securityIdentityMessage() {
     return SizedBox(
       width: double.infinity,
@@ -283,7 +358,9 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           SvgPicture.asset('assets/icons/lock.svg', width: 12, height: 12),
+
           const SizedBox(width: 8),
+
           Text(
             'Secure Attendance Verification',
             textAlign: TextAlign.center,
@@ -294,6 +371,10 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
     );
   }
 
+  // =========================================================
+  // RETAKE PHOTO
+  // =========================================================
+
   Widget _buildRetakeButton(BuildContext context) {
     return SizedBox(
       width: double.infinity,
@@ -302,7 +383,7 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
         onPressed: _isSubmitting
             ? null
             : () {
-                Navigator.pop(context);
+                context.pop();
               },
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.primaryFillColor,

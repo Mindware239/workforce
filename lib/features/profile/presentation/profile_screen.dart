@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/features/auth/providers/auth_provider.dart';
 import 'package:workforce/features/profile/presentation/bank_details_widget.dart';
@@ -14,7 +16,7 @@ class ProfileScreen extends ConsumerWidget {
     final authState = ref.watch(authProvider);
     final user = authState.user;
 
-    debugPrint("Hello:-->'$user?.toString()'");
+    // debugPrint("Hello:-->'$user?.toString()'");
 
     final String fullName = user?['fullName']?.toString() ?? 'Employee';
     final String employeeId = user?['employeeId']?.toString() ?? '-';
@@ -24,8 +26,7 @@ class ProfileScreen extends ConsumerWidget {
     final String organizationName =
         user?['organizationName']?.toString() ?? '-';
     final String workspaceId = user?['workspaceId']?.toString() ?? '-';
-    final String organizationId =
-        user?['organizationId']?.toString() ?? '-';
+    final String organizationId = user?['organizationId']?.toString() ?? '-';
 
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
@@ -36,9 +37,7 @@ class ProfileScreen extends ConsumerWidget {
           IconButton(
             onPressed: () {
               Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const SettingsScreen(),
-                ),
+                MaterialPageRoute(builder: (context) => const SettingsScreen()),
               );
             },
             icon: const Icon(
@@ -54,10 +53,7 @@ class ProfileScreen extends ConsumerWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              _buildProfileHeader(
-                fullName: fullName,
-                employeeId: employeeId,
-              ),
+              _buildProfileHeader(fullName: fullName, employeeId: employeeId),
 
               const SizedBox(height: 24),
 
@@ -74,9 +70,13 @@ class ProfileScreen extends ConsumerWidget {
                 workspaceId: workspaceId,
                 organizationId: organizationId,
               ),
-               const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-              BankDetailsWidget()
+              _buildDocument(context),
+
+              const SizedBox(height: 16),
+
+              BankDetailsWidget(),
             ],
           ),
         ),
@@ -93,19 +93,13 @@ class ProfileScreen extends ConsumerWidget {
         Container(
           width: 128,
           height: 128,
-          decoration: const BoxDecoration(
-            shape: BoxShape.circle,
-          ),
+          decoration: const BoxDecoration(shape: BoxShape.circle),
           child: ClipOval(
             child: Image.asset(
               'assets/images/profile.png',
               fit: BoxFit.cover,
               errorBuilder: (_, __, ___) {
-                return const Icon(
-                  Icons.person,
-                  size: 45,
-                  color: Colors.white,
-                );
+                return const Icon(Icons.person, size: 45, color: Colors.white);
               },
             ),
           ),
@@ -150,10 +144,7 @@ class ProfileScreen extends ConsumerWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            icon: const Icon(
-              Icons.edit_outlined,
-              size: 16,
-            ),
+            icon: const Icon(Icons.edit_outlined, size: 16),
             label: Text(
               'Edit Profile',
               style: GoogleFonts.inter(
@@ -183,25 +174,54 @@ class ProfileScreen extends ConsumerWidget {
 
           const SizedBox(height: 8),
 
-          _DetailItem(
-            label: 'ROLE',
-            value: role,
-          ),
+          _DetailItem(label: 'ROLE', value: role),
 
-          _DetailItem(
-            label: 'MOBILE NUMBER',
-            value: mobileNumber,
-          ),
+          _DetailItem(label: 'MOBILE NUMBER', value: mobileNumber),
 
-          _DetailItem(
-            label: 'EMAIL',
-            value: email,
-          ),
+          _DetailItem(label: 'EMAIL', value: email),
 
           const _DetailItem(
             label: 'DEPARTMENT',
             value: 'Not available',
             isLast: true,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDocument(BuildContext context) {
+    return _ProfileCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const _CardHeader(icon: Icons.file_copy, title: 'Documents'),
+
+          const SizedBox(height: 8),
+
+          OutlinedButton(
+            onPressed: () {
+              context.push(AppRoutes.document);
+            },
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              minimumSize: Size.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              side: const BorderSide(color: AppColors.borderColor, width: 1),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: Text(
+              'View & Upload Documents',
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                letterSpacing: .2,
+                color: AppColors.mutedColor,
+              ),
+            ),
           ),
         ],
       ),
@@ -229,11 +249,8 @@ class ProfileScreen extends ConsumerWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(
-                color: AppColors.borderColor,
-                width: 1,
-              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.borderColor, width: 1),
             ),
             child: Row(
               children: [
@@ -241,9 +258,7 @@ class ProfileScreen extends ConsumerWidget {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF3525CD).withValues(
-                      alpha: 0.1,
-                    ),
+                    color: const Color(0xFF3525CD).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -318,10 +333,7 @@ class _ProfileCard extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: AppColors.borderColor,
-          width: 1,
-        ),
+        border: Border.all(color: AppColors.borderColor, width: 1),
       ),
       child: child,
     );
@@ -332,20 +344,13 @@ class _CardHeader extends StatelessWidget {
   final IconData icon;
   final String title;
 
-  const _CardHeader({
-    required this.icon,
-    required this.title,
-  });
+  const _CardHeader({required this.icon, required this.title});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 20,
-          color: AppColors.primaryFillColor,
-        ),
+        Icon(icon, size: 20, color: AppColors.primaryFillColor),
         const SizedBox(width: 8),
         Text(
           title,
@@ -380,10 +385,7 @@ class _DetailItem extends StatelessWidget {
         border: isLast
             ? null
             : const Border(
-                bottom: BorderSide(
-                  color: AppColors.borderColor,
-                  width: 1,
-                ),
+                bottom: BorderSide(color: AppColors.borderColor, width: 1),
               ),
       ),
       child: Column(

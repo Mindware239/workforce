@@ -33,6 +33,8 @@ dependencies:
   geolocator: ^14.0.3
   intl: ^0.20.3
   file_picker: ^12.2.0
+  biometric_signature: ^13.0.0
+  uuid: ^4.6.0
 
 dev_dependencies:
   flutter_test:
