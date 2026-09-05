@@ -9,6 +9,7 @@ import 'package:workforce/features/dashboard/providers/dashboard_provider.dart';
 import 'package:workforce/features/home/presentation/home_screen.dart';
 import 'package:workforce/features/profile/presentation/profile_screen.dart';
 import 'package:workforce/features/schedule/presentation/schedule_screen.dart';
+import 'package:workforce/features/task/presentation/task_screen.dart';
 
 class DashboardPage extends ConsumerWidget {
   final int index;
@@ -18,7 +19,7 @@ class DashboardPage extends ConsumerWidget {
   static const List<Widget> screens = [
     HomeScreen(),
     AttendanceScreen(),
-    // AttendanceHistoryScreen(),
+    TasksScreen(),
     ScheduleScreen(),
     ProfileScreen(),
   ];
@@ -63,6 +64,7 @@ class _DashboardBottomNav extends StatelessWidget {
   static const List<_NavItem> items = [
     _NavItem(label: 'Dashboard', icon: 'assets/icons/dashboard.svg'),
     _NavItem(label: 'Attendance', icon: 'assets/icons/attendence.svg'),
+    _NavItem(label: 'Task', icon: 'assets/icons/task.svg'),
     _NavItem(label: 'Schedule', icon: 'assets/icons/schedule.svg'),
     _NavItem(label: 'Profile', icon: 'assets/icons/profile.svg'),
   ];

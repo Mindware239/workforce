@@ -34,14 +34,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
-      // appBar: AppBar(
-      //   backgroundColor: AppColors.whiteBackgroundColor,
-      //   surfaceTintColor: AppColors.whiteBackgroundColor,
-      // ),
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: () {
-            return ref.read(attendanceProvider.notifier).getTodayAttendance();
+          onRefresh: () async {
+            await ref.read(attendanceProvider.notifier).getTodayAttendance();
           },
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -239,15 +235,15 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     return Column(
       children: [
         GestureDetector(
-          onTap: hasAttendance
-              ? () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const ActiveWorkSessionScreen(),
-                    ),
-                  );
-                }
-              : null,
+          // onTap: hasAttendance
+          //     ? () {
+          //         Navigator.of(context).push(
+          //           MaterialPageRoute(
+          //             builder: (context) => const ActiveWorkSessionScreen(),
+          //           ),
+          //         );
+          //       }
+          //     : null,
           child: _StatCard(
             title: 'Hours Worked',
             value: hasAttendance ? _formatDuration(workingMinutes) : '--',
@@ -258,15 +254,15 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         const SizedBox(height: 12),
 
         GestureDetector(
-          onTap: hasAttendance
-              ? () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) => const CompleteShiftScreen(),
-                    ),
-                  );
-                }
-              : null,
+          // onTap: hasAttendance
+          //     ? () {
+          //         Navigator.of(context).push(
+          //           MaterialPageRoute(
+          //             builder: (context) => const CompleteShiftScreen(),
+          //           ),
+          //         );
+          //       }
+          //     : null,
           child: _StatCard(
             title: 'Break Duration',
             value: hasAttendance ? _formatDuration(breakMinutes) : '--',
@@ -277,16 +273,16 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         const SizedBox(height: 12),
 
         GestureDetector(
-          onTap: hasAttendance
-              ? () {
-                  Navigator.of(context).push(
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          const ConfirmCheckoutPhotoScreen(imagePath: ''),
-                    ),
-                  );
-                }
-              : null,
+          // onTap: hasAttendance
+          //     ? () {
+          //         Navigator.of(context).push(
+          //           MaterialPageRoute(
+          //             builder: (context) =>
+          //                 const ConfirmCheckoutPhotoScreen(imagePath: ''),
+          //           ),
+          //         );
+          //       }
+          //     : null,
           child: _StatCard(
             title: 'Remaining',
             value: hasAttendance ? _formatDuration(remainingMinutes) : '--',

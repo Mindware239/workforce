@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../data/attendance_repository.dart';
@@ -173,55 +175,55 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
     return const AttendanceState();
   }
 
-  // ============================================================
-  // CHECK IN
-  // ============================================================
+  
+ Future<bool> checkIn({
+  required String attendanceType,
+  String? photoPath,
+  required double lat,
+  required double lng,
+  double? accuracy,
+  String? deviceId,
+  int? challengeId,
+  String? signature,
+}) async {
+  state = state.copyWith(
+    status: AttendanceStatus.loading,
+    clearMessage: true,
+  );
 
-  Future<bool> checkIn({
-    required String attendanceType,
-    String? photoPath,
-    String? signature,
-    required double lat,
-    required double lng,
-    double? accuracy,
-  }) async {
-    state = state.copyWith(
-      status: AttendanceStatus.loading,
-      clearMessage: true,
+  try {
+    // This POST is the authoritative check-in operation.
+    await repository.checkIn(
+      attendanceType: attendanceType,
+      photoPath: photoPath,
+      lat: lat,
+      lng: lng,
+      accuracy: accuracy,
+      deviceId: deviceId,
+      challengeId: challengeId,
+      signature: signature,
     );
 
-    try {
-      await repository.checkIn(
-        attendanceType: attendanceType,
-        photoPath: photoPath,
-        signature: signature,
-        lat: lat,
-        lng: lng,
-        accuracy: accuracy,
-      );
+    // The backend has already accepted the check-in.
+    // A GET refresh must never turn that successful operation
+    // into an error result shown to the user.
+    await _refreshTodaySilently();
 
-      state = state.copyWith(
-        status: AttendanceStatus.success,
-        message: 'Check-in successful',
-      );
+    state = state.copyWith(
+      status: AttendanceStatus.success,
+      message: 'Check-in successful',
+    );
 
-      await getTodayAttendance();
+    return true;
+  } catch (e) {
+    state = state.copyWith(
+      status: AttendanceStatus.error,
+      message: _cleanError(e),
+    );
 
-      return true;
-    } catch (e) {
-      state = state.copyWith(
-        status: AttendanceStatus.error,
-        message: e.toString().replaceFirst('Exception: ', ''),
-      );
-
-      return false;
-    }
+    return false;
   }
-
-  // ============================================================
-  // TODAY ATTENDANCE
-  // GET /attendance/me/today
-  // ============================================================
+}
 
   Future<void> getTodayAttendance() async {
     state = state.copyWith(isLoadingToday: true, clearMessage: true);
@@ -286,6 +288,77 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
       state = state.copyWith(
         isLoadingToday: false,
         message: e.toString().replaceFirst('Exception: ', ''),
+      );
+    }
+  }
+
+  Future<void> _refreshTodaySilently() async {
+    try {
+      final response = await repository.getTodayAttendance();
+      final data = response['data'];
+
+      if (data is! Map) {
+        debugPrint(
+          '⚠️ Today attendance refresh returned invalid data.',
+        );
+        return;
+      }
+
+      final todayData = data['today'];
+      final scheduleData = data['schedule'];
+      final breaksData = data['breaks'];
+      final activeBreakData = data['activeBreak'];
+      final timelineData = data['timeline'];
+
+      final parsedBreaks = <Map<String, dynamic>>[];
+
+      if (breaksData is List) {
+        for (final item in breaksData) {
+          if (item is Map) {
+            parsedBreaks.add(
+              Map<String, dynamic>.from(item),
+            );
+          }
+        }
+      }
+
+      final parsedTimeline = <Map<String, dynamic>>[];
+
+      if (timelineData is List) {
+        for (final item in timelineData) {
+          if (item is Map) {
+            parsedTimeline.add(
+              Map<String, dynamic>.from(item),
+            );
+          }
+        }
+      }
+
+      state = state.copyWith(
+        isLoadingToday: false,
+        today: todayData is Map
+            ? Map<String, dynamic>.from(todayData)
+            : null,
+        schedule: scheduleData is Map
+            ? Map<String, dynamic>.from(scheduleData)
+            : null,
+        breaks: parsedBreaks,
+        breakMinutes: data['breakMinutes'] is num
+            ? (data['breakMinutes'] as num).toInt()
+            : 0,
+        activeBreak: activeBreakData is Map
+            ? Map<String, dynamic>.from(activeBreakData)
+            : null,
+        timeline: parsedTimeline,
+      );
+    } catch (e) {
+      // Do not change status/message here. The mutation already succeeded.
+      debugPrint(
+        '⚠️ Attendance mutation succeeded, but today refresh failed: $e',
+      );
+
+      state = state.copyWith(
+        isLoadingToday: false,
       );
     }
   }
@@ -430,6 +503,125 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
         message: e.toString().replaceFirst('Exception: ', ''),
       );
     }
+  }
+
+  // ============================================================
+  // BREAK
+  // ============================================================
+
+  Future<bool> startBreak() async {
+    state = state.copyWith(
+      status: AttendanceStatus.loading,
+      clearMessage: true,
+    );
+
+    try {
+      await repository.startBreak();
+
+      state = state.copyWith(
+        status: AttendanceStatus.success,
+        message: 'Break started',
+      );
+
+      // Refresh activeBreak, breaks and timeline
+      await getTodayAttendance();
+
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        status: AttendanceStatus.error,
+        message: e.toString().replaceFirst('Exception: ', ''),
+      );
+
+      return false;
+    }
+  }
+
+  Future<bool> endBreak() async {
+    state = state.copyWith(
+      status: AttendanceStatus.loading,
+      clearMessage: true,
+    );
+
+    try {
+      await repository.endBreak();
+
+      state = state.copyWith(
+        status: AttendanceStatus.success,
+        message: 'Break ended',
+      );
+
+      // Refresh activeBreak, breaks and timeline
+      await getTodayAttendance();
+
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        status: AttendanceStatus.error,
+        message: e.toString().replaceFirst('Exception: ', ''),
+      );
+
+      return false;
+    }
+  }
+
+  Future<bool> checkout({
+  required String attendanceType,
+  String? photoPath,
+  String? workAudioPath,
+  String? workDescription,
+  required double lat,
+  required double lng,
+  double? accuracy,
+  String? deviceId,
+  int? challengeId,
+  String? signature,
+}) async {
+  state = state.copyWith(
+    status: AttendanceStatus.loading,
+    clearMessage: true,
+  );
+
+  try {
+    // This POST is the authoritative checkout operation.
+    await repository.checkout(
+      attendanceType: attendanceType,
+      photoPath: photoPath,
+      workAudioPath: workAudioPath,
+      workDescription: workDescription,
+      lat: lat,
+      lng: lng,
+      accuracy: accuracy,
+      deviceId: deviceId,
+      challengeId: challengeId,
+      signature: signature,
+    );
+
+    // Refresh today's attendance, but do not allow a GET failure
+    // to make the successful checkout look like a failed operation.
+    await _refreshTodaySilently();
+
+    state = state.copyWith(
+      status: AttendanceStatus.success,
+      message: 'Session ended successfully',
+    );
+
+    return true;
+  } catch (e) {
+    state = state.copyWith(
+      status: AttendanceStatus.error,
+      message: _cleanError(e),
+    );
+
+    return false;
+  }
+}
+
+  String _cleanError(Object error) {
+    return error
+        .toString()
+        .replaceFirst('Exception: ', '')
+        .trim();
   }
 
   // ============================================================

@@ -5,12 +5,14 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:workforce/app/routes/app_routes.dart';
 
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/features/attendence/providers/attendance_provider.dart';
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 
 class PhotoPreviewScreen extends ConsumerStatefulWidget {
+  final bool? isStart;
   final String imagePath;
   final double latitude;
   final double longitude;
@@ -22,6 +24,7 @@ class PhotoPreviewScreen extends ConsumerStatefulWidget {
     required this.latitude,
     required this.longitude,
     this.accuracy,
+    this.isStart,
   });
 
   @override
@@ -30,10 +33,6 @@ class PhotoPreviewScreen extends ConsumerStatefulWidget {
 
 class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
   bool _isSubmitting = false;
-
-  // =========================================================
-  // USE PHOTO / FACE ATTENDANCE
-  // =========================================================
 
   Future<void> _usePhoto() async {
     if (_isSubmitting) return;
@@ -51,41 +50,45 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
       debugPrint('📍 Accuracy: ${widget.accuracy}');
       debugPrint('========================================');
 
-      // =======================================================
-      // Call Attendance Provider
-      // =======================================================
-
-      final success = await ref
-          .read(attendanceProvider.notifier)
-          .checkIn(
-            attendanceType: 'face',
-            photoPath: widget.imagePath,
-            lat: widget.latitude,
-            lng: widget.longitude,
-            accuracy: widget.accuracy,
-          );
+      final success = widget.isStart == true
+          ? await ref
+                .read(attendanceProvider.notifier)
+                .checkIn(
+                  attendanceType: 'face',
+                  photoPath: widget.imagePath,
+                  lat: widget.latitude,
+                  lng: widget.longitude,
+                  accuracy: widget.accuracy,
+                )
+          : await ref
+                .read(attendanceProvider.notifier)
+                .checkout(
+                  attendanceType: 'face',
+                  photoPath: widget.imagePath,
+                  lat: widget.latitude,
+                  lng: widget.longitude,
+                  accuracy: widget.accuracy,
+                );
 
       if (!mounted) return;
 
       final attendanceState = ref.read(attendanceProvider);
 
-      // =======================================================
-      // SUCCESS
-      // =======================================================
-
       if (success) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('Check-in successful')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              widget.isStart == true
+                  ? 'Check-in successful'
+                  : 'Check-out successful',
+            ),
+          ),
+        );
 
-        // Return to previous screen.
-        context.pop(true);
+        context.go(AppRoutes.dashboard);
 
         return;
       }
-
-      // =======================================================
-      // ERROR
-      // =======================================================
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -110,10 +113,6 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
       }
     }
   }
-
-  // =========================================================
-  // BUILD
-  // =========================================================
 
   @override
   Widget build(BuildContext context) {
@@ -145,9 +144,6 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
 
               const SizedBox(height: 16),
 
-              // =================================================
-              // USE PHOTO
-              // =================================================
               WorkforcePrimaryButton(
                 title: _isSubmitting ? 'Checking In...' : 'Use This Photo',
                 icon: Icons.check_circle_outline,
@@ -160,9 +156,6 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
 
               const SizedBox(height: 12),
 
-              // =================================================
-              // RETAKE
-              // =================================================
               _buildRetakeButton(context),
             ],
           ),
@@ -170,10 +163,6 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
       ),
     );
   }
-
-  // =========================================================
-  // PHOTO
-  // =========================================================
 
   Widget _buildPhoto() {
     return ClipRRect(
@@ -186,10 +175,6 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
       ),
     );
   }
-
-  // =========================================================
-  // PHOTO INFO
-  // =========================================================
 
   Widget _buildPhotoInfo() {
     return Container(
@@ -271,10 +256,6 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
     );
   }
 
-  // =========================================================
-  // LOCATION TEXT
-  // =========================================================
-
   String _locationText() {
     final lat = widget.latitude.toStringAsFixed(6);
     final lng = widget.longitude.toStringAsFixed(6);
@@ -286,10 +267,6 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
 
     return '$lat, $lng';
   }
-
-  // =========================================================
-  // DATE / TIME
-  // =========================================================
 
   String _currentDateTime() {
     final now = DateTime.now();
@@ -323,10 +300,6 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
         '${now.year} · $hour:$minute $period';
   }
 
-  // =========================================================
-  // SECURITY MESSAGE
-  // =========================================================
-
   Widget _buildSecurityMessage() {
     return SizedBox(
       width: double.infinity,
@@ -347,10 +320,6 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
     );
   }
 
-  // =========================================================
-  // SECURITY IDENTITY
-  // =========================================================
-
   Widget _securityIdentityMessage() {
     return SizedBox(
       width: double.infinity,
@@ -370,10 +339,6 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
       ),
     );
   }
-
-  // =========================================================
-  // RETAKE PHOTO
-  // =========================================================
 
   Widget _buildRetakeButton(BuildContext context) {
     return SizedBox(

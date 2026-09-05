@@ -15,6 +15,7 @@ import 'package:workforce/features/home/presentation/home_screen.dart';
 import 'package:workforce/features/attendence/presentation/attendence_screen.dart';
 import 'package:workforce/features/schedule/presentation/schedule_screen.dart';
 import 'package:workforce/features/profile/presentation/profile_screen.dart';
+import 'package:workforce/features/task/presentation/task_screen.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
@@ -24,6 +25,7 @@ class AppRoutes {
   static const String home = '/dashboard/home';
   static const String attendance = '/dashboard/attendance';
   static const String attendanceHistory = '/dashboard/attendanceHistory';
+   static const String task = '/dashboard/task';
   static const String schedule = '/dashboard/schedule';
   static const String profile = '/dashboard/profile';
   static const String document = '/dashboard/document';
@@ -66,7 +68,8 @@ class AppRoutes {
       path: faceCapture,
       name: 'faceCapture',
       builder: (context, state) {
-        return const FaceCaptureScreen();
+        final data = state.extra as Map<String, dynamic>;
+        return FaceCaptureScreen(isStart: data['isStart'] as bool?);
       },
     ),
     GoRoute(
@@ -101,6 +104,7 @@ class AppRoutes {
           latitude: data['latitude'] as double,
           longitude: data['longitude'] as double,
           accuracy: data['accuracy'] as double?,
+          isStart: data['isStart'] as bool?,
         );
       },
     ),
@@ -122,6 +126,14 @@ class AppRoutes {
       name: 'home',
       builder: (context, state) {
         return const HomeScreen();
+      },
+    ),
+
+     GoRoute(
+      path: task,
+      name: 'task',
+      builder: (context, state) {
+        return const TasksScreen();
       },
     ),
 

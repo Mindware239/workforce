@@ -26,7 +26,7 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
-  Future<void> _startShift() async {
+  Future<void> _startShift(bool isStart) async {
     bool loadingShown = false;
 
     try {
@@ -134,9 +134,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       context.push(
         AppRoutes.faceCapture,
         extra: {
-          'latitude': position.latitude,
-          'longitude': position.longitude,
-          'accuracy': position.accuracy,
+          // 'latitude': position.latitude,
+          // 'longitude': position.longitude,
+          // 'accuracy': position.accuracy,
+          'isStart': isStart,
         },
       );
     } catch (e, stackTrace) {
@@ -169,34 +170,57 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final attendanceState = ref.watch(attendanceProvider);
     final notificationState = ref.watch(notificationProvider);
 
     final authState = ref.watch(authProvider);
     final user = authState.user;
 
     final String fullName = user?['fullName']?.toString() ?? 'Employee';
+
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
       body: SafeArea(
-        child: SingleChildScrollView(
-          // physics: const BouncingScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-              const SizedBox(height: 8),
-              CurrentDateText(),
-              // _buildDate(),
-              const SizedBox(height: 8),
-              _buildGreeting(fullName),
-              const SizedBox(height: 16),
-              _buildShiftCard(),
-              const SizedBox(height: 16),
-              _buildStats(),
-              const SizedBox(height: 16),
-              _buildQuickActions(notificationState),
-            ],
+        child: RefreshIndicator(
+          onRefresh: () async {
+            await Future.wait([
+              ref.read(attendanceProvider.notifier).getDashboard(),
+
+              ref.read(attendanceProvider.notifier).getTodayAttendance(),
+
+              ref.read(notificationProvider.notifier).fetchNotifications(),
+            ]);
+          },
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+
+                const SizedBox(height: 8),
+
+                CurrentDateText(),
+
+                const SizedBox(height: 8),
+
+                _buildGreeting(fullName),
+
+                const SizedBox(height: 16),
+
+                // 🔄 Rebuilds whenever attendanceProvider changes
+                _buildShiftCard(attendanceState),
+
+                const SizedBox(height: 16),
+
+                // 🔄 Rebuilds whenever attendanceProvider changes
+                _buildStats(attendanceState),
+
+                const SizedBox(height: 16),
+
+                _buildQuickActions(notificationState),
+              ],
+            ),
           ),
         ),
       ),
@@ -267,14 +291,13 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildShiftCard() {
-    final attendanceState = ref.watch(attendanceProvider);
-
+  Widget _buildShiftCard(AttendanceState attendanceState) {
     final dashboard = attendanceState.dashboard;
 
     final today = dashboard?['today'];
-
     final schedule = dashboard?['schedule'];
+
+    final activeBreak = attendanceState.activeBreak;
 
     if (attendanceState.isLoadingDashboard && dashboard == null) {
       return Container(
@@ -316,6 +339,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     final hasCheckedOut = today != null && today['exitTime'] != null;
 
+    final isBreakActive = activeBreak != null;
+
     final status = today?['status']?.toString().toLowerCase();
 
     String statusText;
@@ -329,15 +354,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       statusColor = const Color(0xFF137333);
       statusBackground = const Color(0xFFE6F4EA);
     } else if (hasCheckedIn) {
-      if (status == 'late') {
+      if (isBreakActive) {
+        statusText = 'On Break';
+        statusIcon = Icons.coffee_outlined;
+        statusColor = const Color(0xFFB06000);
+        statusBackground = const Color(0xFFFFF1D6);
+      } else if (status == 'late') {
         statusText = 'Checked In • Late';
+        statusIcon = Icons.access_time;
+        statusColor = AppColors.primaryFillColor;
+        statusBackground = const Color(0xFFE8D8FF);
       } else {
         statusText = 'Checked In';
+        statusIcon = Icons.access_time;
+        statusColor = AppColors.primaryFillColor;
+        statusBackground = const Color(0xFFE8D8FF);
       }
-
-      statusIcon = Icons.access_time;
-      statusColor = AppColors.primaryFillColor;
-      statusBackground = const Color(0xFFE8D8FF);
     } else {
       statusText = 'Upcoming';
       statusIcon = Icons.access_time;
@@ -409,13 +441,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
           const SizedBox(height: 10),
 
+          // ======================================================
+          // BEFORE CHECK-IN
+          // ======================================================
           if (!hasCheckedIn)
             SizedBox(
               width: double.infinity,
               height: 48,
               child: ElevatedButton.icon(
                 onPressed: () {
-                  _startShift();
+                  _startShift(true);
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: HomeScreen.primaryColor,
@@ -436,24 +471,125 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 ),
               ),
             )
+          // ======================================================
+          // SHIFT IN PROGRESS
+          // ======================================================
           else if (!hasCheckedOut)
-            Container(
-              width: double.infinity,
-              height: 48,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF0ECF9),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Text(
-                'Shift in progress',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.primaryFillColor,
+            Column(
+              children: [
+                // -----------------------------------------------
+                // BREAK BUTTON
+                // -----------------------------------------------
+
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton.icon(
+                    onPressed:
+                        attendanceState.status == AttendanceStatus.loading
+                        ? null
+                        : () async {
+                            bool success;
+
+                            if (isBreakActive) {
+                              success = await ref
+                                  .read(attendanceProvider.notifier)
+                                  .endBreak();
+                            } else {
+                              success = await ref
+                                  .read(attendanceProvider.notifier)
+                                  .startBreak();
+                            }
+
+                            if (!mounted || !success) return;
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text(
+                                  isBreakActive
+                                      ? 'Break ended'
+                                      : 'Break started',
+                                ),
+                              ),
+                            );
+                          },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: HomeScreen.primaryColor,
+                      foregroundColor: Colors.white,
+                      disabledBackgroundColor: HomeScreen.primaryColor,
+                      elevation: 0,
+                      padding: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    icon: Icon(
+                      isBreakActive
+                          ? Icons.play_arrow_outlined
+                          : Icons.coffee_outlined,
+                      size: 16,
+                    ),
+                    label: Text(
+                      isBreakActive ? 'End Break' : 'Start Break',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+
+                const SizedBox(height: 8),
+
+                // -----------------------------------------------
+                // END SESSION
+                // -----------------------------------------------
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: OutlinedButton.icon(
+                    onPressed:
+                        attendanceState.status == AttendanceStatus.loading
+                        ? null
+                        : () {
+                            _startShift(false);
+                            // Open your End Session flow here.
+                            // This should eventually call:
+                            // POST /api/attendance/exit
+                            //
+                            // For FACE:
+                            // -> capture photo
+                            //
+                            // For FINGERPRINT:
+                            // -> challenge purpose:
+                            //    attendance_exit
+                            // -> sign challenge
+                            // -> call endSession()
+                          },
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: HomeScreen.primaryColor,
+                      side: BorderSide(color: HomeScreen.primaryColor),
+                      elevation: 0,
+                      padding: EdgeInsets.zero,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    icon: const Icon(Icons.stop_circle_outlined, size: 16),
+                    label: Text(
+                      'End Session',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             )
+          // ======================================================
+          // SHIFT COMPLETED
+          // ======================================================
           else
             Container(
               width: double.infinity,
@@ -510,15 +646,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
   }
 
-  Widget _buildStats() {
-    final attendanceState = ref.watch(attendanceProvider);
-
+  Widget _buildStats(AttendanceState attendanceState) {
     final dashboard = attendanceState.dashboard;
 
     return Row(
       children: [
         Expanded(child: _AttendanceCard(dashboard: dashboard)),
+
         const SizedBox(width: 8),
+
         Expanded(child: _ProductivityCard(dashboard: dashboard)),
       ],
     );

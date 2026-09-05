@@ -157,27 +157,32 @@ class _LeaveRequestScreenState
         elevation: 0,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildHeader(),
-
-              const SizedBox(height: 16),
-
-              _buildBalanceCards(),
-
-              const SizedBox(height: 16),
-
-              _buildNewRequest(
-                leaveState.isLoading,
-              ),
-
-              const SizedBox(height: 16),
-
-              _buildRecentRequests(),
-            ],
+        child: RefreshIndicator(
+          onRefresh: () async {
+            ref.watch(leaveProvider);
+          },
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeader(),
+          
+                const SizedBox(height: 16),
+          
+                _buildBalanceCards(),
+          
+                const SizedBox(height: 16),
+          
+                _buildNewRequest(
+                  leaveState.isLoading,
+                ),
+          
+                const SizedBox(height: 16),
+          
+                _buildRecentRequests(),
+              ],
+            ),
           ),
         ),
       ),

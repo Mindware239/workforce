@@ -1,38 +1,40 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:image_picker/image_picker.dart';
-import 'package:workforce/app/routes/app_routes.dart';
 
+import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/features/attendence/data/attendance_repository.dart';
+import 'package:workforce/features/attendence/presentation/blink_capture_screen.dart';
+import 'package:workforce/features/attendence/providers/attendance_provider.dart';
 import 'package:workforce/features/attendence/providers/fingerprint_provider.dart';
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 import 'package:workforce/features/onboarding/presentation/widget/workforce_brand.dart';
 
 class FaceCaptureScreen extends ConsumerStatefulWidget {
-  const FaceCaptureScreen({super.key});
+  final bool? isStart;
+
+  const FaceCaptureScreen({super.key, this.isStart});
 
   @override
   ConsumerState<FaceCaptureScreen> createState() => _FaceCaptureScreenState();
 }
 
 class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
-  final ImagePicker _picker = ImagePicker();
-
   bool _isLoading = false;
+
+  // ============================================================
+  // TAKE ATTENDANCE
+  // ============================================================
 
   Future<void> _takePhoto() async {
     if (_isLoading) return;
 
-    // =========================================================
-    // 1. Select attendance method
-    // =========================================================
-
-    final String? attendanceType = await _showAttendanceTypeBottomSheet();
+    final String? attendanceType = await _showAttendanceTypeBottomSheet(
+      widget.isStart ?? false,
+    );
 
     if (!mounted || attendanceType == null) {
       return;
@@ -43,9 +45,9 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
     });
 
     try {
-      // =========================================================
-      // 2. Check location service
-      // =========================================================
+      // ========================================================
+      // LOCATION SERVICE
+      // ========================================================
 
       final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
 
@@ -56,9 +58,9 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
         return;
       }
 
-      // =========================================================
-      // 3. Check location permission
-      // =========================================================
+      // ========================================================
+      // LOCATION PERMISSION
+      // ========================================================
 
       LocationPermission permission = await Geolocator.checkPermission();
 
@@ -67,7 +69,10 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
 
-        debugPrint('📍 Location permission after request: $permission');
+        debugPrint(
+          '📍 Location permission after request: '
+          '$permission',
+        );
       }
 
       if (permission == LocationPermission.denied) {
@@ -83,9 +88,9 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
         return;
       }
 
-      // =========================================================
-      // 4. Get current location
-      // =========================================================
+      // ========================================================
+      // GET CURRENT LOCATION
+      // ========================================================
 
       debugPrint('📍 Getting current location...');
 
@@ -101,51 +106,19 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
 
       debugPrint('📍 Accuracy: ${position.accuracy}');
 
-      // =========================================================
-      // 5. FACE ATTENDANCE
-      // =========================================================
+      // ========================================================
+      // FACE ATTENDANCE
+      // ========================================================
 
       if (attendanceType == 'face') {
-        debugPrint('📷 Attendance type: face');
-        debugPrint('📷 Opening front camera...');
-
-        final XFile? photo = await _picker.pickImage(
-          source: ImageSource.camera,
-          preferredCameraDevice: CameraDevice.front,
-          imageQuality: 90,
-        );
-
-        if (!mounted) return;
-
-        debugPrint('📷 Photo: ${photo?.path}');
-
-        // User cancelled camera
-        if (photo == null) {
-          debugPrint('📷 Camera cancelled.');
-          return;
-        }
-
-        // =======================================================
-        // Open photo preview
-        // =======================================================
-
-        context.push(
-          AppRoutes.photoPreview,
-          extra: {
-            'imagePath': photo.path,
-            'latitude': position.latitude,
-            'longitude': position.longitude,
-            'accuracy': position.accuracy,
-            'attendance_type': 'face',
-          },
-        );
+        await _openBlinkCamera(position: position);
 
         return;
       }
 
-      // =========================================================
-      // 6. FINGERPRINT ATTENDANCE
-      // =========================================================
+      // ========================================================
+      // FINGERPRINT ATTENDANCE
+      // ========================================================
 
       if (attendanceType == 'fingerprint') {
         debugPrint('👆 Attendance type: fingerprint');
@@ -155,16 +128,16 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
         return;
       }
 
-      // =========================================================
-      // 7. Safety fallback
-      // =========================================================
-
       _showMessage('Invalid attendance method selected.');
     } catch (e, stackTrace) {
       debugPrint('========================================');
+
       debugPrint('❌ ATTENDANCE CAPTURE ERROR');
+
       debugPrint('❌ ERROR: $e');
+
       debugPrint('❌ STACK TRACE: $stackTrace');
+
       debugPrint('========================================');
 
       if (!mounted) return;
@@ -179,21 +152,96 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
     }
   }
 
+  // ============================================================
+  // OPEN BLINK CAMERA
+  // ============================================================
+
+  Future<void> _openBlinkCamera({required Position position}) async {
+    debugPrint('========================================');
+
+    debugPrint('📷 FACE ATTENDANCE');
+
+    debugPrint('📷 Opening blink camera...');
+
+    debugPrint('📍 Latitude: ${position.latitude}');
+
+    debugPrint('📍 Longitude: ${position.longitude}');
+
+    debugPrint('📍 Accuracy: ${position.accuracy}');
+
+    debugPrint('========================================');
+
+    final String? imagePath = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const BlinkCameraScreen()),
+    );
+
+    if (!mounted) return;
+
+    // ==========================================================
+    // USER CANCELLED CAMERA
+    // ==========================================================
+
+    if (imagePath == null || imagePath.isEmpty) {
+      debugPrint('📷 Blink camera cancelled.');
+      return;
+    }
+
+    debugPrint('📷 Automatically captured photo:');
+
+    debugPrint('📷 $imagePath');
+
+    // ==========================================================
+    // OPEN PHOTO PREVIEW
+    // ==========================================================
+
+    context.push(
+      AppRoutes.photoPreview,
+      extra: {
+        'imagePath': imagePath,
+        'latitude': position.latitude,
+        'longitude': position.longitude,
+        'accuracy': position.accuracy,
+        'attendance_type': 'face',
+        'isStart': widget.isStart
+      },
+    );
+  }
+
+  // ============================================================
+  // FINGERPRINT ATTENDANCE
+  // ============================================================
+
   Future<void> _authenticateFingerprint({required Position position}) async {
     try {
       debugPrint('👆 Starting fingerprint authentication...');
 
-      // =========================================================
-      // Services / Repository
-      // =========================================================
+      // ========================================================
+      // SERVICES
+      // ========================================================
 
       final fingerprintService = ref.read(fingerprintServiceProvider);
 
       final fingerprintRepository = ref.read(fingerprintRepositoryProvider);
 
-      // =========================================================
-      // 1. Check biometric availability
-      // =========================================================
+      final attendanceNotifier = ref.read(attendanceProvider.notifier);
+
+      // ========================================================
+      // ATTENDANCE TYPE + PURPOSE
+      // ========================================================
+
+      const attendanceType = 'fingerprint';
+
+      final challengePurpose = widget.isStart == true
+          ? 'attendance_entry'
+          : 'attendance_exit';
+
+      debugPrint('📌 Attendance Type: $attendanceType');
+
+      debugPrint('📌 Challenge Purpose: $challengePurpose');
+
+      // ========================================================
+      // 1. CHECK BIOMETRIC AVAILABILITY
+      // ========================================================
 
       final isAvailable = await fingerprintService.isBiometricAvailable();
 
@@ -203,23 +251,24 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
         if (!mounted) return;
 
         _showMessage(
-          'Fingerprint authentication is not available on this device.',
+          'Fingerprint authentication is not available '
+          'on this device.',
         );
 
         return;
       }
 
-      // =========================================================
-      // 2. Get stable device ID
-      // =========================================================
+      // ========================================================
+      // 2. GET STABLE DEVICE ID
+      // ========================================================
 
       final deviceId = await fingerprintService.getOrCreateDeviceId();
 
       debugPrint('📱 Device ID: $deviceId');
 
-      // =========================================================
-      // 3. Check existing biometric key
-      // =========================================================
+      // ========================================================
+      // 3. GET EXISTING PUBLIC KEY
+      // ========================================================
 
       final existingPublicKey = await fingerprintService.getPublicKey();
 
@@ -227,9 +276,9 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
 
       String? publicKey = existingPublicKey;
 
-      // =========================================================
-      // 4. Create biometric key if needed
-      // =========================================================
+      // ========================================================
+      // 4. CREATE BIOMETRIC KEY IF REQUIRED
+      // ========================================================
 
       if (publicKey == null || publicKey.isEmpty) {
         debugPrint('🔐 No valid biometric key found.');
@@ -245,9 +294,9 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
         debugPrint('✅ Existing biometric public key found.');
       }
 
-      // =========================================================
-      // 5. Validate public key
-      // =========================================================
+      // ========================================================
+      // 5. VALIDATE PUBLIC KEY
+      // ========================================================
 
       if (publicKey == null || publicKey.isEmpty) {
         if (!mounted) return;
@@ -257,11 +306,9 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
         return;
       }
 
-      debugPrint('🔑 Public key obtained successfully.');
-
-      // =========================================================
-      // 6. Register device only when key is newly created
-      // =========================================================
+      // ========================================================
+      // 6. REGISTER DEVICE
+      // ========================================================
 
       if (shouldRegisterDevice) {
         debugPrint('📡 Registering biometric device...');
@@ -274,7 +321,10 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
           algorithm: 'ES256',
         );
 
-        debugPrint('📡 Register response: $registerResponse');
+        debugPrint(
+          '📡 Register response: '
+          '$registerResponse',
+        );
 
         if (registerResponse['success'] != true) {
           if (!mounted) return;
@@ -290,23 +340,26 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
         debugPrint('✅ Fingerprint device registered.');
       } else {
         debugPrint(
-          'ℹ️ Device already has a valid biometric key. '
+          'ℹ️ Existing biometric device. '
           'Skipping registration.',
         );
       }
 
-      // =========================================================
-      // 7. Request challenge
-      // =========================================================
+      // ========================================================
+      // 7. CREATE CHALLENGE
+      // ========================================================
 
       debugPrint('🎯 Requesting fingerprint challenge...');
 
       final challengeResponse = await fingerprintRepository.createChallenge(
         deviceId: deviceId,
-        purpose: 'attendance_entry',
+        purpose: challengePurpose,
       );
 
-      debugPrint('🎯 Challenge response: $challengeResponse');
+      debugPrint(
+        '🎯 Challenge response: '
+        '$challengeResponse',
+      );
 
       final challengeData = challengeResponse['data'];
 
@@ -321,9 +374,9 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
         return;
       }
 
-      // =========================================================
-      // 8. Read challenge
-      // =========================================================
+      // ========================================================
+      // 8. READ CHALLENGE
+      // ========================================================
 
       final challengeId = challengeData['challengeId'];
 
@@ -339,13 +392,16 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
         return;
       }
 
-      debugPrint('🎯 Challenge ID: $challengeId');
+      final parsedChallengeId = int.parse(challengeId.toString());
 
-      debugPrint('🎯 Challenge received.');
+      debugPrint(
+        '🎯 Challenge ID: '
+        '$parsedChallengeId',
+      );
 
-      // =========================================================
-      // 9. Sign EXACT server challenge
-      // =========================================================
+      // ========================================================
+      // 9. SIGN EXACT SERVER CHALLENGE
+      // ========================================================
 
       debugPrint('✍️ Requesting biometric signature...');
 
@@ -363,59 +419,86 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
 
       debugPrint('✅ Challenge signed successfully.');
 
-      // =========================================================
-      // 10. Verify fingerprint
+      // ========================================================
+      // 10. PERFORM ATTENDANCE
       //
-      // IMPORTANT:
-      // /fingerprint/verify also marks attendance.
+      // The generic attendance entry/exit APIs receive:
+      // deviceId + challengeId + signature.
       //
-      // DO NOT call attendanceProvider.checkIn()
-      // after successful verification.
-      // =========================================================
+      // Do NOT call fingerprintRepository.verify()
+      // here if /attendance/entry and /attendance/exit
+      // are responsible for consuming the biometric proof.
+      // ========================================================
 
-      debugPrint('🔐 Sending fingerprint verification...');
-
-      final verifyResponse = await fingerprintRepository.verify(
-        deviceId: deviceId,
-        challengeId: int.parse(challengeId.toString()),
-        signature: signature,
-        lat: position.latitude,
-        lng: position.longitude,
-        accuracy: position.accuracy,
+      debugPrint(
+        widget.isStart == true
+            ? '📥 Performing fingerprint CHECK-IN...'
+            : '📤 Performing fingerprint CHECK-OUT...',
       );
 
-      debugPrint('🔐 Verify response: $verifyResponse');
+      final bool success;
 
-      // =========================================================
-      // 11. Handle success
-      // =========================================================
+      if (widget.isStart == true) {
+        success = await attendanceNotifier.checkIn(
+          attendanceType: attendanceType,
+          lat: position.latitude,
+          lng: position.longitude,
+          accuracy: position.accuracy,
+          deviceId: deviceId,
+          challengeId: parsedChallengeId,
+          signature: signature,
+        );
+      } else {
+        success = await attendanceNotifier.checkout(
+          attendanceType: attendanceType,
+          lat: position.latitude,
+          lng: position.longitude,
+          accuracy: position.accuracy,
+          deviceId: deviceId,
+          challengeId: parsedChallengeId,
+          signature: signature,
+        );
+      }
+
+      // ========================================================
+      // 11. HANDLE RESULT
+      // ========================================================
 
       if (!mounted) return;
 
-      if (verifyResponse['success'] == true) {
+      if (success) {
         debugPrint('========================================');
 
-        debugPrint('✅ FINGERPRINT ATTENDANCE SUCCESS');
+        debugPrint(
+          widget.isStart == true
+              ? '✅ FINGERPRINT CHECK-IN SUCCESS'
+              : '✅ FINGERPRINT CHECK-OUT SUCCESS',
+        );
 
         debugPrint('========================================');
 
         _showMessage(
-          verifyResponse['message']?.toString() ??
-              'Fingerprint attendance marked successfully.',
+          widget.isStart == true
+              ? 'Check-in successful'
+              : 'Session ended successfully',
         );
 
-        context.pop();
+        context.pop(true);
 
         return;
       }
 
-      // =========================================================
-      // 12. Handle verification failure
-      // =========================================================
+      // ========================================================
+      // 12. ATTENDANCE API FAILED
+      // ========================================================
+
+      final attendanceMessage = ref.read(attendanceProvider).message;
 
       _showMessage(
-        verifyResponse['message']?.toString() ??
-            'Fingerprint verification failed.',
+        attendanceMessage ??
+            (widget.isStart == true
+                ? 'Unable to check in.'
+                : 'Unable to end session.'),
       );
     } catch (e, stackTrace) {
       debugPrint('========================================');
@@ -434,104 +517,9 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
     }
   }
 
-  // Future<void> _takePhoto() async {
-  //   if (_isLoading) return;
-
-  //   setState(() {
-  //     _isLoading = true;
-  //   });
-
-  //   try {
-  //     // 1. Check location service
-  //     final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-
-  //     debugPrint('Location service enabled: $serviceEnabled');
-
-  //     if (!serviceEnabled) {
-  //       _showMessage('Please turn on location services and try again.');
-  //       return;
-  //     }
-
-  //     // 2. Check location permission
-  //     LocationPermission permission = await Geolocator.checkPermission();
-
-  //     debugPrint('Location permission: $permission');
-
-  //     if (permission == LocationPermission.denied) {
-  //       permission = await Geolocator.requestPermission();
-
-  //       debugPrint('Location permission after request: $permission');
-  //     }
-
-  //     if (permission == LocationPermission.denied) {
-  //       _showMessage('Location permission is required for attendance.');
-  //       return;
-  //     }
-
-  //     if (permission == LocationPermission.deniedForever) {
-  //       _showMessage(
-  //         'Location permission is permanently denied. '
-  //         'Please enable it from Settings.',
-  //       );
-  //       return;
-  //     }
-
-  //     // 3. Get location
-  //     debugPrint('Getting current location...');
-
-  //     final Position position = await Geolocator.getCurrentPosition(
-  //       locationSettings: const LocationSettings(
-  //         accuracy: LocationAccuracy.high,
-  //       ),
-  //     );
-
-  //     debugPrint('Latitude: ${position.latitude}');
-  //     debugPrint('Longitude: ${position.longitude}');
-  //     debugPrint('Accuracy: ${position.accuracy}');
-
-  //     // 4. Capture photo
-  //     debugPrint('Opening camera...');
-
-  //     final XFile? photo = await _picker.pickImage(
-  //       source: ImageSource.camera,
-  //       preferredCameraDevice: CameraDevice.front,
-  //       imageQuality: 90,
-  //     );
-
-  //     debugPrint('Photo: ${photo?.path}');
-
-  //     if (!mounted || photo == null) {
-  //       return;
-  //     }
-
-  //     // 5. Open preview
-  //     context.push(
-  //       AppRoutes.photoPreview,
-  //       extra: {
-  //         'imagePath': photo.path,
-  //         'latitude': position.latitude,
-  //         'longitude': position.longitude,
-  //         'accuracy': position.accuracy,
-  //       },
-  //     );
-  //   } catch (e, stackTrace) {
-  //     debugPrint('================================');
-  //     debugPrint('ATTENDANCE CAPTURE ERROR');
-  //     debugPrint('ERROR: $e');
-  //     debugPrint('STACK TRACE: $stackTrace');
-  //     debugPrint('================================');
-
-  //     if (!mounted) return;
-
-  //     _showMessage(e.toString().replaceFirst('Exception: ', ''));
-  //   } finally {
-  //     if (mounted) {
-  //       setState(() {
-  //         _isLoading = false;
-  //       });
-  //     }
-  //   }
-  // }
+  // ============================================================
+  // MESSAGE
+  // ============================================================
 
   void _showMessage(String message) {
     if (!mounted) return;
@@ -540,7 +528,11 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
         .showSnackBar(SnackBar(content: Text(message)));
   }
 
-  Future<String?> _showAttendanceTypeBottomSheet() {
+  // ============================================================
+  // ATTENDANCE METHOD BOTTOM SHEET
+  // ============================================================
+
+  Future<String?> _showAttendanceTypeBottomSheet(bool isStart) {
     return showModalBottomSheet<String>(
       context: context,
       backgroundColor: Colors.white,
@@ -555,6 +547,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
+                // HANDLE
                 Center(
                   child: Container(
                     width: 40,
@@ -580,7 +573,8 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
                 const SizedBox(height: 6),
 
                 Text(
-                  'Select how you want to mark your attendance.',
+                  'Select how you want to mark '
+                  'your attendance.',
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: AppColors.mutedColor,
@@ -589,6 +583,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
 
                 const SizedBox(height: 20),
 
+                // FACE
                 _buildAttendanceMethodTile(
                   icon: Icons.face_outlined,
                   title: 'Face Verification',
@@ -601,6 +596,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
 
                 const SizedBox(height: 12),
 
+                // FINGERPRINT
                 _buildAttendanceMethodTile(
                   icon: Icons.fingerprint,
                   title: 'Fingerprint',
@@ -618,53 +614,9 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.backgroundColor,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 24),
-
-              const WorkforceBrand(),
-
-              const SizedBox(height: 24),
-
-              _buildCameraFrame(),
-
-              const SizedBox(height: 32),
-
-              _buildLocationChip(),
-
-              const SizedBox(height: 32),
-
-              _buildInstructions(),
-
-              const SizedBox(height: 24),
-
-              WorkforcePrimaryButton(
-                icon: Icons.camera_alt,
-                title: _isLoading ? 'Please wait...' : 'Take Photo',
-                onPressed: () {
-                  if (!_isLoading) {
-                    _takePhoto();
-                  }
-                },
-              ),
-
-              const SizedBox(height: 12),
-
-              _buildCancelButton(),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  // ============================================================
+  // ATTENDANCE METHOD TILE
+  // ============================================================
 
   Widget _buildAttendanceMethodTile({
     required IconData icon,
@@ -734,6 +686,62 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
     );
   }
 
+  // ============================================================
+  // SCREEN
+  // ============================================================
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: AppColors.backgroundColor,
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 24),
+
+              const WorkforceBrand(),
+
+              const SizedBox(height: 24),
+
+              _buildCameraFrame(),
+
+              const SizedBox(height: 32),
+
+              _buildLocationChip(),
+
+              const SizedBox(height: 32),
+
+              _buildInstructions(),
+
+              const SizedBox(height: 24),
+
+              WorkforcePrimaryButton(
+                icon: Icons.camera_alt,
+                title: _isLoading ? 'Please wait...' : 'Take Photo',
+                onPressed: () {
+                  if (!_isLoading) {
+                    _takePhoto();
+                  }
+                },
+              ),
+
+              const SizedBox(height: 12),
+
+              _buildCancelButton(),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // CAMERA FRAME / PREVIEW IMAGE
+  // ============================================================
+
   Widget _buildCameraFrame() {
     return SizedBox(
       width: double.infinity,
@@ -741,6 +749,10 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
       child: Center(child: Image.asset('assets/images/face_capture.png')),
     );
   }
+
+  // ============================================================
+  // LOCATION CHIP
+  // ============================================================
 
   Widget _buildLocationChip() {
     return Center(
@@ -758,7 +770,9 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
               size: 16,
               color: AppColors.primaryFillColor,
             ),
+
             const SizedBox(width: 4),
+
             Text(
               'HQ – Factory Floor',
               style: GoogleFonts.inter(
@@ -772,6 +786,10 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
       ),
     );
   }
+
+  // ============================================================
+  // INSTRUCTIONS
+  // ============================================================
 
   Widget _buildInstructions() {
     return Container(
@@ -787,12 +805,16 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
             icon: Icons.face_outlined,
             text: 'Position your face inside the frame',
           ),
+
           const SizedBox(height: 8),
+
           _InstructionRow(
             icon: Icons.light_mode_outlined,
             text: 'Make sure your face is clearly visible',
           ),
+
           const SizedBox(height: 8),
+
           _InstructionRow(
             icon: Icons.no_photography_outlined,
             text: 'Remove helmet or face covering if required',
@@ -801,6 +823,10 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
       ),
     );
   }
+
+  // ============================================================
+  // CANCEL
+  // ============================================================
 
   Widget _buildCancelButton() {
     return SizedBox(
@@ -826,6 +852,10 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
   }
 }
 
+// ================================================================
+// INSTRUCTION ROW
+// ================================================================
+
 class _InstructionRow extends StatelessWidget {
   final IconData icon;
   final String text;
@@ -837,7 +867,9 @@ class _InstructionRow extends StatelessWidget {
     return Row(
       children: [
         Icon(icon, size: 20, color: AppColors.primaryFillColor),
+
         const SizedBox(width: 8),
+
         Expanded(
           child: Text(
             text,
