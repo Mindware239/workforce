@@ -3,6 +3,10 @@ import 'package:workforce/core/network/network_providers.dart';
 
 import '../data/leave_repository.dart';
 
+// ============================================================================
+// PROVIDERS
+// ============================================================================
+
 final leaveRepositoryProvider = Provider<LeaveRepository>((ref) {
   return LeaveRepository(
     apiClient: ref.read(apiClientProvider),
@@ -23,35 +27,48 @@ final leaveProvider =
 class LeaveState {
   final bool isLoading;
   final bool isLoadingRequests;
+  final bool isLoadingBalances;
+
   final String? error;
+
   final Map<String, dynamic>? data;
+
   final List<Map<String, dynamic>> requests;
+
+  final List<Map<String, dynamic>> balances;
 
   const LeaveState({
     this.isLoading = false,
     this.isLoadingRequests = false,
+    this.isLoadingBalances = false,
     this.error,
     this.data,
     this.requests = const [],
+    this.balances = const [],
   });
 
   LeaveState copyWith({
     bool? isLoading,
     bool? isLoadingRequests,
+    bool? isLoadingBalances,
     String? error,
     Map<String, dynamic>? data,
     List<Map<String, dynamic>>? requests,
+    List<Map<String, dynamic>>? balances,
     bool clearError = false,
   }) {
     return LeaveState(
       isLoading: isLoading ?? this.isLoading,
       isLoadingRequests:
           isLoadingRequests ?? this.isLoadingRequests,
+      isLoadingBalances:
+          isLoadingBalances ?? this.isLoadingBalances,
       error: clearError
           ? null
           : error ?? this.error,
       data: data ?? this.data,
       requests: requests ?? this.requests,
+      balances: balances ?? this.balances,
     );
   }
 }
@@ -60,8 +77,7 @@ class LeaveState {
 // LEAVE NOTIFIER
 // ============================================================================
 
-class LeaveNotifier
-    extends StateNotifier<LeaveState> {
+class LeaveNotifier extends StateNotifier<LeaveState> {
   final LeaveRepository repository;
 
   LeaveNotifier(this.repository)
@@ -86,8 +102,7 @@ class LeaveNotifier
     );
 
     try {
-      final response =
-          await repository.applyLeave(
+      final response = await repository.applyLeave(
         leaveType: leaveType,
         leaveCategory: leaveCategory,
         startDate: startDate,
@@ -97,30 +112,28 @@ class LeaveNotifier
         reason: reason,
       );
 
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
       // API SUCCESS CHECK
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
 
       if (response['success'] != true) {
         state = state.copyWith(
           isLoading: false,
-          error: response['message']
-                  ?.toString() ??
+          error: response['message']?.toString() ??
               'Unable to submit leave request.',
         );
 
         return false;
       }
 
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
       // SAVE RESPONSE DATA
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
 
       Map<String, dynamic>? responseData;
 
       if (response['data'] is Map) {
-        responseData =
-            Map<String, dynamic>.from(
+        responseData = Map<String, dynamic>.from(
           response['data'],
         );
       }
@@ -131,11 +144,14 @@ class LeaveNotifier
         clearError: true,
       );
 
-      // --------------------------------------------------------
-      // REFRESH RECENT REQUESTS
-      // --------------------------------------------------------
+      // ----------------------------------------------------------
+      // REFRESH REQUESTS + BALANCES
+      // ----------------------------------------------------------
 
-      await getMyLeaveRequests();
+      await Future.wait([
+        getMyLeaveRequests(),
+        getLeaveBalances(),
+      ]);
 
       return true;
     } catch (e) {
@@ -173,6 +189,48 @@ class LeaveNotifier
         error: _cleanError(e),
       );
     }
+  }
+
+  // ============================================================
+  // GET LEAVE BALANCES
+  // ============================================================
+
+  Future<void> getLeaveBalances({
+    int? year,
+  }) async {
+    state = state.copyWith(
+      isLoadingBalances: true,
+      clearError: true,
+    );
+
+    try {
+      final balances =
+          await repository.getLeaveBalances(
+        year: year ?? DateTime.now().year,
+      );
+
+      state = state.copyWith(
+        isLoadingBalances: false,
+        balances: balances,
+        clearError: true,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoadingBalances: false,
+        error: _cleanError(e),
+      );
+    }
+  }
+
+  // ============================================================
+  // LOAD ALL LEAVE DATA
+  // ============================================================
+
+  Future<void> loadLeaveData() async {
+    await Future.wait([
+      getMyLeaveRequests(),
+      getLeaveBalances(),
+    ]);
   }
 
   // ============================================================

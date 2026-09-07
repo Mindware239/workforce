@@ -1,10 +1,17 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:workforce/core/network/api_client.dart';
 
 class LeaveRepository {
   final ApiClient apiClient;
 
-  LeaveRepository({required this.apiClient});
+  LeaveRepository({
+    required this.apiClient,
+  });
+
+  // ============================================================
+  // APPLY LEAVE
+  // ============================================================
 
   Future<Map<String, dynamic>> applyLeave({
     required String leaveType,
@@ -22,77 +29,171 @@ class LeaveRepository {
         'leaveCategory': leaveCategory,
         'startDate': startDate,
 
-        // Full Day only
-        if (endDate != null && endDate.isNotEmpty) 'endDate': endDate,
+        if (endDate != null && endDate.isNotEmpty)
+          'endDate': endDate,
 
-        // Half Day only
-        if (startTime != null && startTime.isNotEmpty) 'startTime': startTime,
+        if (startTime != null && startTime.isNotEmpty)
+          'startTime': startTime,
 
-        if (endTime != null && endTime.isNotEmpty) 'endTime': endTime,
+        if (endTime != null && endTime.isNotEmpty)
+          'endTime': endTime,
 
         'reason': reason,
       },
     );
 
-    return Map<String, dynamic>.from(response.data);
+    return Map<String, dynamic>.from(
+      response.data,
+    );
   }
+
+  // ============================================================
+  // GET LEAVE BALANCES
+  // GET /api/leaves/balances
+  // ============================================================
+
+  Future<List<Map<String, dynamic>>> getLeaveBalances({
+    int? year,
+  }) async {
+    try {
+      final response = await apiClient.get(
+        '/leaves/balances',
+        queryParameters: {
+          'year': ?year,
+        },
+      );
+
+      debugPrint('========== LEAVE BALANCES ==========');
+      debugPrint('Status: ${response.statusCode}');
+      debugPrint('Response: ${response.data}');
+      debugPrint('====================================');
+
+      final responseData = response.data;
+
+      if (responseData is Map &&
+          responseData['data'] is List) {
+        return (responseData['data'] as List)
+            .whereType<Map>()
+            .map(
+              (item) => Map<String, dynamic>.from(item),
+            )
+            .toList();
+      }
+
+      return [];
+    } on DioException catch (e) {
+      // debugPrint('❌ Leave balances error: ${e.message}');
+      // debugPrint('❌ Status: ${e.response?.statusCode}');
+      // debugPrint('❌ Response: ${e.response?.data}');
+
+      final responseData = e.response?.data;
+
+      if (responseData is Map &&
+          responseData['message'] != null) {
+        throw Exception(
+          responseData['message'].toString(),
+        );
+      }
+
+      throw Exception(
+        e.message ?? 'Unable to load leave balances.',
+      );
+    }
+  }
+
+  // ============================================================
+  // GET MY LEAVE REQUESTS
+  // GET /api/leaves/mine
+  // ============================================================
 
   Future<List<Map<String, dynamic>>> getMyLeaveRequests() async {
     try {
-      final response = await apiClient.get('/leaves/mine');
+      final response = await apiClient.get(
+        '/leaves/mine',
+      );
 
-      debugPrint('========== LEAVE REQUESTS API ==========');
-      debugPrint('Status: ${response.statusCode}');
-      debugPrint('Response type: ${response.data.runtimeType}');
-      debugPrint('Response: ${response.data}');
-      debugPrint('========================================');
+      // debugPrint('========== LEAVE REQUESTS API ==========');
+      // debugPrint('Status: ${response.statusCode}');
+      // debugPrint(
+      //   'Response type: ${response.data.runtimeType}',
+      // );
+      // debugPrint('Response: ${response.data}');
+      // debugPrint('========================================');
 
       final data = response.data;
 
-      // Case 1:
       // API returns:
       // [
       //   {...},
       //   {...}
       // ]
+
       if (data is List) {
         return data
-            .map((item) => Map<String, dynamic>.from(item as Map))
+            .whereType<Map>()
+            .map(
+              (item) => Map<String, dynamic>.from(item),
+            )
             .toList();
       }
 
-      // Case 2:
       // API returns:
       // {
       //   "data": [...]
       // }
-      if (data is Map && data['data'] is List) {
-        final list = data['data'] as List;
 
-        return list
-            .map((item) => Map<String, dynamic>.from(item as Map))
+      if (data is Map &&
+          data['data'] is List) {
+        return (data['data'] as List)
+            .whereType<Map>()
+            .map(
+              (item) => Map<String, dynamic>.from(item),
+            )
             .toList();
       }
 
-      // Case 3:
       // API returns:
       // {
-      //   "success": true,
-      //   "data": [...]
+      //   "result": [...]
       // }
-      if (data is Map && data['result'] is List) {
-        final list = data['result'] as List;
 
-        return list
-            .map((item) => Map<String, dynamic>.from(item as Map))
+      if (data is Map &&
+          data['result'] is List) {
+        return (data['result'] as List)
+            .whereType<Map>()
+            .map(
+              (item) => Map<String, dynamic>.from(item),
+            )
             .toList();
       }
 
-      throw Exception('Invalid leave requests response from server.');
+      throw Exception(
+        'Invalid leave requests response from server.',
+      );
+    } on DioException catch (e) {
+      // debugPrint('========== LEAVE REQUESTS ERROR ==========');
+      // debugPrint('Status: ${e.response?.statusCode}');
+      // debugPrint('Message: ${e.message}');
+      // debugPrint('Response: ${e.response?.data}');
+      // debugPrint('==========================================');
+
+      final responseData = e.response?.data;
+
+      if (responseData is Map &&
+          responseData['message'] != null) {
+        throw Exception(
+          responseData['message'].toString(),
+        );
+      }
+
+      throw Exception(
+        e.message ?? 'Unable to load leave requests.',
+      );
     } catch (e) {
-      debugPrint('========== LEAVE REQUESTS ERROR ==========');
-      debugPrint(e as String?);
-      debugPrint('==========================================');
+      // debugPrint('========== LEAVE REQUESTS ERROR ==========');
+      debugPrint(e.toString());
+      // debugPrint('==========================================');
+
       rethrow;
     }
   }

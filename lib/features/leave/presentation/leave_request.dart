@@ -8,12 +8,10 @@ class LeaveRequestScreen extends ConsumerStatefulWidget {
   const LeaveRequestScreen({super.key});
 
   @override
-  ConsumerState<LeaveRequestScreen> createState() =>
-      _LeaveRequestScreenState();
+  ConsumerState<LeaveRequestScreen> createState() => _LeaveRequestScreenState();
 }
 
-class _LeaveRequestScreenState
-    extends ConsumerState<LeaveRequestScreen> {
+class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
   // ============================================================
   // FORM VALUES
   // ============================================================
@@ -31,20 +29,15 @@ class _LeaveRequestScreenState
   // CONTROLLERS
   // ============================================================
 
-  final TextEditingController startDateController =
-      TextEditingController();
+  final TextEditingController startDateController = TextEditingController();
 
-  final TextEditingController endDateController =
-      TextEditingController();
+  final TextEditingController endDateController = TextEditingController();
 
-  final TextEditingController startTimeController =
-      TextEditingController();
+  final TextEditingController startTimeController = TextEditingController();
 
-  final TextEditingController endTimeController =
-      TextEditingController();
+  final TextEditingController endTimeController = TextEditingController();
 
-  final TextEditingController reasonController =
-      TextEditingController();
+  final TextEditingController reasonController = TextEditingController();
 
   // ============================================================
   // INIT
@@ -57,9 +50,10 @@ class _LeaveRequestScreenState
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
 
-      ref
-          .read(leaveProvider.notifier)
-          .getMyLeaveRequests();
+      final notifier = ref.read(leaveProvider.notifier);
+
+      notifier.getMyLeaveRequests();
+      notifier.getLeaveBalances();
     });
   }
 
@@ -106,17 +100,9 @@ class _LeaveRequestScreenState
       return 0;
     }
 
-    final start = DateTime(
-      startDate!.year,
-      startDate!.month,
-      startDate!.day,
-    );
+    final start = DateTime(startDate!.year, startDate!.month, startDate!.day);
 
-    final end = DateTime(
-      endDate!.year,
-      endDate!.month,
-      endDate!.day,
-    );
+    final end = DateTime(endDate!.year, endDate!.month, endDate!.day);
 
     if (end.isBefore(start)) {
       return 0;
@@ -159,7 +145,12 @@ class _LeaveRequestScreenState
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {
-            ref.watch(leaveProvider);
+            final notifier = ref.read(leaveProvider.notifier);
+
+            await Future.wait([
+              notifier.getMyLeaveRequests(),
+              notifier.getLeaveBalances(),
+            ]);
           },
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16),
@@ -167,19 +158,17 @@ class _LeaveRequestScreenState
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 _buildHeader(),
-          
+
                 const SizedBox(height: 16),
-          
-                _buildBalanceCards(),
-          
+
+                _buildBalanceCards(leaveState.balances),
+
                 const SizedBox(height: 16),
-          
-                _buildNewRequest(
-                  leaveState.isLoading,
-                ),
-          
+
+                _buildNewRequest(leaveState.isLoading),
+
                 const SizedBox(height: 16),
-          
+
                 _buildRecentRequests(),
               ],
             ),
@@ -210,10 +199,7 @@ class _LeaveRequestScreenState
 
         Text(
           'Submit a new time-off request or check your current balances.',
-          style: GoogleFonts.inter(
-            fontSize: 14,
-            color: AppColors.mutedColor,
-          ),
+          style: GoogleFonts.inter(fontSize: 14, color: AppColors.mutedColor),
         ),
       ],
     );
@@ -223,13 +209,23 @@ class _LeaveRequestScreenState
   // BALANCE CARDS
   // ============================================================
 
-  Widget _buildBalanceCards() {
+  Widget _buildBalanceCards(List<Map<String, dynamic>> balances) {
+    String getRemaining(String category) {
+      for (final balance in balances) {
+        if (balance['category']?.toString() == category) {
+          return balance['remaining']?.toString() ?? '0';
+        }
+      }
+
+      return '0';
+    }
+
     return Row(
       children: [
         Expanded(
           child: _BalanceCard(
             title: 'CASUAL\nLEAVE',
-            value: '6',
+            value: getRemaining('casual'),
             suffix: 'days left',
             icon: Icons.event_available_outlined,
             textColor: AppColors.primaryFillColor,
@@ -241,7 +237,7 @@ class _LeaveRequestScreenState
         Expanded(
           child: _BalanceCard(
             title: 'SICK LEAVE',
-            value: '4',
+            value: getRemaining('sick'),
             suffix: 'days left',
             icon: Icons.sick_outlined,
             textColor: const Color(0xFF7E3000),
@@ -253,7 +249,7 @@ class _LeaveRequestScreenState
         Expanded(
           child: _BalanceCard(
             title: 'EARNED\nLEAVE',
-            value: '8',
+            value: getRemaining('earned'),
             suffix: 'days left',
             icon: Icons.beach_access_outlined,
             textColor: const Color(0xFF059669),
@@ -262,7 +258,6 @@ class _LeaveRequestScreenState
       ],
     );
   }
-
   // ============================================================
   // NEW REQUEST
   // ============================================================
@@ -279,7 +274,6 @@ class _LeaveRequestScreenState
           // ------------------------------------------------------
           // LEAVE TYPE
           // ------------------------------------------------------
-
           const _FieldLabel('Leave Type'),
 
           _DropdownField(
@@ -293,11 +287,7 @@ class _LeaveRequestScreenState
                       leaveType = value;
                     });
                   },
-            items: const [
-              'Casual Leave',
-              'Sick Leave',
-              'Earned Leave',
-            ],
+            items: const ['Casual Leave', 'Sick Leave', 'Earned Leave'],
           ),
 
           const SizedBox(height: 8),
@@ -305,7 +295,6 @@ class _LeaveRequestScreenState
           // ------------------------------------------------------
           // LEAVE DURATION
           // ------------------------------------------------------
-
           const _FieldLabel('Leave Duration'),
 
           _DropdownField(
@@ -333,10 +322,7 @@ class _LeaveRequestScreenState
                       }
                     });
                   },
-            items: const [
-              'Full Day',
-              'Half Day',
-            ],
+            items: const ['Full Day', 'Half Day'],
           ),
 
           const SizedBox(height: 8),
@@ -344,19 +330,15 @@ class _LeaveRequestScreenState
           // ------------------------------------------------------
           // NUMBER OF DAYS
           // ------------------------------------------------------
-
           const _FieldLabel('Number of Days'),
 
-          _DaysField(
-            value: numberOfDays,
-          ),
+          _DaysField(value: numberOfDays),
 
           const SizedBox(height: 8),
 
           // ------------------------------------------------------
           // START DATE
           // ------------------------------------------------------
-
           const _FieldLabel('Start Date'),
 
           _TextField(
@@ -364,9 +346,7 @@ class _LeaveRequestScreenState
             hint: 'dd/mm/yyyy',
             suffixIcon: Icons.calendar_today_outlined,
             readOnly: true,
-            onTap: isLoading
-                ? null
-                : _selectStartDate,
+            onTap: isLoading ? null : _selectStartDate,
           ),
 
           const SizedBox(height: 8),
@@ -374,7 +354,6 @@ class _LeaveRequestScreenState
           // ------------------------------------------------------
           // FULL DAY → END DATE
           // ------------------------------------------------------
-
           if (leaveDuration == 'Full Day') ...[
             const _FieldLabel('End Date'),
 
@@ -383,9 +362,7 @@ class _LeaveRequestScreenState
               hint: 'dd/mm/yyyy',
               suffixIcon: Icons.calendar_today_outlined,
               readOnly: true,
-              onTap: isLoading
-                  ? null
-                  : _selectEndDate,
+              onTap: isLoading ? null : _selectEndDate,
             ),
 
             const SizedBox(height: 8),
@@ -394,7 +371,6 @@ class _LeaveRequestScreenState
           // ------------------------------------------------------
           // HALF DAY → START TIME
           // ------------------------------------------------------
-
           if (leaveDuration == 'Half Day') ...[
             const _FieldLabel('Start Time'),
 
@@ -403,9 +379,7 @@ class _LeaveRequestScreenState
               hint: 'Select start time',
               suffixIcon: Icons.access_time_outlined,
               readOnly: true,
-              onTap: isLoading
-                  ? null
-                  : _selectStartTime,
+              onTap: isLoading ? null : _selectStartTime,
             ),
 
             const SizedBox(height: 8),
@@ -413,7 +387,6 @@ class _LeaveRequestScreenState
             // ----------------------------------------------------
             // HALF DAY → END TIME
             // ----------------------------------------------------
-
             const _FieldLabel('End Time'),
 
             _TextField(
@@ -421,9 +394,7 @@ class _LeaveRequestScreenState
               hint: 'Select end time',
               suffixIcon: Icons.access_time_outlined,
               readOnly: true,
-              onTap: isLoading
-                  ? null
-                  : _selectEndTime,
+              onTap: isLoading ? null : _selectEndTime,
             ),
 
             const SizedBox(height: 8),
@@ -432,13 +403,11 @@ class _LeaveRequestScreenState
           // ------------------------------------------------------
           // REASON
           // ------------------------------------------------------
-
           const _FieldLabel('Reason'),
 
           _TextField(
             controller: reasonController,
-            hint:
-                'Please provide a brief reason for your leave...',
+            hint: 'Please provide a brief reason for your leave...',
             maxLines: 4,
             readOnly: isLoading,
           ),
@@ -448,7 +417,6 @@ class _LeaveRequestScreenState
           // ------------------------------------------------------
           // BUTTONS
           // ------------------------------------------------------
-
           Row(
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
@@ -456,8 +424,7 @@ class _LeaveRequestScreenState
                 width: 94,
                 height: 48,
                 child: OutlinedButton(
-                  onPressed:
-                      isLoading ? null : _cancelRequest,
+                  onPressed: isLoading ? null : _cancelRequest,
                   style: OutlinedButton.styleFrom(
                     padding: EdgeInsets.zero,
                     side: const BorderSide(
@@ -465,8 +432,7 @@ class _LeaveRequestScreenState
                       width: 1,
                     ),
                     shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: Text(
@@ -474,8 +440,7 @@ class _LeaveRequestScreenState
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color:
-                          AppColors.primaryFillColor,
+                      color: AppColors.primaryFillColor,
                     ),
                   ),
                 ),
@@ -487,32 +452,25 @@ class _LeaveRequestScreenState
                 width: 148,
                 height: 48,
                 child: ElevatedButton(
-                  onPressed:
-                      isLoading ? null : _submitRequest,
+                  onPressed: isLoading ? null : _submitRequest,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor:
-                        AppColors.primaryFillColor,
-                    disabledBackgroundColor:
-                        AppColors.primaryFillColor
-                            .withValues(alpha: 0.5),
+                    backgroundColor: AppColors.primaryFillColor,
+                    disabledBackgroundColor: AppColors.primaryFillColor
+                        .withValues(alpha: 0.5),
                     foregroundColor: Colors.white,
                     elevation: 0,
                     padding: EdgeInsets.zero,
                     shape: RoundedRectangleBorder(
-                      borderRadius:
-                          BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                   ),
                   child: isLoading
                       ? const SizedBox(
                           width: 18,
                           height: 18,
-                          child:
-                              CircularProgressIndicator(
+                          child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            valueColor:
-                                AlwaysStoppedAnimation<
-                                    Color>(
+                            valueColor: AlwaysStoppedAnimation<Color>(
                               Colors.white,
                             ),
                           ),
@@ -543,25 +501,18 @@ class _LeaveRequestScreenState
     final picked = await showDatePicker(
       context: context,
       initialDate: startDate ?? now,
-      firstDate:
-          DateTime(now.year, now.month, now.day),
+      firstDate: DateTime(now.year, now.month, now.day),
       lastDate: DateTime(2100),
     );
 
     if (picked == null || !mounted) return;
 
     setState(() {
-      startDate = DateTime(
-        picked.year,
-        picked.month,
-        picked.day,
-      );
+      startDate = DateTime(picked.year, picked.month, picked.day);
 
-      startDateController.text =
-          _formatDisplayDate(startDate!);
+      startDateController.text = _formatDisplayDate(startDate!);
 
-      if (endDate != null &&
-          endDate!.isBefore(startDate!)) {
+      if (endDate != null && endDate!.isBefore(startDate!)) {
         endDate = null;
         endDateController.clear();
       }
@@ -574,9 +525,7 @@ class _LeaveRequestScreenState
 
   Future<void> _selectEndDate() async {
     if (startDate == null) {
-      _showMessage(
-        'Please select the start date first.',
-      );
+      _showMessage('Please select the start date first.');
       return;
     }
 
@@ -590,14 +539,9 @@ class _LeaveRequestScreenState
     if (picked == null || !mounted) return;
 
     setState(() {
-      endDate = DateTime(
-        picked.year,
-        picked.month,
-        picked.day,
-      );
+      endDate = DateTime(picked.year, picked.month, picked.day);
 
-      endDateController.text =
-          _formatDisplayDate(endDate!);
+      endDateController.text = _formatDisplayDate(endDate!);
     });
   }
 
@@ -608,8 +552,7 @@ class _LeaveRequestScreenState
   Future<void> _selectStartTime() async {
     final picked = await showTimePicker(
       context: context,
-      initialTime:
-          startTime ?? TimeOfDay.now(),
+      initialTime: startTime ?? TimeOfDay.now(),
     );
 
     if (picked == null || !mounted) return;
@@ -617,18 +560,14 @@ class _LeaveRequestScreenState
     setState(() {
       startTime = picked;
 
-      startTimeController.text =
-          picked.format(context);
+      startTimeController.text = picked.format(context);
 
       // If an existing end time is now invalid,
       // clear it.
       if (endTime != null) {
-        final startMinutes =
-            picked.hour * 60 + picked.minute;
+        final startMinutes = picked.hour * 60 + picked.minute;
 
-        final endMinutes =
-            endTime!.hour * 60 +
-                endTime!.minute;
+        final endMinutes = endTime!.hour * 60 + endTime!.minute;
 
         if (endMinutes <= startMinutes) {
           endTime = null;
@@ -644,48 +583,35 @@ class _LeaveRequestScreenState
 
   Future<void> _selectEndTime() async {
     if (startTime == null) {
-      _showMessage(
-        'Please select the start time first.',
-      );
+      _showMessage('Please select the start time first.');
       return;
     }
 
-    final defaultEndHour =
-        startTime!.hour + 1 < 24
-            ? startTime!.hour + 1
-            : startTime!.hour;
+    final defaultEndHour = startTime!.hour + 1 < 24
+        ? startTime!.hour + 1
+        : startTime!.hour;
 
     final picked = await showTimePicker(
       context: context,
-      initialTime: endTime ??
-          TimeOfDay(
-            hour: defaultEndHour,
-            minute: startTime!.minute,
-          ),
+      initialTime:
+          endTime ?? TimeOfDay(hour: defaultEndHour, minute: startTime!.minute),
     );
 
     if (picked == null || !mounted) return;
 
-    final startMinutes =
-        startTime!.hour * 60 +
-            startTime!.minute;
+    final startMinutes = startTime!.hour * 60 + startTime!.minute;
 
-    final endMinutes =
-        picked.hour * 60 +
-            picked.minute;
+    final endMinutes = picked.hour * 60 + picked.minute;
 
     if (endMinutes <= startMinutes) {
-      _showMessage(
-        'End time must be after start time.',
-      );
+      _showMessage('End time must be after start time.');
       return;
     }
 
     setState(() {
       endTime = picked;
 
-      endTimeController.text =
-          picked.format(context);
+      endTimeController.text = picked.format(context);
     });
   }
 
@@ -694,11 +620,9 @@ class _LeaveRequestScreenState
   // ============================================================
 
   String _formatDisplayDate(DateTime date) {
-    final day =
-        date.day.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
 
-    final month =
-        date.month.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
 
     return '$day/$month/${date.year}';
   }
@@ -710,11 +634,9 @@ class _LeaveRequestScreenState
   String _formatApiDate(DateTime date) {
     final year = date.year.toString();
 
-    final month =
-        date.month.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
 
-    final day =
-        date.day.toString().padLeft(2, '0');
+    final day = date.day.toString().padLeft(2, '0');
 
     return '$year-$month-$day';
   }
@@ -724,11 +646,9 @@ class _LeaveRequestScreenState
   // ============================================================
 
   String _formatApiTime(TimeOfDay time) {
-    final hour =
-        time.hour.toString().padLeft(2, '0');
+    final hour = time.hour.toString().padLeft(2, '0');
 
-    final minute =
-        time.minute.toString().padLeft(2, '0');
+    final minute = time.minute.toString().padLeft(2, '0');
 
     return '$hour:$minute';
   }
@@ -745,9 +665,7 @@ class _LeaveRequestScreenState
     // ----------------------------------------------------------
 
     if (startDate == null) {
-      _showMessage(
-        'Please select the start date.',
-      );
+      _showMessage('Please select the start date.');
       return;
     }
 
@@ -757,16 +675,12 @@ class _LeaveRequestScreenState
 
     if (leaveDuration == 'Full Day') {
       if (endDate == null) {
-        _showMessage(
-          'Please select the end date.',
-        );
+        _showMessage('Please select the end date.');
         return;
       }
 
       if (endDate!.isBefore(startDate!)) {
-        _showMessage(
-          'End date cannot be before start date.',
-        );
+        _showMessage('End date cannot be before start date.');
         return;
       }
     }
@@ -777,31 +691,21 @@ class _LeaveRequestScreenState
 
     if (leaveDuration == 'Half Day') {
       if (startTime == null) {
-        _showMessage(
-          'Please select the start time.',
-        );
+        _showMessage('Please select the start time.');
         return;
       }
 
       if (endTime == null) {
-        _showMessage(
-          'Please select the end time.',
-        );
+        _showMessage('Please select the end time.');
         return;
       }
 
-      final startMinutes =
-          startTime!.hour * 60 +
-              startTime!.minute;
+      final startMinutes = startTime!.hour * 60 + startTime!.minute;
 
-      final endMinutes =
-          endTime!.hour * 60 +
-              endTime!.minute;
+      final endMinutes = endTime!.hour * 60 + endTime!.minute;
 
       if (endMinutes <= startMinutes) {
-        _showMessage(
-          'End time must be after start time.',
-        );
+        _showMessage('End time must be after start time.');
         return;
       }
     }
@@ -810,13 +714,10 @@ class _LeaveRequestScreenState
     // REASON
     // ----------------------------------------------------------
 
-    final reason =
-        reasonController.text.trim();
+    final reason = reasonController.text.trim();
 
     if (reason.isEmpty) {
-      _showMessage(
-        'Please provide a reason for your leave.',
-      );
+      _showMessage('Please provide a reason for your leave.');
       return;
     }
 
@@ -824,29 +725,23 @@ class _LeaveRequestScreenState
     // API VALUES
     // ----------------------------------------------------------
 
-    final apiStartDate =
-        _formatApiDate(startDate!);
+    final apiStartDate = _formatApiDate(startDate!);
 
     // Full Day only.
-    final String? apiEndDate =
-        leaveDuration == 'Full Day' &&
-                endDate != null
-            ? _formatApiDate(endDate!)
-            : null;
+    final String? apiEndDate = leaveDuration == 'Full Day' && endDate != null
+        ? _formatApiDate(endDate!)
+        : null;
 
     // Half Day only.
     final String? apiStartTime =
-        leaveDuration == 'Half Day' &&
-                startTime != null
-            ? _formatApiTime(startTime!)
-            : null;
+        leaveDuration == 'Half Day' && startTime != null
+        ? _formatApiTime(startTime!)
+        : null;
 
     // Half Day only.
-    final String? apiEndTime =
-        leaveDuration == 'Half Day' &&
-                endTime != null
-            ? _formatApiTime(endTime!)
-            : null;
+    final String? apiEndTime = leaveDuration == 'Half Day' && endTime != null
+        ? _formatApiTime(endTime!)
+        : null;
 
     try {
       final success = await ref
@@ -877,28 +772,19 @@ class _LeaveRequestScreenState
       if (!mounted) return;
 
       if (success) {
-        _showMessage(
-          'Leave request submitted successfully.',
-          isError: false,
-        );
+        _showMessage('Leave request submitted successfully.', isError: false);
 
         _clearForm();
       } else {
         final error =
-            ref.read(leaveProvider).error ??
-                'Unable to submit leave request.';
+            ref.read(leaveProvider).error ?? 'Unable to submit leave request.';
 
         _showMessage(error);
       }
     } catch (e) {
       if (!mounted) return;
 
-      _showMessage(
-        e.toString().replaceFirst(
-          'Exception: ',
-          '',
-        ),
-      );
+      _showMessage(e.toString().replaceFirst('Exception: ', ''));
     }
   }
 
@@ -941,10 +827,7 @@ class _LeaveRequestScreenState
   // MESSAGE
   // ============================================================
 
-  void _showMessage(
-    String message, {
-    bool isError = true,
-  }) {
+  void _showMessage(String message, {bool isError = true}) {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context)
@@ -953,10 +836,7 @@ class _LeaveRequestScreenState
         SnackBar(
           content: Text(
             message,
-            style: GoogleFonts.inter(
-              fontSize: 13,
-              fontWeight: FontWeight.w500,
-            ),
+            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500),
           ),
           behavior: SnackBarBehavior.floating,
           backgroundColor: isError
@@ -964,8 +844,7 @@ class _LeaveRequestScreenState
               : const Color(0xFF2E7D32),
           margin: const EdgeInsets.all(16),
           shape: RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(10),
           ),
         ),
       );
@@ -976,15 +855,12 @@ class _LeaveRequestScreenState
   // ============================================================
 
   Widget _buildRecentRequests() {
-    final leaveState =
-        ref.watch(leaveProvider);
+    final leaveState = ref.watch(leaveProvider);
 
-    final requests =
-        leaveState.requests;
+    final requests = leaveState.requests;
 
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Recent Requests',
@@ -1000,17 +876,10 @@ class _LeaveRequestScreenState
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            borderRadius:
-                BorderRadius.circular(12),
-            border: Border.all(
-              color: AppColors.borderColor,
-              width: 1,
-            ),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.borderColor, width: 1),
           ),
-          child: _buildRequestsContent(
-            leaveState,
-            requests,
-          ),
+          child: _buildRequestsContent(leaveState, requests),
         ),
       ],
     );
@@ -1035,10 +904,7 @@ class _LeaveRequestScreenState
           child: SizedBox(
             width: 22,
             height: 22,
-            child:
-                CircularProgressIndicator(
-              strokeWidth: 2,
-            ),
+            child: CircularProgressIndicator(strokeWidth: 2),
           ),
         ),
       );
@@ -1048,18 +914,13 @@ class _LeaveRequestScreenState
     // ERROR
     // ----------------------------------------------------------
 
-    if (leaveState.error != null &&
-        requests.isEmpty) {
+    if (leaveState.error != null && requests.isEmpty) {
       return Padding(
         padding: const EdgeInsets.all(20),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.error_outline,
-              size: 28,
-              color: Color(0xFFB71C1C),
-            ),
+            const Icon(Icons.error_outline, size: 28, color: Color(0xFFB71C1C)),
 
             const SizedBox(height: 8),
 
@@ -1076,11 +937,7 @@ class _LeaveRequestScreenState
 
             OutlinedButton(
               onPressed: () {
-                ref
-                    .read(
-                      leaveProvider.notifier,
-                    )
-                    .getMyLeaveRequests();
+                ref.read(leaveProvider.notifier).getMyLeaveRequests();
               },
               child: const Text('Retry'),
             ),
@@ -1124,33 +981,20 @@ class _LeaveRequestScreenState
     // ----------------------------------------------------------
 
     return Column(
-      children: List.generate(
-        requests.length,
-        (index) {
-          final request =
-              requests[index];
+      children: List.generate(requests.length, (index) {
+        final request = requests[index];
 
-          final status =
-              request['status']?.toString();
+        final status = request['status']?.toString();
 
-          return _RecentRequest(
-            icon: _getLeaveIcon(
-              request['leave_category']
-                  ?.toString(),
-            ),
-            title:
-                _buildLeaveTitle(request),
-            date:
-                _buildLeaveDate(request),
-            status:
-                _formatStatus(status),
-            statusColor:
-                _getStatusColor(status),
-            isLast:
-                index == requests.length - 1,
-          );
-        },
-      ),
+        return _RecentRequest(
+          icon: _getLeaveIcon(request['leave_category']?.toString()),
+          title: _buildLeaveTitle(request),
+          date: _buildLeaveDate(request),
+          status: _formatStatus(status),
+          statusColor: _getStatusColor(status),
+          isLast: index == requests.length - 1,
+        );
+      }),
     );
   }
 
@@ -1159,8 +1003,7 @@ class _LeaveRequestScreenState
   // ============================================================
 
   String _formatStatus(String? status) {
-    if (status == null ||
-        status.trim().isEmpty) {
+    if (status == null || status.trim().isEmpty) {
       return 'UNKNOWN';
     }
 
@@ -1194,9 +1037,7 @@ class _LeaveRequestScreenState
   // LEAVE ICON
   // ============================================================
 
-  IconData _getLeaveIcon(
-    String? category,
-  ) {
+  IconData _getLeaveIcon(String? category) {
     switch (category?.toLowerCase()) {
       case 'sick':
         return Icons.sick_outlined;
@@ -1214,25 +1055,14 @@ class _LeaveRequestScreenState
   // LEAVE TITLE
   // ============================================================
 
-  String _buildLeaveTitle(
-    Map<String, dynamic> request,
-  ) {
-    final category =
-        request['leave_category']
-                ?.toString() ??
-            '';
+  String _buildLeaveTitle(Map<String, dynamic> request) {
+    final category = request['leave_category']?.toString() ?? '';
 
-    final rawTotalDays =
-        request['total_days'];
+    final rawTotalDays = request['total_days'];
 
-    final double totalDays =
-        rawTotalDays is num
-            ? rawTotalDays.toDouble()
-            : double.tryParse(
-                  rawTotalDays?.toString() ??
-                      '',
-                ) ??
-                0;
+    final double totalDays = rawTotalDays is num
+        ? rawTotalDays.toDouble()
+        : double.tryParse(rawTotalDays?.toString() ?? '') ?? 0;
 
     String categoryName;
 
@@ -1255,8 +1085,7 @@ class _LeaveRequestScreenState
       return '$categoryName (Half Day)';
     }
 
-    final int days =
-        totalDays.round();
+    final int days = totalDays.round();
 
     return '$categoryName ($days ${days == 1 ? 'Day' : 'Days'})';
   }
@@ -1265,34 +1094,23 @@ class _LeaveRequestScreenState
   // LEAVE DATE
   // ============================================================
 
-  String _buildLeaveDate(
-    Map<String, dynamic> request,
-  ) {
-    final start = DateTime.tryParse(
-      request['start_date']?.toString() ??
-          '',
-    );
+  String _buildLeaveDate(Map<String, dynamic> request) {
+    final start = DateTime.tryParse(request['start_date']?.toString() ?? '');
 
-    final end = DateTime.tryParse(
-      request['end_date']?.toString() ??
-          '',
-    );
+    final end = DateTime.tryParse(request['end_date']?.toString() ?? '');
 
     if (start == null) {
       return 'Date unavailable';
     }
 
-    final startText =
-        _formatShortDate(start);
+    final startText = _formatShortDate(start);
 
     // Half-day / single-day request.
-    if (end == null ||
-        DateUtils.isSameDay(start, end)) {
+    if (end == null || DateUtils.isSameDay(start, end)) {
       return '$startText, ${start.year}';
     }
 
-    final endText =
-        _formatShortDate(end);
+    final endText = _formatShortDate(end);
 
     if (start.year == end.year) {
       return '$startText - $endText, ${start.year}';
@@ -1306,9 +1124,7 @@ class _LeaveRequestScreenState
   // SHORT DATE
   // ============================================================
 
-  String _formatShortDate(
-    DateTime date,
-  ) {
+  String _formatShortDate(DateTime date) {
     const months = [
       'Jan',
       'Feb',
@@ -1332,9 +1148,7 @@ class _LeaveRequestScreenState
   // SECTION TITLE
   // ============================================================
 
-  Widget _sectionTitle(
-    String title,
-  ) {
+  Widget _sectionTitle(String title) {
     return Text(
       title,
       style: GoogleFonts.inter(
@@ -1369,18 +1183,13 @@ class _BalanceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 104,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        borderRadius:
-            BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.borderColor,
-          width: 1,
-        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderColor, width: 1),
       ),
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
@@ -1394,13 +1203,12 @@ class _BalanceCard extends StatelessWidget {
           const Spacer(),
 
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 value,
                 style: GoogleFonts.inter(
-                  fontSize: 30,
+                  fontSize: 24,
                   height: .9,
                   fontWeight: FontWeight.bold,
                   color: textColor,
@@ -1410,16 +1218,12 @@ class _BalanceCard extends StatelessWidget {
               const SizedBox(width: 4),
 
               Padding(
-                padding:
-                    const EdgeInsets.only(
-                  bottom: 1,
-                ),
+                padding: const EdgeInsets.only(bottom: 1),
                 child: Text(
                   suffix,
                   style: GoogleFonts.inter(
                     fontSize: 12,
-                    color:
-                        AppColors.mutedColor,
+                    color: AppColors.mutedColor,
                   ),
                 ),
               ),
@@ -1438,9 +1242,7 @@ class _BalanceCard extends StatelessWidget {
 class _SectionCard extends StatelessWidget {
   final Widget child;
 
-  const _SectionCard({
-    required this.child,
-  });
+  const _SectionCard({required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -1448,12 +1250,8 @@ class _SectionCard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        borderRadius:
-            BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.borderColor,
-          width: 1,
-        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderColor, width: 1),
       ),
       child: child,
     );
@@ -1472,8 +1270,7 @@ class _FieldLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding:
-          const EdgeInsets.only(bottom: 4),
+      padding: const EdgeInsets.only(bottom: 4),
       child: Text(
         text,
         style: GoogleFonts.inter(
@@ -1517,53 +1314,27 @@ class _TextField extends StatelessWidget {
       keyboardType: keyboardType,
       readOnly: readOnly,
       onTap: onTap,
-      style: GoogleFonts.inter(
-        fontSize: 14,
-        color: AppColors.textColor,
-      ),
+      style: GoogleFonts.inter(fontSize: 14, color: AppColors.textColor),
       decoration: InputDecoration(
         hintText: hint,
-        hintStyle: GoogleFonts.inter(
-          fontSize: 14,
-          color: AppColors.mutedColor,
-        ),
+        hintStyle: GoogleFonts.inter(fontSize: 14, color: AppColors.mutedColor),
         suffixIcon: suffixIcon == null
             ? null
-            : Icon(
-                suffixIcon,
-                size: 16,
-                color: AppColors.mutedColor,
-              ),
-        contentPadding:
-            const EdgeInsets.symmetric(
-          horizontal: 8,
-          vertical: 8,
-        ),
+            : Icon(suffixIcon, size: 16, color: AppColors.mutedColor),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         isDense: true,
         border: OutlineInputBorder(
-          borderRadius:
-              BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: AppColors.borderColor,
-            width: .8,
-          ),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.borderColor, width: .8),
         ),
-        enabledBorder:
-            OutlineInputBorder(
-          borderRadius:
-              BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: AppColors.borderColor,
-            width: .8,
-          ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.borderColor, width: .8),
         ),
-        focusedBorder:
-            OutlineInputBorder(
-          borderRadius:
-              BorderRadius.circular(12),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(
-            color:
-                AppColors.primaryFillColor,
+            color: AppColors.primaryFillColor,
             width: 1,
           ),
         ),
@@ -1579,9 +1350,7 @@ class _TextField extends StatelessWidget {
 class _DaysField extends StatelessWidget {
   final double value;
 
-  const _DaysField({
-    required this.value,
-  });
+  const _DaysField({required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -1589,8 +1358,7 @@ class _DaysField extends StatelessWidget {
 
     if (value == 0.5) {
       text = '0.5';
-    } else if (value ==
-        value.roundToDouble()) {
+    } else if (value == value.roundToDouble()) {
       text = value.toInt().toString();
     } else {
       text = value.toString();
@@ -1600,24 +1368,14 @@ class _DaysField extends StatelessWidget {
       width: double.infinity,
       height: 40,
       alignment: Alignment.centerLeft,
-      padding:
-          const EdgeInsets.symmetric(
-        horizontal: 8,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 8),
       decoration: BoxDecoration(
-        borderRadius:
-            BorderRadius.circular(12),
-        border: Border.all(
-          color: AppColors.borderColor,
-          width: .8,
-        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderColor, width: .8),
       ),
       child: Text(
         text,
-        style: GoogleFonts.inter(
-          fontSize: 14,
-          color: AppColors.textColor,
-        ),
+        style: GoogleFonts.inter(fontSize: 14, color: AppColors.textColor),
       ),
     );
   }
@@ -1627,8 +1385,7 @@ class _DaysField extends StatelessWidget {
 // DROPDOWN
 // ============================================================================
 
-class _DropdownField
-    extends StatelessWidget {
+class _DropdownField extends StatelessWidget {
   final String value;
   final ValueChanged<String?>? onChanged;
   final List<String> items;
@@ -1644,47 +1401,27 @@ class _DropdownField
     return DropdownButtonFormField<String>(
       initialValue: value,
       onChanged: onChanged,
-      style: GoogleFonts.inter(
-        fontSize: 12,
-        color: AppColors.textColor,
-      ),
+      style: GoogleFonts.inter(fontSize: 12, color: AppColors.textColor),
       icon: const Icon(
         Icons.keyboard_arrow_down_rounded,
         size: 16,
         color: AppColors.mutedColor,
       ),
       decoration: InputDecoration(
-        contentPadding:
-            const EdgeInsets.symmetric(
-          horizontal: 8,
-          vertical: 8,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
         isDense: true,
         border: OutlineInputBorder(
-          borderRadius:
-              BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: AppColors.borderColor,
-            width: 1,
-          ),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.borderColor, width: 1),
         ),
-        enabledBorder:
-            OutlineInputBorder(
-          borderRadius:
-              BorderRadius.circular(12),
-          borderSide: const BorderSide(
-            color: AppColors.borderColor,
-            width: 1,
-          ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.borderColor, width: 1),
         ),
       ),
       items: items
           .map(
-            (item) =>
-                DropdownMenuItem<String>(
-              value: item,
-              child: Text(item),
-            ),
+            (item) => DropdownMenuItem<String>(value: item, child: Text(item)),
           )
           .toList(),
     );
@@ -1695,8 +1432,7 @@ class _DropdownField
 // RECENT REQUEST
 // ============================================================================
 
-class _RecentRequest
-    extends StatelessWidget {
+class _RecentRequest extends StatelessWidget {
   final IconData icon;
   final String title;
   final String date;
@@ -1721,11 +1457,7 @@ class _RecentRequest
         border: isLast
             ? null
             : const Border(
-                bottom: BorderSide(
-                  color:
-                      AppColors.borderColor,
-                  width: .7,
-                ),
+                bottom: BorderSide(color: AppColors.borderColor, width: .7),
               ),
       ),
       child: Row(
@@ -1733,33 +1465,25 @@ class _RecentRequest
           Container(
             width: 36,
             height: 36,
-            decoration:
-                const BoxDecoration(
+            decoration: const BoxDecoration(
               shape: BoxShape.circle,
               color: Color(0xFFEDE5F7),
             ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: AppColors.mutedColor,
-            ),
+            child: Icon(icon, size: 20, color: AppColors.mutedColor),
           ),
 
           const SizedBox(width: 8),
 
           Expanded(
             child: Column(
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   title,
                   style: GoogleFonts.inter(
                     fontSize: 14,
-                    fontWeight:
-                        FontWeight.w600,
-                    color:
-                        AppColors.textColor,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textColor,
                   ),
                 ),
 
@@ -1769,8 +1493,7 @@ class _RecentRequest
                   date,
                   style: GoogleFonts.inter(
                     fontSize: 12,
-                    color:
-                        AppColors.mutedColor,
+                    color: AppColors.mutedColor,
                   ),
                 ),
               ],
@@ -1780,24 +1503,16 @@ class _RecentRequest
           const SizedBox(width: 8),
 
           Container(
-            padding:
-                const EdgeInsets.symmetric(
-              horizontal: 5,
-              vertical: 3,
-            ),
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 3),
             decoration: BoxDecoration(
-              color: statusColor.withValues(
-                alpha: .10,
-              ),
-              borderRadius:
-                  BorderRadius.circular(4),
+              color: statusColor.withValues(alpha: .10),
+              borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
               status,
               style: GoogleFonts.inter(
                 fontSize: 11,
-                fontWeight:
-                    FontWeight.w600,
+                fontWeight: FontWeight.w600,
                 color: statusColor,
               ),
             ),

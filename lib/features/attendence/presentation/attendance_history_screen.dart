@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/styles/app_colors.dart';
-
 import '../providers/attendance_provider.dart';
 
 class AttendanceHistoryScreen extends ConsumerStatefulWidget {
@@ -50,7 +47,8 @@ class _AttendanceHistoryScreenState
     setState(() {
       selectedMonth = DateTime(selectedMonth.year, selectedMonth.month - 1);
 
-      selectedDate = null;
+      // Keep today selected
+      selectedDate = DateTime.now();
     });
 
     _loadHistory();
@@ -69,7 +67,9 @@ class _AttendanceHistoryScreenState
 
     setState(() {
       selectedMonth = nextMonth;
-      selectedDate = null;
+
+      // Always keep today selected
+      selectedDate = DateTime.now();
     });
 
     _loadHistory();
@@ -81,7 +81,7 @@ class _AttendanceHistoryScreenState
 
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
-       appBar: AppBar(
+      appBar: AppBar(
         backgroundColor: AppColors.whiteBackgroundColor,
         surfaceTintColor: AppColors.whiteBackgroundColor,
       ),
@@ -136,13 +136,13 @@ class _AttendanceHistoryScreenState
 
         _buildSummary(state),
 
+        const SizedBox(height: 24),
+
+        _buildLogHeader(),
+
         const SizedBox(height: 16),
 
-        //   _buildLogHeader(),
-
-        //   const SizedBox(height: 16),
-
-        //   _buildLogEntries(state),
+        _buildLogEntries(state),
       ],
     );
   }
@@ -156,8 +156,8 @@ class _AttendanceHistoryScreenState
 
     final firstDay = DateTime(selectedMonth.year, selectedMonth.month, 1);
 
-    // Monday = 0 ... Sunday = 6
-    final firstWeekday = firstDay.weekday - 1;
+    // Sunday = 0 ... Saturday = 6
+    final firstWeekday = firstDay.weekday % 7;
 
     final records = state.historyRecords;
 
@@ -204,24 +204,39 @@ class _AttendanceHistoryScreenState
 
               final record = _recordForDate(records, date);
 
+              final now = DateTime.now();
+
+              final isToday = _isSameDate(now, date);
+
+              final isPast = date.isBefore(
+                DateTime(now.year, now.month, now.day),
+              );
+
+              final isWorkingDay = date.weekday != DateTime.sunday;
+
+              // API doesn't return a record for absent days.
+              // Therefore: past working day + no record = absent.
+              final isAbsent = isPast && isWorkingDay && record == null;
+
               return _CalendarDay(
                 date: date,
                 record: record,
                 isSelected: _isSameDate(selectedDate, date),
-                isToday: _isSameDate(DateTime.now(), date),
+                isToday: isToday,
+                isAbsent: isAbsent,
                 onTap: () {
+                  if (!isToday) return;
+
                   setState(() {
-                    selectedDate = date;
+                    selectedDate = DateTime.now();
                   });
-                  context.push(AppRoutes.attendance);
                 },
               );
             },
           ),
 
           // const SizedBox(height: 10),
-
-          // _buildCalendarLegend(),
+          _buildCalendarLegend(),
         ],
       ),
     );
@@ -283,11 +298,13 @@ class _AttendanceHistoryScreenState
   Widget _buildCalendarLegend() {
     return Row(
       children: [
-        _LegendItem(color: const Color(0xFFE33D59), text: 'Present'),
+        // _LegendItem(color: const Color(0xFFE33D59), text: 'Absent'),
 
         const Spacer(),
 
-        _LegendItem(color: const Color(0xFFF2A21B), text: 'Exception'),
+        _LegendItem(color: const Color(0xFFE33D59), text: 'Absent'),
+
+        // _LegendItem(color: const Color(0xFFF2A21B), text: 'Exception'),
       ],
     );
   }
@@ -332,7 +349,7 @@ class _AttendanceHistoryScreenState
         Text(
           'LOG ENTRIES',
           style: GoogleFonts.inter(
-            fontSize: 9,
+            fontSize: 14,
             fontWeight: FontWeight.w500,
             letterSpacing: 0.8,
             color: AppColors.mutedColor,
@@ -345,14 +362,14 @@ class _AttendanceHistoryScreenState
           children: [
             const Icon(
               Icons.file_download_outlined,
-              size: 14,
+              size: 16,
               color: Color(0xFFFF3656),
             ),
             const SizedBox(width: 4),
             Text(
               'Export',
               style: GoogleFonts.inter(
-                fontSize: 11,
+                fontSize: 14,
                 fontWeight: FontWeight.w600,
                 color: const Color(0xFFFF3656),
               ),
@@ -384,7 +401,7 @@ class _AttendanceHistoryScreenState
     return Column(
       children: records.map((record) {
         return Padding(
-          padding: const EdgeInsets.only(bottom: 10),
+          padding: const EdgeInsets.only(bottom: 12),
           child: _AttendanceLogCard(record: record),
         );
       }).toList(),
@@ -397,8 +414,8 @@ class _AttendanceHistoryScreenState
       padding: const EdgeInsets.symmetric(vertical: 28),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEADFE3)),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderColor),
       ),
       child: Column(
         children: [
@@ -584,6 +601,7 @@ class _CalendarDay extends StatelessWidget {
   final Map<String, dynamic>? record;
   final bool isSelected;
   final bool isToday;
+  final bool isAbsent;
   final VoidCallback onTap;
 
   const _CalendarDay({
@@ -591,6 +609,7 @@ class _CalendarDay extends StatelessWidget {
     required this.record,
     required this.isSelected,
     required this.isToday,
+    required this.isAbsent,
     required this.onTap,
   });
 
@@ -600,8 +619,7 @@ class _CalendarDay extends StatelessWidget {
 
     final status = record?['status']?.toString();
 
-    final isException =
-        status == 'late' || status == 'early_exit' || status == 'absent';
+    final isException = status == 'late' || status == 'early_exit';
 
     return GestureDetector(
       onTap: onTap,
@@ -610,6 +628,8 @@ class _CalendarDay extends StatelessWidget {
         decoration: BoxDecoration(
           color: isSelected
               ? Colors.white
+              : isAbsent
+              ? const Color(0xFFFFEBEE)
               : isException && hasRecord
               ? const Color(0xFFFFF3DB)
               : Colors.transparent,
@@ -628,26 +648,9 @@ class _CalendarDay extends StatelessWidget {
                 fontWeight: isSelected || isToday
                     ? FontWeight.w700
                     : FontWeight.w400,
-                color: hasRecord
-                    ? AppColors.textColor
-                    : const Color(0xFF202024),
+                color: isAbsent ? const Color(0xFFD32F2F) : AppColors.textColor,
               ),
             ),
-
-            // if (hasRecord)
-            //   Positioned(
-            //     bottom: 3,
-            //     child: Container(
-            //       width: 5,
-            //       height: 5,
-            //       decoration: BoxDecoration(
-            //         shape: BoxShape.circle,
-            //         color: isException
-            //             ? const Color(0xFFF2A21B)
-            //             : const Color(0xFFE33D59),
-            //       ),
-            //     ),
-            //   ),
           ],
         ),
       ),
@@ -705,11 +708,11 @@ class _LegendItem extends StatelessWidget {
           height: 8,
           decoration: BoxDecoration(shape: BoxShape.circle, color: color),
         ),
-        const SizedBox(width: 5),
+        const SizedBox(width: 8),
         Text(
           text,
           style: GoogleFonts.inter(
-            fontSize: 9,
+            fontSize: 12,
             fontWeight: FontWeight.w400,
             color: const Color(0xFF6E6469),
           ),
@@ -792,11 +795,11 @@ class _AttendanceLogCard extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 12),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFEADFE3)),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderColor),
       ),
       child: Column(
         children: [
@@ -837,11 +840,11 @@ class _AttendanceLogCard extends StatelessWidget {
             ],
           ),
 
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
           Container(height: 1, color: const Color(0xFFECE3E6)),
 
-          const SizedBox(height: 9),
+          const SizedBox(height: 8),
 
           Row(
             children: [
@@ -850,7 +853,7 @@ class _AttendanceLogCard extends StatelessWidget {
                 value: _formatDuration(workingMinutes),
               ),
 
-              const SizedBox(width: 28),
+              const SizedBox(width: 16),
 
               _BottomInfo(label: 'Status', value: _statusLabel(status)),
 
@@ -976,19 +979,19 @@ class _DateBadge extends StatelessWidget {
   Widget build(BuildContext context) {
     if (date == null) {
       return Container(
-        width: 43,
-        height: 49,
+        width: 48,
+        height: 48,
         decoration: BoxDecoration(
           color: const Color(0xFFFFE8EB),
-          borderRadius: BorderRadius.circular(11),
+          borderRadius: BorderRadius.circular(12),
         ),
         child: const Center(child: Text('--')),
       );
     }
 
     return Container(
-      width: 43,
-      height: 49,
+      width: 48,
+      height: 48,
       decoration: BoxDecoration(
         color: const Color(0xFFFFE8EB),
         borderRadius: BorderRadius.circular(11),
@@ -999,7 +1002,7 @@ class _DateBadge extends StatelessWidget {
           Text(
             _monthShort(date!.month),
             style: GoogleFonts.inter(
-              fontSize: 7,
+              fontSize: 9,
               fontWeight: FontWeight.w700,
               color: const Color(0xFFFF3656),
             ),
@@ -1009,7 +1012,7 @@ class _DateBadge extends StatelessWidget {
             date!.day.toString().padLeft(2, '0'),
             style: GoogleFonts.inter(
               fontSize: 16,
-              fontWeight: FontWeight.w800,
+              fontWeight: FontWeight.bold,
               color: const Color(0xFFFF3656),
             ),
           ),
@@ -1064,7 +1067,7 @@ class _StatusBadge extends StatelessWidget {
         : const Color(0xFFE4F8F1);
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
       decoration: BoxDecoration(
         color: background,
         borderRadius: BorderRadius.circular(20),
@@ -1072,7 +1075,7 @@ class _StatusBadge extends StatelessWidget {
       child: Text(
         status.replaceAll('_', ' ').toUpperCase(),
         style: GoogleFonts.inter(
-          fontSize: 8,
+          fontSize: 9,
           fontWeight: FontWeight.w700,
           color: color,
         ),
@@ -1101,7 +1104,7 @@ class _BottomInfo extends StatelessWidget {
       children: [
         Text(
           label,
-          style: GoogleFonts.inter(fontSize: 8, color: const Color(0xFF8B7D83)),
+          style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF8B7D83)),
         ),
 
         const SizedBox(height: 2),
@@ -1109,7 +1112,7 @@ class _BottomInfo extends StatelessWidget {
         Text(
           value,
           style: GoogleFonts.inter(
-            fontSize: 9,
+            fontSize: 14,
             fontWeight: FontWeight.w600,
             color: AppColors.textColor,
           ),

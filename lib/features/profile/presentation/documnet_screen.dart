@@ -63,44 +63,54 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     }
   }
 
-  Future<void> _uploadDocument() async {
-    if (_selectedFile == null) {
-      _showMessage('Please choose a document first.');
-      return;
-    }
+ Future<void> _uploadDocument() async {
+  if (_selectedFile == null) {
+    _showMessage('Please choose a document first.');
+    return;
+  }
 
-    final filePath = _selectedFile!.path;
+  final filePath = _selectedFile!.path;
 
-    if (filePath == null || filePath.isEmpty) {
-      _showMessage('Invalid file selected.');
-      return;
-    }
+  if (filePath == null || filePath.isEmpty) {
+    _showMessage('Invalid file selected.');
+    return;
+  }
 
-    final category = _getCategoryValue(_selectedDocument);
+  final category = _getCategoryValue(_selectedDocument);
 
-    debugPrint('📤 Uploading document...');
-    debugPrint('📄 File: ${_selectedFile!.name}');
-    debugPrint('📁 Category: $category');
+  debugPrint('📤 Uploading document...');
+  debugPrint('📄 File: ${_selectedFile!.name}');
+  debugPrint('📁 Path: $filePath');
+  debugPrint('📂 Category: $category');
 
-    final success = await ref
-        .read(documentProvider.notifier)
-        .uploadDocument(filePath: filePath, category: category);
+  final success = await ref
+      .read(documentProvider.notifier)
+      .uploadDocument(
+        filePath: filePath,
+        category: category,
+      );
+
+  if (!mounted) return;
+
+  if (success) {
+    // Refresh documents from backend after successful upload.
+    await ref.read(documentProvider.notifier).fetchDocuments();
 
     if (!mounted) return;
 
-    if (success) {
-      setState(() {
-        _selectedFile = null;
-      });
+    setState(() {
+      _selectedFile = null;
+    });
 
-      _showMessage('Document uploaded successfully.');
-    } else {
-      final message = ref.read(documentProvider).errorMessage;
+    _showMessage('Document uploaded successfully.');
+  } else {
+    final message = ref.read(documentProvider).errorMessage;
 
-      _showMessage(message ?? 'Unable to upload document.');
-    }
+    _showMessage(
+      message ?? 'Unable to upload document.',
+    );
   }
-
+}
   String _getCategoryValue(String document) {
     switch (document) {
       case 'Identity proof':

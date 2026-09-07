@@ -13,47 +13,58 @@ class DocumentRepository {
 
   /// GET /api/documents/mine
   Future<List<Map<String, dynamic>>> getMyDocuments() async {
-    try {
-      final response = await apiClient.get(
-        '/documents/mine',
-      );
+  try {
+    final response = await apiClient.get('/documents/mine');
 
-      debugPrint('========== MY DOCUMENTS RESPONSE ==========');
-      debugPrint('${response.data}');
-      debugPrint('===========================================');
+    debugPrint('========== MY DOCUMENTS RESPONSE ==========');
+    debugPrint('${response.data}');
+    debugPrint('===========================================');
 
-      final data = response.data;
+    final responseData = response.data;
 
-      if (data is List) {
-        return data
+    // API response:
+    // {
+    //   success: true,
+    //   statusCode: 200,
+    //   message: "Your documents",
+    //   data: [...]
+    // }
+
+    if (responseData is Map) {
+      final documents = responseData['data'];
+
+      if (documents is List) {
+        return documents
+            .whereType<Map>()
             .map(
               (item) => Map<String, dynamic>.from(item),
             )
             .toList();
       }
-
-      return [];
-    } on DioException catch (e) {
-      debugPrint('❌ Get documents error: ${e.message}');
-      debugPrint('❌ Status: ${e.response?.statusCode}');
-      debugPrint('❌ Response: ${e.response?.data}');
-
-      final responseData = e.response?.data;
-
-      if (responseData is Map<String, dynamic>) {
-        if (responseData['message'] != null) {
-          throw Exception(
-            responseData['message'].toString(),
-          );
-        }
-      }
-
-      throw Exception(
-        e.message ?? 'Unable to load documents.',
-      );
     }
-  }
 
+    return [];
+  } on DioException catch (e) {
+    debugPrint('❌ Get documents error: ${e.message}');
+    debugPrint('❌ Status: ${e.response?.statusCode}');
+    debugPrint('❌ Response: ${e.response?.data}');
+
+    final responseData = e.response?.data;
+
+    if (responseData is Map) {
+      final message = responseData['message'];
+
+      if (message != null &&
+          message.toString().trim().isNotEmpty) {
+        throw Exception(message.toString());
+      }
+    }
+
+    throw Exception(
+      e.message ?? 'Unable to load documents.',
+    );
+  }
+}
   /// POST /api/documents
   ///
   /// multipart/form-data:
