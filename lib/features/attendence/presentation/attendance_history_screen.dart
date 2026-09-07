@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/features/attendence/data/attendance_pdf_service.dart';
+
 import '../providers/attendance_provider.dart';
 
 class AttendanceHistoryScreen extends ConsumerStatefulWidget {
@@ -138,7 +140,7 @@ class _AttendanceHistoryScreenState
 
         const SizedBox(height: 24),
 
-        _buildLogHeader(),
+        _buildLogHeader(state),
 
         const SizedBox(height: 16),
 
@@ -343,7 +345,7 @@ class _AttendanceHistoryScreenState
     );
   }
 
-  Widget _buildLogHeader() {
+  Widget _buildLogHeader(AttendanceState state) {
     return Row(
       children: [
         Text(
@@ -358,23 +360,55 @@ class _AttendanceHistoryScreenState
 
         const Spacer(),
 
-        Row(
-          children: [
-            const Icon(
-              Icons.file_download_outlined,
-              size: 16,
-              color: Color(0xFFFF3656),
+        InkWell(
+          onTap: () async {
+            try {
+              final filePath = await AttendancePdfService.generate(
+                year: selectedMonth.year,
+                month: selectedMonth.month,
+                records: state.historyRecords,
+              );
+
+              if (!mounted) return;
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Attendance PDF exported successfully.'),
+                ),
+              );
+
+              debugPrint('PDF saved: $filePath');
+            } catch (e) {
+              if (!mounted) return;
+
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text('Unable to export attendance: $e')),
+              );
+            }
+          },
+          borderRadius: BorderRadius.circular(8),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(
+                  Icons.file_download_outlined,
+                  size: 16,
+                  color: Color(0xFFFF3656),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  'Export',
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFFFF3656),
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(width: 4),
-            Text(
-              'Export',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: const Color(0xFFFF3656),
-              ),
-            ),
-          ],
+          ),
         ),
       ],
     );
@@ -1104,7 +1138,10 @@ class _BottomInfo extends StatelessWidget {
       children: [
         Text(
           label,
-          style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF8B7D83)),
+          style: GoogleFonts.inter(
+            fontSize: 11,
+            color: const Color(0xFF8B7D83),
+          ),
         ),
 
         const SizedBox(height: 2),

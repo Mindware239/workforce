@@ -63,54 +63,50 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     }
   }
 
- Future<void> _uploadDocument() async {
-  if (_selectedFile == null) {
-    _showMessage('Please choose a document first.');
-    return;
-  }
+  Future<void> _uploadDocument() async {
+    if (_selectedFile == null) {
+      _showMessage('Please choose a document first.');
+      return;
+    }
 
-  final filePath = _selectedFile!.path;
+    final filePath = _selectedFile!.path;
 
-  if (filePath == null || filePath.isEmpty) {
-    _showMessage('Invalid file selected.');
-    return;
-  }
+    if (filePath == null || filePath.isEmpty) {
+      _showMessage('Invalid file selected.');
+      return;
+    }
 
-  final category = _getCategoryValue(_selectedDocument);
+    final category = _getCategoryValue(_selectedDocument);
 
-  debugPrint('📤 Uploading document...');
-  debugPrint('📄 File: ${_selectedFile!.name}');
-  debugPrint('📁 Path: $filePath');
-  debugPrint('📂 Category: $category');
+    debugPrint('📤 Uploading document...');
+    debugPrint('📄 File: ${_selectedFile!.name}');
+    debugPrint('📁 Path: $filePath');
+    debugPrint('📂 Category: $category');
 
-  final success = await ref
-      .read(documentProvider.notifier)
-      .uploadDocument(
-        filePath: filePath,
-        category: category,
-      );
-
-  if (!mounted) return;
-
-  if (success) {
-    // Refresh documents from backend after successful upload.
-    await ref.read(documentProvider.notifier).fetchDocuments();
+    final success = await ref
+        .read(documentProvider.notifier)
+        .uploadDocument(filePath: filePath, category: category);
 
     if (!mounted) return;
 
-    setState(() {
-      _selectedFile = null;
-    });
+    if (success) {
+      // Refresh documents from backend after successful upload.
+      await ref.read(documentProvider.notifier).fetchDocuments();
 
-    _showMessage('Document uploaded successfully.');
-  } else {
-    final message = ref.read(documentProvider).errorMessage;
+      if (!mounted) return;
 
-    _showMessage(
-      message ?? 'Unable to upload document.',
-    );
+      setState(() {
+        _selectedFile = null;
+      });
+
+      _showMessage('Document uploaded successfully.');
+    } else {
+      final message = ref.read(documentProvider).errorMessage;
+
+      _showMessage(message ?? 'Unable to upload document.');
+    }
   }
-}
+
   String _getCategoryValue(String document) {
     switch (document) {
       case 'Identity proof':
@@ -477,28 +473,73 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                   ),
                 ),
 
-                if (category.isNotEmpty) const SizedBox(height: 3),
+                if (category.isNotEmpty) const SizedBox(height: 4),
 
-                if (category.isNotEmpty)
-                  Text(
-                    category,
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      color: AppColors.mutedColor,
-                    ),
-                  ),
-
-                if (createdAt != null) const SizedBox(height: 2),
-
-                if (createdAt != null)
-                  Text(
-                    _formatDate(createdAt),
-                    style: GoogleFonts.inter(
-                      fontSize: 9,
-                      color: AppColors.mutedColor,
-                    ),
-                  ),
+                Row(
+                  children: [
+                    if (category.isNotEmpty)
+                      Text(
+                        category,
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          color: AppColors.mutedColor,
+                        ),
+                      ),
+                    SizedBox(width: 8),
+                    if (createdAt != null)
+                      Text(
+                        _formatDate(createdAt),
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: AppColors.mutedColor,
+                        ),
+                      ),
+                  ],
+                ),
               ],
+            ),
+          ),
+
+          GestureDetector(
+            onTap: () async {
+              final documentId = document['id'];
+
+              debugPrint('documentId: $documentId');
+
+              if (documentId == null) return;
+
+              final filePath = await ref
+                  .read(documentProvider.notifier)
+                  .downloadDocument(int.parse(documentId.toString()));
+
+              if (!mounted) return;
+
+              if (filePath != null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('$fileName saved to Downloads.')),
+                );
+              } else {
+                final error = ref.read(documentProvider).errorMessage;
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(error ?? 'Unable to download document.'),
+                  ),
+                );
+              }
+            },
+            child: Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.mutedColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                Icons.download,
+                color: AppColors.mutedColor,
+                size: 21,
+              ),
             ),
           ),
         ],
