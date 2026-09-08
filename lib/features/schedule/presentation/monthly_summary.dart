@@ -975,16 +975,6 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
 
     return '$date · ${record['status'] ?? 'Exception'}';
   }
-
-  void _showDownloadMessage(BuildContext context) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Payslip download endpoint is not available in the provided API.',
-        ),
-      ),
-    );
-  }
 }
 
 // ================================================================

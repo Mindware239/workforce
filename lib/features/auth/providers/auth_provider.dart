@@ -1,100 +1,238 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
-import '../data/auth_repository.dart';
-
-enum AuthStatus {
-  initial,
-  loading,
-  success,
-  error,
-}
+import 'package:workforce/core/services/auth_service.dart';
+import 'package:workforce/features/auth/data/auth_repository.dart';
 
 class AuthState {
-  final AuthStatus status;
+  final bool isLoading;
+  final bool isAuthenticated;
+  final bool onboardingPending;
   final Map<String, dynamic>? user;
-  final String? errorMessage;
+  final Map<String, dynamic>? onboardingStatus;
+  final String? error;
 
   const AuthState({
-    this.status = AuthStatus.initial,
+    this.isLoading = false,
+    this.isAuthenticated = false,
+    this.onboardingPending = false,
     this.user,
-    this.errorMessage,
+    this.onboardingStatus,
+    this.error,
   });
 
   AuthState copyWith({
-    AuthStatus? status,
+    bool? isLoading,
+    bool? isAuthenticated,
+    bool? onboardingPending,
     Map<String, dynamic>? user,
-    String? errorMessage,
+    Map<String, dynamic>? onboardingStatus,
+    String? error,
   }) {
     return AuthState(
-      status: status ?? this.status,
+      isLoading:
+          isLoading ?? this.isLoading,
+      isAuthenticated:
+          isAuthenticated ??
+          this.isAuthenticated,
+      onboardingPending:
+          onboardingPending ??
+          this.onboardingPending,
       user: user ?? this.user,
-      errorMessage: errorMessage,
+      onboardingStatus:
+          onboardingStatus ??
+          this.onboardingStatus,
+      error: error,
     );
   }
 }
 
-class AuthNotifier extends Notifier<AuthState> {
-  late final AuthRepository repository;
+class AuthNotifier
+    extends StateNotifier<AuthState> {
+  final AuthRepository repository;
 
-  @override
-  AuthState build() {
-    repository = ref.read(authRepositoryProvider);
+  AuthNotifier({
+    required this.repository,
+  }) : super(const AuthState());
 
-    return const AuthState();
+  Future<void> restoreSession() async {
+  try {
+    final user = await repository.getSavedUser();
+
+    if (user == null) {
+      state = const AuthState();
+      return;
+    }
+
+    final onboardingStatus =
+        await repository.getOnboardingStatus();
+
+    final pending =
+        onboardingStatus['pending'] == true;
+
+    state = state.copyWith(
+      isLoading: false,
+      isAuthenticated: true,
+      onboardingPending: pending,
+      user: user,
+      onboardingStatus: onboardingStatus,
+    );
+  } catch (e) {
+    state = state.copyWith(
+      isLoading: false,
+      error: e.toString(),
+    );
   }
+}
 
-  Future<void> login({
+  Future<bool> login({
     required String mobileNumber,
   }) async {
     state = state.copyWith(
-      status: AuthStatus.loading,
-      errorMessage: null,
+      isLoading: true,
     );
 
     try {
-      final user = await repository.login(
+      final user =
+          await repository.login(
         mobileNumber: mobileNumber,
       );
 
+      // -----------------------------------------------
+      // IMPORTANT:
+      // Token is already saved here.
+      // Now check onboarding status.
+      // -----------------------------------------------
+
+      final onboardingStatus =
+          await repository
+              .getOnboardingStatus();
+
+      final pending =
+          onboardingStatus['pending'] == true;
+
       state = state.copyWith(
-        status: AuthStatus.success,
+        isLoading: false,
+        isAuthenticated: true,
+        onboardingPending: pending,
         user: user,
+        onboardingStatus:
+            onboardingStatus,
       );
+
+      return true;
     } catch (e) {
       state = state.copyWith(
-        status: AuthStatus.error,
-        errorMessage: e.toString(),
+        isLoading: false,
+        error: e.toString(),
       );
+
+      rethrow;
     }
   }
 
-  // Restore employee data after app restart
-  Future<void> restoreSession() async {
+  // ------------------------------------------------------
+  // Refresh onboarding status
+  // ------------------------------------------------------
+
+  Future<bool> checkOnboardingStatus() async {
     try {
-      final user = await repository.getSavedUser();
+      final status =
+          await repository
+              .getOnboardingStatus();
 
-      if (user == null) {
-        return;
-      }
+      final pending =
+          status['pending'] == true;
 
       state = state.copyWith(
-        status: AuthStatus.success,
-        user: user,
+        onboardingPending: pending,
+        onboardingStatus: status,
       );
+
+      return pending;
     } catch (e) {
-      state = state.copyWith(
-        status: AuthStatus.error,
-        errorMessage: e.toString(),
-      );
+      rethrow;
     }
   }
 
-  void reset() {
+  // ------------------------------------------------------
+  // Submit onboarding
+  // ------------------------------------------------------
+
+  Future<void> submitOnboarding({
+    required String emergencyContact1Relation,
+    required String emergencyContact1Number,
+    required String emergencyContact2Relation,
+    required String emergencyContact2Number,
+    required String permanentAddress,
+    required String correspondenceAddress,
+    required bool termsAccepted,
+    String? fullName,
+    String? mobileNumber,
+    String? email,
+  }) async {
+    state = state.copyWith(
+      isLoading: true,
+    );
+
+    try {
+      final result =
+          await repository.submitOnboarding(
+        emergencyContact1Relation:
+            emergencyContact1Relation,
+        emergencyContact1Number:
+            emergencyContact1Number,
+        emergencyContact2Relation:
+            emergencyContact2Relation,
+        emergencyContact2Number:
+            emergencyContact2Number,
+        permanentAddress:
+            permanentAddress,
+        correspondenceAddress:
+            correspondenceAddress,
+        termsAccepted:
+            termsAccepted,
+        fullName: fullName,
+        mobileNumber: mobileNumber,
+        email: email,
+      );
+
+      final pending =
+          result['pending'] == true;
+
+      state = state.copyWith(
+        isLoading: false,
+        onboardingPending: pending,
+        onboardingStatus: result,
+      );
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+      );
+
+      rethrow;
+    }
+  }
+
+  // ------------------------------------------------------
+  // Logout
+  // ------------------------------------------------------
+
+  Future<void> logout() async {
+    await repository.secureStorage
+        .clearAuth();
+
+    AuthService.logout();
+
     state = const AuthState();
   }
 }
 
 final authProvider =
-    NotifierProvider<AuthNotifier, AuthState>(
-  AuthNotifier.new,
+    StateNotifierProvider<AuthNotifier, AuthState>(
+  (ref) {
+    return AuthNotifier(
+      repository:
+          ref.read(authRepositoryProvider),
+    );
+  },
 );

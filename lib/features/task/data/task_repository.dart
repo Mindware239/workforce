@@ -53,9 +53,7 @@ class TaskRepository {
         queryParameters: queryParameters,
       );
 
-      debugPrint('========== TASKS API ==========');
-      debugPrint(response.data.toString());
-      debugPrint('===============================');
+  
 
       return Map<String, dynamic>.from(
         response.data,
@@ -118,15 +116,7 @@ class TaskRepository {
         },
       );
 
-      debugPrint(
-        '========== TASK SUMMARY =========',
-      );
-      debugPrint(
-        response.data.toString(),
-      );
-      debugPrint(
-        '=================================',
-      );
+      
 
       return Map<String, dynamic>.from(
         response.data,

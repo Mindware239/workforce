@@ -765,21 +765,13 @@ class _AudioPlayerState extends State<_AudioPlayer> {
 
   Future<void> _initializeAudio() async {
   try {
-    debugPrint('================================');
-    debugPrint('🎵 AUDIO INITIALIZATION');
-    debugPrint('🎵 URL: ${widget.audioUrl}');
-    debugPrint('🎵 URL TYPE: ${widget.audioUrl.runtimeType}');
-    debugPrint('================================');
+
 
     final duration = await _player.setUrl(
       widget.audioUrl,
     );
 
-    debugPrint('================================');
-    debugPrint('✅ AUDIO LOADED');
-    debugPrint('🎵 Duration: $duration');
-    debugPrint('🎵 Player state: ${_player.processingState}');
-    debugPrint('================================');
+  
 
     if (!mounted) return;
 
@@ -788,12 +780,7 @@ class _AudioPlayerState extends State<_AudioPlayer> {
       _hasError = false;
     });
   } catch (e, stackTrace) {
-    debugPrint('================================');
-    debugPrint('❌ AUDIO LOAD ERROR');
-    debugPrint('❌ URL: ${widget.audioUrl}');
-    debugPrint('❌ ERROR: $e');
-    debugPrint('❌ STACK: $stackTrace');
-    debugPrint('================================');
+    
 
     if (!mounted) return;
 
@@ -804,13 +791,7 @@ class _AudioPlayerState extends State<_AudioPlayer> {
   }
 }
   Future<void> _togglePlay() async {
-    debugPrint('================================');
-    debugPrint('▶️ PLAY BUTTON CLICKED');
-    debugPrint('▶️ loading=$_isLoading');
-    debugPrint('▶️ error=$_hasError');
-    debugPrint('▶️ playing=${_player.playing}');
-    debugPrint('▶️ state=${_player.processingState}');
-    debugPrint('================================');
+  
 
     if (_isLoading || _hasError) {
       debugPrint('⚠️ Player is not ready');

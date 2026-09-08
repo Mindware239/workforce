@@ -1,26 +1,24 @@
 package com.example.workforce
 
+import android.content.Context
 import android.content.Intent
 import android.os.Build
-
-import io.flutter.embedding.android.FlutterActivity
-import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
-class MainActivity : FlutterActivity() {
+object LocationMethodChannel {
 
-    private val CHANNEL = "workforce/location"
+    private const val CHANNEL =
+        "workforce/location"
 
-    override fun configureFlutterEngine(
-        flutterEngine: FlutterEngine
+    private var methodChannel:
+        MethodChannel? = null
+
+    fun register(
+        context: Context,
+        channel: MethodChannel
     ) {
-        super.configureFlutterEngine(flutterEngine)
 
-        val channel =
-            MethodChannel(
-                flutterEngine.dartExecutor.binaryMessenger,
-                CHANNEL
-            )
+        methodChannel = channel
 
         channel.setMethodCallHandler {
                 call,
@@ -32,7 +30,7 @@ class MainActivity : FlutterActivity() {
 
                     val intent =
                         Intent(
-                            this,
+                            context,
                             LocationTrackingService::class.java
                         ).apply {
                             action =
@@ -43,9 +41,13 @@ class MainActivity : FlutterActivity() {
                         Build.VERSION.SDK_INT >=
                         Build.VERSION_CODES.O
                     ) {
-                        startForegroundService(intent)
+                        context.startForegroundService(
+                            intent
+                        )
                     } else {
-                        startService(intent)
+                        context.startService(
+                            intent
+                        )
                     }
 
                     result.success(true)
@@ -55,14 +57,14 @@ class MainActivity : FlutterActivity() {
 
                     val intent =
                         Intent(
-                            this,
+                            context,
                             LocationTrackingService::class.java
                         ).apply {
                             action =
                                 LocationTrackingService.ACTION_STOP
                         }
 
-                    startService(intent)
+                    context.startService(intent)
 
                     result.success(true)
                 }
@@ -72,5 +74,15 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
+    }
+
+    fun sendLocation(
+        data: Map<String, Any>
+    ) {
+
+        methodChannel?.invokeMethod(
+            "locationUpdate",
+            data
+        )
     }
 }

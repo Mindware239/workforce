@@ -21,16 +21,7 @@ class HelpSupportScreen extends StatelessWidget {
             color: AppColors.textColor,
           ),
         ),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: 16),
-            child: Image.asset(
-              'assets/images/profile.png',
-              height: 32,
-              width: 32,
-            ),
-          ),
-        ],
+       
       ),
       body: SafeArea(
         child: SingleChildScrollView(

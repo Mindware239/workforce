@@ -9,6 +9,8 @@ import 'package:workforce/app/routes/app_routes.dart';
 
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/features/attendence/providers/attendance_provider.dart';
+import 'package:workforce/features/attendence/services/employee_location_service.dart';
+
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 
 class PhotoPreviewScreen extends ConsumerStatefulWidget {
@@ -69,6 +71,20 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
                   lng: widget.longitude,
                   accuracy: widget.accuracy,
                 );
+
+      if (success) {
+        if (widget.isStart == true) {
+          // Check-in successful → start background location tracking
+          await LocationTrackingService.start();
+
+          print('🚀 Location tracking started after check-in');
+        } else {
+          // Checkout successful → stop background location tracking
+          await LocationTrackingService.stop();
+
+          print('🛑 Location tracking stopped after checkout');
+        }
+      }
 
       if (!mounted) return;
 

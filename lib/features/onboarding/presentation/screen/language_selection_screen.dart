@@ -4,7 +4,6 @@ import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 import 'package:workforce/features/onboarding/presentation/widget/radio_circle.dart';
 import 'package:workforce/features/onboarding/presentation/widget/workforce_brand.dart';
-import 'role_selection_screen.dart';
 
 class LanguageSelectionScreen extends StatefulWidget {
   const LanguageSelectionScreen({super.key});
@@ -14,28 +13,32 @@ class LanguageSelectionScreen extends StatefulWidget {
       _LanguageSelectionScreenState();
 }
 
-class _LanguageSelectionScreenState
-    extends State<LanguageSelectionScreen> {
+class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
   String selectedLanguage = 'English';
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
+      appBar: AppBar(
+        centerTitle: true,
+        backgroundColor: AppColors.whiteBackgroundColor,
+        surfaceTintColor: AppColors.whiteBackgroundColor,
+       
+        
+      ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.all(
-            16
-          ),
+          padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const SizedBox(height: 48),
-        
+
               WorkforceBrand(),
-        
+
               const SizedBox(height: 48),
-        
+
               Text(
                 'Choose your language',
                 style: GoogleFonts.inter(
@@ -44,9 +47,9 @@ class _LanguageSelectionScreenState
                   color: AppColors.textColor,
                 ),
               ),
-        
+
               const SizedBox(height: 6),
-        
+
               Text(
                 'Select the language you prefer to use\n'
                 'throughout the application.',
@@ -56,9 +59,9 @@ class _LanguageSelectionScreenState
                   color: AppColors.mutedColor,
                 ),
               ),
-        
+
               const SizedBox(height: 16),
-        
+
               _LanguageOption(
                 title: 'English',
                 subtitle: 'English',
@@ -69,9 +72,9 @@ class _LanguageSelectionScreenState
                   });
                 },
               ),
-        
+
               const SizedBox(height: 12),
-        
+
               _LanguageOption(
                 title: 'हिन्दी',
                 subtitle: 'Hindi',
@@ -82,26 +85,13 @@ class _LanguageSelectionScreenState
                   });
                 },
               ),
-        
+
               const Spacer(),
-              Divider(
-                color: AppColors.borderColor,
-                thickness: 1,
-              ),
+              Divider(color: AppColors.borderColor, thickness: 1),
               const SizedBox(height: 4),
-        
-              WorkforcePrimaryButton(
-                title: 'Continue',
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const RoleSelectionScreen(),
-                    ),
-                  );
-                },
-              ),
-        
+
+              WorkforcePrimaryButton(title: 'Continue', onPressed: () {}),
+
               const SizedBox(height: 4),
             ],
           ),
@@ -109,12 +99,7 @@ class _LanguageSelectionScreenState
       ),
     );
   }
-
-  
- 
-
 }
-
 
 class _LanguageOption extends StatelessWidget {
   final String title;
@@ -140,11 +125,8 @@ class _LanguageOption extends StatelessWidget {
           duration: const Duration(milliseconds: 150),
           width: double.infinity,
           height: 74,
-          padding: const EdgeInsets.symmetric(
-            horizontal: 16,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-           
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: selected
@@ -182,10 +164,7 @@ class _LanguageOption extends StatelessWidget {
 
               const Spacer(),
 
-              RadioCircle(
-                
-                selected: selected,
-              ),
+              RadioCircle(selected: selected),
             ],
           ),
         ),
@@ -193,6 +172,3 @@ class _LanguageOption extends StatelessWidget {
     );
   }
 }
-
-
- 

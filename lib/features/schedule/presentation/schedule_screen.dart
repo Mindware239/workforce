@@ -83,57 +83,54 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: _loadSalary,
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(),
-
-                const SizedBox(height: 16),
-
-                if (state.isLoadingSalary && salary == null)
-                  const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(40),
-                      child: CircularProgressIndicator(),
-                    ),
-                  )
-                else if (state.message != null && salary == null)
-                  _buildError(state.message!)
-                else if (salary != null) ...[
-                  _buildNetSalary(salary),
-
-                  const SizedBox(height: 24),
-
-                  _buildEarnings(salary),
-
-                  const SizedBox(height: 24),
-
-                  _buildDeductions(salary),
-
-                  const SizedBox(height: 24),
-
-                  _buildAttendance(salary),
-
-                  const SizedBox(height: 24),
-
-                  _buildLiveProgress(salary),
-
-                  const SizedBox(height: 24),
-
-                  _buildDownloadButton(),
-                ] else
-                  _buildEmpty(),
-
-                const SizedBox(height: 16),
-
-                _buildPreviousMonths(),
-              ],
-            ),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(),
+      
+              const SizedBox(height: 16),
+        
+              if (state.isLoadingSalary && salary == null)
+                const Center(
+                  child: Padding(
+                    padding: EdgeInsets.all(40),
+                    child: CircularProgressIndicator(),
+                  ),
+                )
+              else if (state.message != null && salary == null)
+                _buildError(state.message!)
+              else if (salary != null) ...[
+                _buildNetSalary(salary),
+        
+                const SizedBox(height: 24),
+        
+                _buildEarnings(salary),
+        
+                const SizedBox(height: 24),
+        
+                _buildDeductions(salary),
+        
+                const SizedBox(height: 24),
+        
+                _buildAttendance(salary),
+        
+                const SizedBox(height: 24),
+        
+                _buildLiveProgress(salary),
+        
+                const SizedBox(height: 24),
+        
+                _buildDownloadButton(),
+              ] else
+                _buildEmpty(),
+        
+              const SizedBox(height: 16),
+        
+              _buildPreviousMonths(),
+            ],
           ),
         ),
       ),

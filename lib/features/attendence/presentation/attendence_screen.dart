@@ -1,11 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/core/styles/app_colors.dart';
-import 'package:workforce/features/attendence/presentation/active_workSession.dart';
 import 'package:workforce/features/attendence/presentation/attendence_record.dart';
-import 'package:workforce/features/attendence/presentation/complete_shift.dart';
-import 'package:workforce/features/attendence/presentation/employee_checkout.dart';
 
 import '../providers/attendance_provider.dart';
 
@@ -17,6 +16,8 @@ class AttendanceScreen extends ConsumerStatefulWidget {
 }
 
 class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
+  Timer? _workingTimeTimer;
+
   @override
   void initState() {
     super.initState();
@@ -25,7 +26,25 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       if (!mounted) return;
 
       ref.read(attendanceProvider.notifier).getTodayAttendance();
+
+      _startWorkingTimeTimer();
     });
+  }
+
+  void _startWorkingTimeTimer() {
+    _workingTimeTimer?.cancel();
+
+    _workingTimeTimer = Timer.periodic(const Duration(minutes: 1), (_) {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _workingTimeTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -35,43 +54,42 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            await ref.read(attendanceProvider.notifier).getTodayAttendance();
-          },
-          child: SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(attendanceState),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(attendanceState),
 
-                const SizedBox(height: 14),
+              const SizedBox(height: 14),
 
-                if (attendanceState.isLoadingToday)
-                  _buildLoading()
-                else if (attendanceState.message != null &&
-                    attendanceState.today == null)
-                  _buildError(attendanceState.message!)
-                else ...[
-                  _buildAttendanceInfo(attendanceState),
+              if (attendanceState.isLoadingToday)
+                _buildLoading()
+              else if (attendanceState.message != null &&
+                  attendanceState.today == null)
+                _buildError(attendanceState.message!)
+              else ...[
+                _buildAttendanceInfo(attendanceState),
 
-                  const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-                  _buildStats(attendanceState),
+                _buildStats(attendanceState),
 
-                  const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-                  _buildActivityTimeline(attendanceState),
-                ],
+                _buildActivityTimeline(attendanceState),
               ],
-            ),
+            ],
           ),
         ),
       ),
     );
   }
+
+  // ============================================================
+  // HEADER
+  // ============================================================
 
   Widget _buildHeader(AttendanceState attendanceState) {
     final today = attendanceState.today;
@@ -144,6 +162,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     );
   }
 
+  // ============================================================
+  // ATTENDANCE INFO
+  // ============================================================
+
   Widget _buildAttendanceInfo(AttendanceState attendanceState) {
     final today = attendanceState.today;
     final schedule = attendanceState.schedule;
@@ -215,11 +237,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     final today = attendanceState.today;
     final schedule = attendanceState.schedule;
 
-    final workingMinutes = today?['totalWorkingMinutes'] is num
-        ? (today!['totalWorkingMinutes'] as num).toInt()
-        : 0;
+    final workingMinutes = _calculateWorkingMinutes(
+      today: today,
+      breakMinutes: _calculateBreakMinutes(attendanceState),
+    );
 
-    final breakMinutes = attendanceState.breakMinutes;
+    final breakMinutes = _calculateBreakMinutes(attendanceState);
 
     final standardWorkingMinutes =
         schedule?['standardWorkingHoursMinutes'] is num
@@ -234,64 +257,149 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
     return Column(
       children: [
-        GestureDetector(
-          // onTap: hasAttendance
-          //     ? () {
-          //         Navigator.of(context).push(
-          //           MaterialPageRoute(
-          //             builder: (context) => const ActiveWorkSessionScreen(),
-          //           ),
-          //         );
-          //       }
-          //     : null,
-          child: _StatCard(
-            title: 'Hours Worked',
-            value: hasAttendance ? _formatDuration(workingMinutes) : '--',
-            valueColor: AppColors.primaryFillColor,
-          ),
+        _StatCard(
+          title: 'Hours Worked',
+          value: hasAttendance ? _formatDuration(workingMinutes) : '--',
+          valueColor: AppColors.primaryFillColor,
         ),
 
         const SizedBox(height: 12),
 
-        GestureDetector(
-          // onTap: hasAttendance
-          //     ? () {
-          //         Navigator.of(context).push(
-          //           MaterialPageRoute(
-          //             builder: (context) => const CompleteShiftScreen(),
-          //           ),
-          //         );
-          //       }
-          //     : null,
-          child: _StatCard(
-            title: 'Break Duration',
-            value: hasAttendance ? _formatDuration(breakMinutes) : '--',
-            valueColor: const Color(0xFF5D606A),
-          ),
+        _StatCard(
+          title: 'Break Duration',
+          value: hasAttendance ? _formatDuration(breakMinutes) : '--',
+          valueColor: const Color(0xFF5D606A),
         ),
 
         const SizedBox(height: 12),
 
-        GestureDetector(
-          // onTap: hasAttendance
-          //     ? () {
-          //         Navigator.of(context).push(
-          //           MaterialPageRoute(
-          //             builder: (context) =>
-          //                 const ConfirmCheckoutPhotoScreen(imagePath: ''),
-          //           ),
-          //         );
-          //       }
-          //     : null,
-          child: _StatCard(
-            title: 'Remaining',
-            value: hasAttendance ? _formatDuration(remainingMinutes) : '--',
-            valueColor: AppColors.textColor,
-          ),
+        _StatCard(
+          title: 'Remaining',
+          value: hasAttendance ? _formatDuration(remainingMinutes) : '--',
+          valueColor: AppColors.textColor,
         ),
       ],
     );
   }
+  // ============================================================
+  // LIVE WORKING TIME
+  // ============================================================
+
+  int _calculateBreakMinutes(AttendanceState attendanceState) {
+    final breaks = attendanceState.breaks;
+
+    if (breaks.isEmpty) {
+      return 0;
+    }
+
+    int totalMinutes = 0;
+
+    final now = DateTime.now();
+
+    for (final breakItem in breaks) {
+      final startedAtString = breakItem['startedAt']?.toString();
+
+      if (startedAtString == null || startedAtString.isEmpty) {
+        continue;
+      }
+
+      try {
+        final startedAt = DateTime.parse(startedAtString);
+
+        final endedAtString = breakItem['endedAt']?.toString();
+
+        DateTime endTime;
+
+        if (endedAtString != null && endedAtString.isNotEmpty) {
+          // Completed break.
+          endTime = DateTime.parse(endedAtString);
+        } else {
+          // Active break → calculate until NOW.
+          endTime = now;
+        }
+
+        final duration = endTime.difference(startedAt);
+
+        if (duration.isNegative) {
+          continue;
+        }
+
+        totalMinutes += duration.inMinutes;
+      } catch (_) {
+        continue;
+      }
+    }
+
+    return totalMinutes.clamp(0, 1440);
+  }
+
+  int _calculateWorkingMinutes({
+    required Map<String, dynamic>? today,
+    required int breakMinutes,
+  }) {
+    if (today == null) {
+      return 0;
+    }
+
+    final entryTime = today['entryTime']?.toString();
+
+    if (entryTime == null || entryTime.isEmpty) {
+      return 0;
+    }
+
+    // ----------------------------------------------------------
+    // SHIFT COMPLETED
+    // ----------------------------------------------------------
+    // After checkout, use the final backend value.
+    // ----------------------------------------------------------
+
+    final exitTime = today['exitTime']?.toString();
+
+    if (exitTime != null && exitTime.isNotEmpty) {
+      return int.tryParse(today['totalWorkingMinutes']?.toString() ?? '0') ?? 0;
+    }
+
+    // ----------------------------------------------------------
+    // SHIFT IN PROGRESS
+    // ----------------------------------------------------------
+    // Current time - entry time - completed breaks
+    // ----------------------------------------------------------
+
+    try {
+      final parts = entryTime.split(':');
+
+      if (parts.length < 2) {
+        return 0;
+      }
+
+      final now = DateTime.now();
+
+      final entry = DateTime(
+        now.year,
+        now.month,
+        now.day,
+        int.tryParse(parts[0]) ?? 0,
+        int.tryParse(parts[1]) ?? 0,
+        parts.length >= 3 ? int.tryParse(parts[2]) ?? 0 : 0,
+      );
+
+      if (entry.isAfter(now)) {
+        return 0;
+      }
+
+      final elapsedMinutes = now.difference(entry).inMinutes;
+
+      final liveWorkingMinutes = elapsedMinutes - breakMinutes;
+
+      return liveWorkingMinutes.clamp(0, 1440);
+    } catch (_) {
+      return 0;
+    }
+  }
+
+  // ============================================================
+  // ACTIVITY TIMELINE
+  // ============================================================
 
   Widget _buildActivityTimeline(AttendanceState attendanceState) {
     final timeline = attendanceState.timeline;
@@ -343,6 +451,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     );
   }
 
+  // ============================================================
+  // LOADING
+  // ============================================================
+
   Widget _buildLoading() {
     return Column(
       children: [
@@ -371,6 +483,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       ],
     );
   }
+
+  // ============================================================
+  // ERROR
+  // ============================================================
 
   Widget _buildError(String message) {
     return Container(
@@ -410,6 +526,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     );
   }
 
+  // ============================================================
+  // EMPTY TIMELINE
+  // ============================================================
+
   Widget _buildEmptyTimeline() {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 20),
@@ -421,6 +541,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       ),
     );
   }
+
+  // ============================================================
+  // STATUS
+  // ============================================================
 
   String _getStatusText(String? status) {
     if (status == null || status.isEmpty) {
@@ -498,6 +622,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         .join(' ');
   }
 
+  // ============================================================
+  // TIMELINE COLOR
+  // ============================================================
+
   Color _timelineColor(String? tone) {
     switch (tone?.toLowerCase()) {
       case 'primary':
@@ -513,6 +641,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         return AppColors.primaryFillColor;
     }
   }
+
+  // ============================================================
+  // FORMAT TIME
+  // ============================================================
 
   String _formatTime(String? value) {
     if (value == null || value.isEmpty) {
@@ -543,6 +675,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     }
   }
 
+  // ============================================================
+  // FORMAT DURATION
+  // ============================================================
+
   String _formatDuration(int minutes) {
     if (minutes <= 0) {
       return '0m';
@@ -562,6 +698,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     return '${hours}h ${remainingMinutes}m';
   }
 }
+
+// ================================================================
+// INFO ROW
+// ================================================================
 
 class _InfoRow extends StatelessWidget {
   final IconData icon;
@@ -621,6 +761,10 @@ class _InfoRow extends StatelessWidget {
   }
 }
 
+// ================================================================
+// STAT CARD
+// ================================================================
+
 class _StatCard extends StatelessWidget {
   final String title;
   final String value;
@@ -669,6 +813,10 @@ class _StatCard extends StatelessWidget {
     );
   }
 }
+
+// ================================================================
+// TIMELINE ITEM
+// ================================================================
 
 class _TimelineItem extends StatelessWidget {
   final String time;

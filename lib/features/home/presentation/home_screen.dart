@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_svg/flutter_svg.dart';
@@ -26,11 +28,16 @@ class HomeScreen extends ConsumerStatefulWidget {
 }
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
+  Timer? _attendanceTimer;
+
   Future<void> _startShift(bool isStart) async {
     bool loadingShown = false;
 
     try {
-      // Show loading
+      // --------------------------------------------------
+      // SHOW LOADING
+      // --------------------------------------------------
+
       loadingShown = true;
 
       showDialog(
@@ -41,14 +48,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         },
       );
 
-      // Check location permission
+      // --------------------------------------------------
+      // CHECK LOCATION PERMISSION
+      // --------------------------------------------------
+
       LocationPermission permission = await Geolocator.checkPermission();
 
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
       }
 
-      // Permission denied
       if (permission == LocationPermission.denied ||
           permission == LocationPermission.deniedForever) {
         if (mounted && loadingShown) {
@@ -69,18 +78,56 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return;
       }
 
-      // Get current location
+      // --------------------------------------------------
+      // GET CURRENT LOCATION
+      // --------------------------------------------------
+
       final position = await Geolocator.getCurrentPosition(
         locationSettings: const LocationSettings(
           accuracy: LocationAccuracy.high,
         ),
       );
 
+      debugPrint('========================================');
+      debugPrint('📍 CURRENT LOCATION');
       debugPrint('📍 Latitude: ${position.latitude}');
       debugPrint('📍 Longitude: ${position.longitude}');
       debugPrint('📍 Accuracy: ${position.accuracy}');
+      debugPrint('📍 Speed: ${position.speed}');
+      debugPrint('📍 Heading: ${position.heading}');
+      debugPrint('========================================');
 
-      // Check office geofence
+      // --------------------------------------------------
+      // REPORT LIVE EMPLOYEE LOCATION
+      // POST /api/v1/employee/location
+      // --------------------------------------------------
+
+      try {
+        final locationResponse = await ref
+            .read(attendanceRepositoryProvider)
+            .updateEmployeeLocation(
+              latitude: position.latitude,
+              longitude: position.longitude,
+              accuracy: position.accuracy,
+              speed: position.speed >= 0 ? position.speed : null,
+              heading: position.heading >= 0 ? position.heading : null,
+            );
+
+        debugPrint('========================================');
+        debugPrint('📍 LIVE LOCATION UPDATED');
+        debugPrint('📍 Response: $locationResponse');
+        debugPrint('========================================');
+      } catch (e, stackTrace) {
+        // Live location failure should NOT stop
+        // the attendance flow.
+        debugPrint('⚠️ Live location update failed: $e');
+        debugPrint('$stackTrace');
+      }
+
+      // --------------------------------------------------
+      // CHECK OFFICE GEOFENCE FOR ATTENDANCE
+      // --------------------------------------------------
+
       final response = await ref
           .read(attendanceRepositoryProvider)
           .checkGeofence(
@@ -89,19 +136,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             accuracy: position.accuracy,
           );
 
-      debugPrint('📍 Geofence result: $response');
+      debugPrint('========================================');
+      debugPrint('📍 ATTENDANCE GEOFENCE RESULT');
+      debugPrint('$response');
+      debugPrint('========================================');
 
       if (!mounted) return;
 
-      // Close loading dialog
+      // --------------------------------------------------
+      // CLOSE LOADING
+      // --------------------------------------------------
+
       if (loadingShown) {
         Navigator.of(context).pop();
         loadingShown = false;
       }
 
+      // --------------------------------------------------
+      // READ GEOFENCE DATA
+      // --------------------------------------------------
+
       final data = response['data'];
 
-      // Invalid/missing geofence response
       if (data == null) {
         context.push(AppRoutes.locationVerificationUnsuccessful);
         return;
@@ -110,13 +166,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       final isWithinFence = data['isWithinFence'] == true;
 
       final distanceMeters = data['distanceMeters'];
+
       final allowedRadiusMeters = data['allowedRadiusMeters'];
 
       debugPrint('📍 Within fence: $isWithinFence');
+
       debugPrint('📏 Distance: $distanceMeters m');
+
       debugPrint('⭕ Allowed radius: $allowedRadiusMeters m');
 
-      // ❌ Outside office geofence
+      // --------------------------------------------------
+      // OUTSIDE OFFICE GEOFENCE
+      // --------------------------------------------------
+
       if (!isWithinFence) {
         debugPrint('❌ User is outside office geofence');
 
@@ -128,23 +190,34 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return;
       }
 
-      // ✅ User is inside office geofence
+      // --------------------------------------------------
+      // INSIDE OFFICE GEOFENCE
+      // --------------------------------------------------
+
       debugPrint('✅ User is inside office geofence');
+
+      // --------------------------------------------------
+      // GO TO FACE CAPTURE
+      // --------------------------------------------------
 
       context.push(
         AppRoutes.faceCapture,
         extra: {
-          // 'latitude': position.latitude,
-          // 'longitude': position.longitude,
-          // 'accuracy': position.accuracy,
+          'latitude': position.latitude,
+          'longitude': position.longitude,
+          'accuracy': position.accuracy,
           'isStart': isStart,
         },
       );
     } catch (e, stackTrace) {
       debugPrint('❌ Start Shift error: $e');
+
       debugPrint('$stackTrace');
 
-      // Close loading only if it is still open
+      // --------------------------------------------------
+      // CLOSE LOADING IF STILL OPEN
+      // --------------------------------------------------
+
       if (mounted && loadingShown) {
         Navigator.of(context).pop();
         loadingShown = false;
@@ -164,8 +237,28 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(attendanceProvider.notifier).getDashboard();
-      ref.read(notificationProvider.notifier).fetchNotifications();
+      ref.read(attendanceProvider.notifier).getTodayAttendance();
     });
+
+    _attendanceTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+
+      final attendance = ref.read(attendanceProvider);
+      final today = attendance.today;
+
+      // Only rebuild the card locally.
+      if (today != null &&
+          today['entryTime'] != null &&
+          today['exitTime'] == null) {
+        setState(() {});
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _attendanceTimer?.cancel();
+    super.dispose();
   }
 
   @override
@@ -181,46 +274,35 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            await Future.wait([
-              ref.read(attendanceProvider.notifier).getDashboard(),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildHeader(),
 
-              ref.read(attendanceProvider.notifier).getTodayAttendance(),
+              const SizedBox(height: 8),
 
-              ref.read(notificationProvider.notifier).fetchNotifications(),
-            ]);
-          },
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildHeader(),
+              CurrentDateText(),
 
-                const SizedBox(height: 8),
+              const SizedBox(height: 8),
 
-                CurrentDateText(),
+              _buildGreeting(fullName),
 
-                const SizedBox(height: 8),
+              const SizedBox(height: 16),
 
-                _buildGreeting(fullName),
+              // 🔄 Rebuilds whenever attendanceProvider changes
+              _buildShiftCard(attendanceState),
 
-                const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-                // 🔄 Rebuilds whenever attendanceProvider changes
-                _buildShiftCard(attendanceState),
+              // 🔄 Rebuilds whenever attendanceProvider changes
+              _buildStats(attendanceState),
 
-                const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-                // 🔄 Rebuilds whenever attendanceProvider changes
-                _buildStats(attendanceState),
-
-                const SizedBox(height: 16),
-
-                _buildQuickActions(notificationState),
-              ],
-            ),
+              _buildQuickActions(notificationState),
+            ],
           ),
         ),
       ),
@@ -232,26 +314,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       height: 56,
       child: Row(
         children: [
-          ClipOval(
-            child: Image.asset(
-              'assets/images/profile.png',
-              height: 32,
-              width: 32,
-              fit: BoxFit.cover,
-              errorBuilder: (_, __, ___) {
-                return Container(
-                  color: const Color(0xFFE7B8A8),
-                  child: const Icon(
-                    Icons.person,
-                    size: 17,
-                    color: Colors.white,
-                  ),
-                );
-              },
-            ),
-          ),
+          // ClipOval(
+          //   child: Image.asset(
+          //     'assets/images/profile.png',
+          //     height: 32,
+          //     width: 32,
+          //     fit: BoxFit.cover,
+          //     errorBuilder: (_, __, ___) {
+          //       return Container(
+          //         color: const Color(0xFFE7B8A8),
+          //         child: const Icon(
+          //           Icons.person,
+          //           size: 17,
+          //           color: Colors.white,
+          //         ),
+          //       );
+          //     },
+          //   ),
+          // ),
 
-          const SizedBox(width: 16),
+          // const SizedBox(width: 16),
 
           Text(
             'Workforce',
@@ -264,16 +346,16 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
           const Spacer(),
 
-          IconButton(
-            onPressed: () {},
-            splashRadius: 20,
-            padding: EdgeInsets.zero,
-            icon: const Icon(
-              Icons.calendar_today_outlined,
-              size: 21,
-              color: HomeScreen.textColor,
-            ),
-          ),
+          // IconButton(
+          //   onPressed: () {},
+          //   splashRadius: 20,
+          //   padding: EdgeInsets.zero,
+          //   icon: const Icon(
+          //     Icons.calendar_today_outlined,
+          //     size: 21,
+          //     color: HomeScreen.textColor,
+          //   ),
+          // ),
         ],
       ),
     );
@@ -292,14 +374,12 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildShiftCard(AttendanceState attendanceState) {
-    final dashboard = attendanceState.dashboard;
-
-    final today = dashboard?['today'];
-    final schedule = dashboard?['schedule'];
+    final today = attendanceState.today;
+    final schedule = attendanceState.schedule;
 
     final activeBreak = attendanceState.activeBreak;
 
-    if (attendanceState.isLoadingDashboard && dashboard == null) {
+    if (attendanceState.isLoadingToday && today == null) {
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(16),
@@ -647,15 +727,21 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Widget _buildStats(AttendanceState attendanceState) {
-    final dashboard = attendanceState.dashboard;
-
     return Row(
       children: [
-        Expanded(child: _AttendanceCard(dashboard: dashboard)),
+        Expanded(
+          child: _AttendanceCard(
+            today: attendanceState.today,
+            schedule: attendanceState.schedule,
+            breakMinutes: attendanceState.breakMinutes,
+          ),
+        ),
 
         const SizedBox(width: 8),
 
-        Expanded(child: _ProductivityCard(dashboard: dashboard)),
+        Expanded(
+          child: _ProductivityCard(dashboard: attendanceState.dashboard),
+        ),
       ],
     );
   }
@@ -730,9 +816,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 }
 
 class _AttendanceCard extends StatelessWidget {
-  final Map<String, dynamic>? dashboard;
+  final Map<String, dynamic>? today;
+  final Map<String, dynamic>? schedule;
+  final int breakMinutes;
 
-  const _AttendanceCard({this.dashboard});
+  const _AttendanceCard({this.today, this.schedule, this.breakMinutes = 0});
 
   String _formatMinutes(int minutes) {
     final hours = minutes ~/ 60;
@@ -749,21 +837,63 @@ class _AttendanceCard extends StatelessWidget {
     return '${hours}h ${mins}m';
   }
 
+  int _getWorkingMinutes() {
+    // Not checked in.
+    if (today == null || today?['entryTime'] == null) {
+      return 0;
+    }
+
+    // Shift completed.
+    // Use the final value calculated by backend.
+    if (today?['exitTime'] != null) {
+      return int.tryParse(today?['totalWorkingMinutes']?.toString() ?? '0') ??
+          0;
+    }
+
+    final entryTime = today?['entryTime']?.toString();
+
+    if (entryTime == null || entryTime.isEmpty) {
+      return 0;
+    }
+
+    final parts = entryTime.split(':');
+
+    if (parts.length < 2) {
+      return 0;
+    }
+
+    final hour = int.tryParse(parts[0]);
+    final minute = int.tryParse(parts[1]);
+    final second = parts.length > 2 ? int.tryParse(parts[2]) ?? 0 : 0;
+
+    if (hour == null || minute == null) {
+      return 0;
+    }
+
+    final now = DateTime.now();
+
+    final entry = DateTime(now.year, now.month, now.day, hour, minute, second);
+
+    // Local elapsed time.
+    final elapsedMinutes = now.difference(entry).inMinutes;
+
+    // Remove already completed break time.
+    final workingMinutes = elapsedMinutes - breakMinutes;
+
+    return workingMinutes.clamp(0, 1440);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final today = dashboard?['today'];
-    final schedule = dashboard?['schedule'];
+    final workingMinutes = _getWorkingMinutes();
 
-    final int workingMinutes =
-        int.tryParse(today?['totalWorkingMinutes']?.toString() ?? '0') ?? 0;
-
-    final int standardMinutes =
+    final standardMinutes =
         int.tryParse(
           schedule?['standardWorkingHoursMinutes']?.toString() ?? '0',
         ) ??
         0;
 
-    final double progress = standardMinutes > 0
+    final progress = standardMinutes > 0
         ? (workingMinutes / standardMinutes).clamp(0.0, 1.0)
         : 0.0;
 
@@ -776,11 +906,9 @@ class _AttendanceCard extends StatelessWidget {
 
     if (today == null) {
       statusText = 'Not checked in';
-    } else if (today['exitTime'] != null) {
-      if (status == 'late') {
-        statusText = lateMinutes > 0
-            ? 'Late by $lateMinutes min'
-            : 'Shift completed';
+    } else if (today?['exitTime'] != null) {
+      if (status == 'late' && lateMinutes > 0) {
+        statusText = 'Late by $lateMinutes min';
       } else {
         statusText = 'Shift completed';
       }
@@ -810,9 +938,7 @@ class _AttendanceCard extends StatelessWidget {
                 size: 16,
                 color: Color(0xFF75666C),
               ),
-
               const SizedBox(width: 4),
-
               Text(
                 'ATTENDANCE',
                 style: GoogleFonts.inter(
@@ -838,7 +964,6 @@ class _AttendanceCard extends StatelessWidget {
                     color: AppColors.textColor,
                   ),
                 ),
-
                 TextSpan(
                   text: standardMinutes > 0
                       ? ' / ${_formatMinutes(standardMinutes)}'

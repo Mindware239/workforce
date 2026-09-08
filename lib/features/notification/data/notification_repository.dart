@@ -17,10 +17,7 @@ class NotificationRepository {
       queryParameters: {'limit': limit},
     );
 
-    debugPrint('========== RAW NOTIFICATION API RESPONSE ==========');
-    debugPrint(const JsonEncoder.withIndent('  ').convert(response.data));
-    debugPrint('====================================================');
-
+   
     return Map<String, dynamic>.from(response.data);
   }
 

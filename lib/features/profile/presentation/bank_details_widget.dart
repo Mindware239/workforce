@@ -112,7 +112,7 @@ class _BankDetailsWidgetState
                 bankDetails['passbookName']?.toString();
 
       } else {
-        debugPrint('ℹ️ No bank details saved yet');
+        // debugPrint('ℹ️ No bank details saved yet');
       }
 
       setState(() {

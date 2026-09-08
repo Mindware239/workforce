@@ -597,15 +597,15 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
                 const SizedBox(height: 12),
 
                 // FINGERPRINT
-                _buildAttendanceMethodTile(
-                  icon: Icons.fingerprint,
-                  title: 'Fingerprint',
-                  subtitle: 'Use your device fingerprint',
-                  value: 'fingerprint',
-                  onTap: () {
-                    Navigator.pop(context, 'fingerprint');
-                  },
-                ),
+                // _buildAttendanceMethodTile(
+                //   icon: Icons.fingerprint,
+                //   title: 'Fingerprint',
+                //   subtitle: 'Use your device fingerprint',
+                //   value: 'fingerprint',
+                //   onTap: () {
+                //     Navigator.pop(context, 'fingerprint');
+                //   },
+                // ),
               ],
             ),
           ),

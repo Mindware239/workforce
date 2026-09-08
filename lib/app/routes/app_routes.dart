@@ -8,6 +8,7 @@ import 'package:workforce/features/attendence/presentation/photo_preview_screen.
 import 'package:workforce/features/attendence/presentation/verification_unsuccessful_screen.dart';
 import 'package:workforce/features/leave/presentation/leave_request.dart';
 import 'package:workforce/features/notification/presentation/notification.dart';
+import 'package:workforce/features/onboarding/presentation/screen/complete_profile_page.dart';
 import 'package:workforce/features/profile/presentation/documnet_screen.dart';
 import 'package:workforce/features/schedule/presentation/monthly_summary.dart';
 import 'package:workforce/features/splash/presentation/splash_screen.dart';
@@ -39,6 +40,7 @@ class AppRoutes {
       '/dashboard/location-verification-unsuccessful';
   static const String leaveRequest = '/dashboard/leaveRequest';
   static const String monthlySummary = '/dashboard/monthlySummary';
+  static const String completeProfile = '/completeProfile';
 
   static final List<RouteBase> routes = [
     GoRoute(
@@ -84,6 +86,14 @@ class AppRoutes {
       name: 'leaveRequest',
       builder: (context, state) {
         return const LeaveRequestScreen();
+      },
+    ),
+
+     GoRoute(
+      path: completeProfile,
+      name: 'completeProfile',
+      builder: (context, state) {
+        return const CompleteProfilePage();
       },
     ),
 

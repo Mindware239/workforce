@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:workforce/app/routes/app_routes.dart';
 
 import 'package:workforce/core/styles/app_colors.dart';
@@ -29,20 +30,27 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
   @override
   Widget build(BuildContext context) {
     ref.listen<AuthState>(authProvider, (previous, next) {
-      if (next.status == AuthStatus.success) {
-        context.go(AppRoutes.dashboard);
+      // Login / onboarding request completed successfully.
+      if (previous?.isLoading == true && !next.isLoading) {
+        if (next.error == null && next.isAuthenticated) {
+          if (next.onboardingPending) {
+            context.go(AppRoutes.completeProfile);
+          } else {
+            context.go(AppRoutes.dashboard);
+          }
+        }
       }
 
-      if (next.status == AuthStatus.error) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.errorMessage ?? 'Login failed.')),
-        );
+      // Show error.
+      if (next.error != null && next.error != previous?.error) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text(next.error!)));
       }
     });
 
     final authState = ref.watch(authProvider);
 
-    final isLoading = authState.status == AuthStatus.loading;
+    final isLoading = authState.isLoading;
 
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
@@ -103,7 +111,7 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
     );
   }
 
-  void _login() {
+  Future<void> _login() async {
     final mobileNumber = mobileController.text.trim();
 
     if (mobileNumber.length != 10) {
@@ -115,6 +123,16 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
 
       return;
     }
+
+    // Request notification permission.
+    if (await Permission.notification.isDenied) {
+      await Permission.notification.request();
+    }
+
+    if (!mounted) return;
+
+    // Start background location tracking.
+    // await LocationTrackingService.start();
 
     ref.read(authProvider.notifier).login(mobileNumber: mobileNumber);
   }
@@ -145,22 +163,17 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
         decoration: InputDecoration(
           counterText: '',
           border: InputBorder.none,
-
           prefixIcon: const Icon(
             Icons.badge_outlined,
             size: 20,
             color: AppColors.mutedColor,
           ),
-
           prefixIconConstraints: const BoxConstraints(minWidth: 35),
-
           hintText: 'e.g. EMP-10294',
-
           hintStyle: GoogleFonts.inter(
             fontSize: 14,
             color: AppColors.mutedColor,
           ),
-
           contentPadding: const EdgeInsets.symmetric(vertical: 8),
         ),
       ),
@@ -175,9 +188,7 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
             'Need help signing in?',
             style: GoogleFonts.inter(fontSize: 12, color: AppColors.mutedColor),
           ),
-
           const SizedBox(height: 4),
-
           Text(
             'Contact your administrator.',
             style: GoogleFonts.inter(

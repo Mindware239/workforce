@@ -31,6 +31,28 @@ class AttendanceRepository {
     return Map<String, dynamic>.from(response.data);
   }
 
+  Future<Map<String, dynamic>> updateEmployeeLocation({
+  required double latitude,
+  required double longitude,
+  required double accuracy,
+  double? speed,
+  double? heading,
+}) async {
+  final response = await apiClient.dio.post(
+    '/v1/employee/location',
+    data: {
+      'latitude': latitude,
+      'longitude': longitude,
+      'accuracy': accuracy,
+      if (speed != null) 'speed': speed,
+      if (heading != null) 'heading': heading,
+      'recordedAt': DateTime.now().toUtc().toIso8601String(),
+    },
+  );
+
+  return Map<String, dynamic>.from(response.data);
+}
+
   Future<Map<String, dynamic>> getMySalary({
     required int year,
     required int month,
@@ -201,54 +223,18 @@ class AttendanceRepository {
       // DEBUG
       // ----------------------------------------------------------
 
-      debugPrint('========================================');
-      debugPrint('📡 ATTENDANCE CHECKOUT REQUEST');
-      debugPrint('📡 Endpoint: /attendance/exit');
-      debugPrint('📡 Type: $attendanceType');
-      debugPrint('📍 Latitude: $lat');
-      debugPrint('📍 Longitude: $lng');
-      debugPrint('📍 Accuracy: $accuracy');
-      debugPrint('📷 Photo: $photoPath');
-      debugPrint('🎙️ Work Audio: $workAudioPath');
-      debugPrint('📝 Work Description: $workDescription');
-      debugPrint('🔐 Device ID: $deviceId');
-      debugPrint('🔐 Challenge ID: $challengeId');
-      debugPrint(
-        '🔐 Signature present: '
-        '${signature != null && signature.isNotEmpty}',
-      );
-      debugPrint('📦 Multipart fields: ${fields.keys.toList()}');
-      debugPrint('========================================');
+      
 
       final response = await apiClient.dio.post(
         '/attendance/exit',
         data: formData,
       );
 
-      // ----------------------------------------------------------
-      // SUCCESS
-      // ----------------------------------------------------------
-
-      debugPrint('========================================');
-      debugPrint('✅ CHECKOUT SUCCESS');
-      debugPrint('Status: ${response.statusCode}');
-      debugPrint('Response: ${response.data}');
-      debugPrint('========================================');
+  
 
       return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
-      // ----------------------------------------------------------
-      // ERROR
-      // ----------------------------------------------------------
-
-      debugPrint('========================================');
-      debugPrint('❌ CHECKOUT API ERROR');
-      debugPrint('Status: ${e.response?.statusCode}');
-      debugPrint('URL: ${e.requestOptions.uri}');
-      debugPrint('Method: ${e.requestOptions.method}');
-      debugPrint('Response: ${e.response?.data}');
-      debugPrint('Message: ${e.message}');
-      debugPrint('========================================');
+      
 
       final responseData = e.response?.data;
 
@@ -361,38 +347,16 @@ class AttendanceRepository {
 
       final formData = FormData.fromMap(fields);
 
-      debugPrint('========================================');
-      debugPrint('📡 ATTENDANCE CHECK-IN REQUEST');
-      debugPrint('📡 Endpoint: /attendance/entry');
-      debugPrint('📡 Type: $attendanceType');
-      debugPrint('📍 lat: $lat');
-      debugPrint('📍 lng: $lng');
-      debugPrint('📍 accuracy: $accuracy');
-      debugPrint('📷 photo: $photoPath');
-      debugPrint('📦 fields: ${fields.keys.toList()}');
-      debugPrint('========================================');
 
       final response = await apiClient.dio.post(
         '/attendance/entry',
         data: formData,
       );
 
-      debugPrint('========================================');
-      debugPrint('✅ CHECK-IN RESPONSE');
-      debugPrint('${response.statusCode}');
-      debugPrint('${response.data}');
-      debugPrint('========================================');
 
       return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
-      debugPrint('========================================');
-      debugPrint('❌ CHECK-IN API ERROR');
-      debugPrint('Status: ${e.response?.statusCode}');
-      debugPrint('URL: ${e.requestOptions.uri}');
-      debugPrint('Method: ${e.requestOptions.method}');
-      debugPrint('Response: ${e.response?.data}');
-      debugPrint('Message: ${e.message}');
-      debugPrint('========================================');
+     
 
       final responseData = e.response?.data;
 
@@ -437,16 +401,11 @@ class AttendanceRepository {
         },
       );
 
-      debugPrint('📍 GEOFENCE RESPONSE: ${response.data}');
+      
 
       return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
-      debugPrint('❌ GEOFENCE ERROR: ${e.message}');
-
-      debugPrint('❌ STATUS: ${e.response?.statusCode}');
-
-      debugPrint('❌ RESPONSE: ${e.response?.data}');
-
+      
       final data = e.response?.data;
 
       if (data is Map<String, dynamic> && data['message'] != null) {

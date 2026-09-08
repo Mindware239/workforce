@@ -16,20 +16,16 @@ class SecureStorage {
     await storage.write(key: _userKey, value: jsonEncode(user));
   }
 
-   Future<void> write({
-    required String key,
-    required String value,
-  }) async {
-    await storage.write(
-      key: key,
-      value: value,
-    );
+  Future<void> write({required String key, required String value}) async {
+    await storage.write(key: key, value: value);
   }
 
-  Future<String?> read({
-    required String key,
-  }) async {
+  Future<String?> read({required String key}) async {
     return storage.read(key: key);
+  }
+
+  Future<void> delete({required String key}) async {
+    await storage.delete(key: key);
   }
 
   Future<Map<String, dynamic>?> getUser() async {
