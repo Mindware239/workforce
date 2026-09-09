@@ -29,98 +29,82 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     });
   }
 
+  Future<void> _refreshProfile() async {
+    await ref.read(profileProvider.notifier).getProfile();
+  }
+
   @override
   Widget build(BuildContext context) {
     final profileState = ref.watch(profileProvider);
 
     final profile = profileState.profile ?? {};
 
-    final fullName =
-        profile['fullName']?.toString() ?? 'Employee';
+    final fullName = profile['fullName']?.toString() ?? 'Employee';
 
-    final employeeId =
-        profile['employeeId']?.toString() ?? '-';
+    final employeeId = profile['employeeId']?.toString() ?? '-';
 
-    final mobileNumber =
-        profile['mobileNumber']?.toString() ?? '-';
+    final mobileNumber = profile['mobileNumber']?.toString() ?? '-';
 
-    final email =
-        profile['email']?.toString() ?? '-';
+    final email = profile['email']?.toString() ?? '-';
 
-    final role =
-        profile['role']?.toString() ?? '-';
+    final role = profile['role']?.toString() ?? '-';
 
-    final organizationName =
-        _getValue(profile['organizationName']);
+    final organizationName = _getValue(profile['organizationName']);
 
-    final organizationId =
-        _getValue(profile['organizationId']);
+    final organizationId = _getValue(profile['organizationId']);
 
-    final workspaceId =
-        _getValue(
-          profile['workspaceId'] ??
-              profile['workspace'] ??
-              profile['workspaceId'],
-        );
+    final workspaceId = _getValue(
+      profile['workspaceId'] ?? profile['workspace'] ?? profile['workspaceId'],
+    );
 
-    final department =
-        _getValue(profile['department']);
+    final department = _getValue(profile['department']);
 
-    final designation =
-        _getValue(profile['designation']);
+    final designation = _getValue(profile['designation']);
 
-    final joiningDate =
-        _getValue(
-          profile['joiningDate'] ??
-              profile['dateOfJoining'],
-        );
+    final joiningDate = _getValue(
+      profile['joiningDate'] ?? profile['dateOfJoining'],
+    );
 
-    final reportingManager =
-        _getValue(
-          profile['reportingManager'] ??
-              profile['reportingManagerName'] ??
-              profile['manager'],
-        );
+    final reportingManager = _getValue(
+      profile['reportingManager'] ??
+          profile['reportingManagerName'] ??
+          profile['manager'],
+    );
 
-    final hasPhoto =
-        profile['hasPhoto'] == true;
+    final hasPhoto = profile['hasPhoto'] == true;
 
-    final photoPath =
-        profile['photoPath']?.toString();
+    final photoPath = profile['photoPath']?.toString();
 
-    return Scaffold(
-      backgroundColor: AppColors.whiteBackgroundColor,
-
-      appBar: AppBar(
+    return RefreshIndicator(
+      onRefresh: _refreshProfile,
+      child: Scaffold(
         backgroundColor: AppColors.whiteBackgroundColor,
-        surfaceTintColor: AppColors.whiteBackgroundColor,
-
-        actions: [
-          IconButton(
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const SettingsScreen(),
-                ),
-              );
-            },
-            icon: const Icon(
-              Icons.settings_outlined,
-              color: AppColors.primaryFillColor,
+        appBar: AppBar(
+          backgroundColor: AppColors.whiteBackgroundColor,
+          surfaceTintColor: AppColors.whiteBackgroundColor,
+          actions: [
+            IconButton(
+              onPressed: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const SettingsScreen(),
+                  ),
+                );
+              },
+              icon: const Icon(
+                Icons.settings_outlined,
+                color: AppColors.primaryFillColor,
+              ),
             ),
-          ),
-        ],
-      ),
+          ],
+        ),
 
-      body: SafeArea(
-        child: profileState.isLoading && profileState.profile == null
-            ? const Center(
-                child: CircularProgressIndicator(),
-              )
-            : profileState.error != null &&
-                    profileState.profile == null
-                ? _buildError(profileState.error!)
-                : SingleChildScrollView(
+        body: SafeArea(
+          child: profileState.isLoading && profileState.profile == null
+              ? const Center(child: CircularProgressIndicator())
+              : profileState.error != null && profileState.profile == null
+              ? _buildError(profileState.error!)
+              : SingleChildScrollView(
                   physics: const AlwaysScrollableScrollPhysics(),
                   padding: const EdgeInsets.all(16),
                   child: Column(
@@ -132,9 +116,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         hasPhoto: hasPhoto,
                         photoPath: photoPath,
                       ),
-                
+
                       const SizedBox(height: 24),
-                
+
                       _buildEmploymentDetails(
                         role: role,
                         designation: designation,
@@ -144,25 +128,26 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         joiningDate: joiningDate,
                         reportingManager: reportingManager,
                       ),
-                
+
                       const SizedBox(height: 16),
-                
+
                       _buildWorkplace(
                         organizationName: organizationName,
                         workspaceId: workspaceId,
                         organizationId: organizationId,
                       ),
-                
+
                       const SizedBox(height: 16),
-                
+
                       _buildDocument(context),
-                
+
                       const SizedBox(height: 16),
-                
+
                       const BankDetailsWidget(),
                     ],
                   ),
                 ),
+        ),
       ),
     );
   }
@@ -177,10 +162,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     required bool hasPhoto,
     required String? photoPath,
   }) {
-    final photoUrl = _getPhotoUrl(
-      hasPhoto: hasPhoto,
-      photoPath: photoPath,
-    );
+    final photoUrl = _getPhotoUrl(hasPhoto: hasPhoto, photoPath: photoPath);
 
     return Column(
       children: [
@@ -190,10 +172,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: AppColors.primaryFillColor,
-            border: Border.all(
-              color: AppColors.borderColor,
-              width: 1,
-            ),
+            border: Border.all(color: AppColors.borderColor, width: 1),
           ),
           child: ClipOval(
             child: photoUrl != null
@@ -205,11 +184,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     errorBuilder: (_, __, ___) {
                       return _buildInitials(fullName);
                     },
-                    loadingBuilder: (
-                      context,
-                      child,
-                      loadingProgress,
-                    ) {
+                    loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) {
                         return child;
                       }
@@ -273,8 +248,6 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         //     ),
         //   ),
         // ),
-      
-      
       ],
     );
   }
@@ -316,7 +289,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     }
 
     return '${parts.first.substring(0, 1)}'
-        '${parts.last.substring(0, 1)}'
+            '${parts.last.substring(0, 1)}'
         .toUpperCase();
   }
 
@@ -324,10 +297,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   // PHOTO URL
   // ============================================================
 
-  String? _getPhotoUrl({
-    required bool hasPhoto,
-    required String? photoPath,
-  }) {
+  String? _getPhotoUrl({required bool hasPhoto, required String? photoPath}) {
     if (!hasPhoto) {
       return null;
     }
@@ -363,35 +333,17 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
           const SizedBox(height: 8),
 
-          _DetailItem(
-            label: 'ROLE',
-            value: role,
-          ),
+          _DetailItem(label: 'ROLE', value: role),
 
-          _DetailItem(
-            label: 'DESIGNATION',
-            value: designation,
-          ),
+          _DetailItem(label: 'DESIGNATION', value: designation),
 
-          _DetailItem(
-            label: 'DEPARTMENT',
-            value: department,
-          ),
+          _DetailItem(label: 'DEPARTMENT', value: department),
 
-          _DetailItem(
-            label: 'MOBILE NUMBER',
-            value: mobileNumber,
-          ),
+          _DetailItem(label: 'MOBILE NUMBER', value: mobileNumber),
 
-          _DetailItem(
-            label: 'EMAIL',
-            value: email,
-          ),
+          _DetailItem(label: 'EMAIL', value: email),
 
-          _DetailItem(
-            label: 'JOINING DATE',
-            value: joiningDate,
-          ),
+          _DetailItem(label: 'JOINING DATE', value: joiningDate),
 
           _DetailItem(
             label: 'REPORTING MANAGER',
@@ -429,10 +381,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(
-                color: AppColors.borderColor,
-                width: 1,
-              ),
+              border: Border.all(color: AppColors.borderColor, width: 1),
             ),
             child: Row(
               children: [
@@ -440,8 +389,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF3525CD)
-                        .withValues(alpha: 0.1),
+                    color: const Color(0xFF3525CD).withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -527,10 +475,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _CardHeader(
-            icon: Icons.file_copy,
-            title: 'Documents',
-          ),
+          const _CardHeader(icon: Icons.file_copy, title: 'Documents'),
 
           const SizedBox(height: 8),
 
@@ -539,17 +484,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               context.push(AppRoutes.document);
             },
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 10,
-              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               minimumSize: Size.zero,
-              tapTargetSize:
-                  MaterialTapTargetSize.shrinkWrap,
-              side: const BorderSide(
-                color: AppColors.borderColor,
-                width: 1,
-              ),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              side: const BorderSide(color: AppColors.borderColor, width: 1),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
@@ -601,9 +539,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
             ElevatedButton(
               onPressed: () {
-                ref
-                    .read(profileProvider.notifier)
-                    .getProfile();
+                ref.read(profileProvider.notifier).getProfile();
               },
               child: const Text('Retry'),
             ),
@@ -643,8 +579,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       for (final key in possibleKeys) {
         final nestedValue = value[key];
 
-        if (nestedValue != null &&
-            nestedValue.toString().isNotEmpty) {
+        if (nestedValue != null && nestedValue.toString().isNotEmpty) {
           return nestedValue.toString();
         }
       }
@@ -674,10 +609,7 @@ class _ProfileCard extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(
-          color: AppColors.borderColor,
-          width: 1,
-        ),
+        border: Border.all(color: AppColors.borderColor, width: 1),
       ),
       child: child,
     );
@@ -692,20 +624,13 @@ class _CardHeader extends StatelessWidget {
   final IconData icon;
   final String title;
 
-  const _CardHeader({
-    required this.icon,
-    required this.title,
-  });
+  const _CardHeader({required this.icon, required this.title});
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(
-          icon,
-          size: 20,
-          color: AppColors.primaryFillColor,
-        ),
+        Icon(icon, size: 20, color: AppColors.primaryFillColor),
 
         const SizedBox(width: 8),
 
@@ -741,17 +666,12 @@ class _DetailItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        vertical: 8,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 8),
       decoration: BoxDecoration(
         border: isLast
             ? null
             : const Border(
-                bottom: BorderSide(
-                  color: AppColors.borderColor,
-                  width: 1,
-                ),
+                bottom: BorderSide(color: AppColors.borderColor, width: 1),
               ),
       ),
       child: Column(

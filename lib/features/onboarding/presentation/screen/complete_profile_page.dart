@@ -11,8 +11,8 @@ class CompleteProfilePage extends ConsumerStatefulWidget {
   const CompleteProfilePage({
     super.key,
     this.onSubmit,
-    this.initialFullName = 'testuser',
-    this.initialMobile = '7823568947',
+    this.initialFullName = 'Employee',
+    this.initialMobile = '9999999999',
     this.initialEmail = 'you@company.com',
   });
 
@@ -27,25 +27,20 @@ class CompleteProfilePage extends ConsumerStatefulWidget {
       _CompleteProfilePageState();
 }
 
-class _CompleteProfilePageState
-    extends ConsumerState<CompleteProfilePage> {
+class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
   final _formKey = GlobalKey<FormState>();
 
   late final TextEditingController _fullNameController;
   late final TextEditingController _mobileController;
   late final TextEditingController _emailController;
 
-  final _emergency1ContactController =
-      TextEditingController();
+  final _emergency1ContactController = TextEditingController();
 
-  final _emergency2ContactController =
-      TextEditingController();
+  final _emergency2ContactController = TextEditingController();
 
-  final _permanentAddressController =
-      TextEditingController();
+  final _permanentAddressController = TextEditingController();
 
-  final _correspondenceAddressController =
-      TextEditingController();
+  final _correspondenceAddressController = TextEditingController();
 
   String? _emergency1Relation;
   String? _emergency2Relation;
@@ -69,36 +64,15 @@ class _CompleteProfilePageState
     'Other',
   ];
 
-  // ----------------------------------------------------------
-  // Colors
-  // ----------------------------------------------------------
-
-  
-  static const Color _background = Color(0xFFFFF8FA);
-  static const Color _border = Color(0xFFEDE5E8);
-  static const Color _fieldBackground = Color(0xFFFFFBFC);
-  static const Color _textPrimary = Color(0xFF202020);
-  static const Color _textSecondary = Color(0xFF777177);
-  static const Color _disabledText = Color(0xFF6E686B);
-
   @override
   void initState() {
     super.initState();
 
-    _fullNameController =
-        TextEditingController(
-      text: widget.initialFullName,
-    );
+    _fullNameController = TextEditingController(text: widget.initialFullName);
 
-    _mobileController =
-        TextEditingController(
-      text: widget.initialMobile,
-    );
+    _mobileController = TextEditingController(text: widget.initialMobile);
 
-    _emailController =
-        TextEditingController(
-      text: widget.initialEmail,
-    );
+    _emailController = TextEditingController(text: widget.initialEmail);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _loadOnboardingData();
@@ -112,64 +86,45 @@ class _CompleteProfilePageState
   void _loadOnboardingData() {
     if (!mounted) return;
 
-    final onboarding =
-        ref.read(authProvider).onboardingStatus;
+    final onboarding = ref.read(authProvider).onboardingStatus;
 
     if (onboarding == null) {
       return;
     }
 
-    final identity =
-        onboarding['identity'] is Map
-            ? Map<String, dynamic>.from(
-                onboarding['identity'],
-              )
-            : <String, dynamic>{};
+    final identity = onboarding['identity'] is Map
+        ? Map<String, dynamic>.from(onboarding['identity'])
+        : <String, dynamic>{};
 
-    final editable =
-        onboarding['editable'] is Map
-            ? Map<String, dynamic>.from(
-                onboarding['editable'],
-              )
-            : <String, dynamic>{};
+    final editable = onboarding['editable'] is Map
+        ? Map<String, dynamic>.from(onboarding['editable'])
+        : <String, dynamic>{};
 
-    final details =
-        onboarding['details'] is Map
-            ? Map<String, dynamic>.from(
-                onboarding['details'],
-              )
-            : <String, dynamic>{};
+    final details = onboarding['details'] is Map
+        ? Map<String, dynamic>.from(onboarding['details'])
+        : <String, dynamic>{};
 
     setState(() {
       // ------------------------------------------------------
       // Identity
       // ------------------------------------------------------
 
-      final fullName =
-          identity['fullName']?.toString();
+      final fullName = identity['fullName']?.toString();
 
-      final mobile =
-          identity['mobileNumber']?.toString();
+      final mobile = identity['mobileNumber']?.toString();
 
-      final email =
-          identity['email']?.toString();
+      final email = identity['email']?.toString();
 
-      if (fullName != null &&
-          fullName.trim().isNotEmpty) {
-        _fullNameController.text =
-            fullName;
+      if (fullName != null && fullName.trim().isNotEmpty) {
+        _fullNameController.text = fullName;
       }
 
-      if (mobile != null &&
-          mobile.trim().isNotEmpty) {
-        _mobileController.text =
-            mobile;
+      if (mobile != null && mobile.trim().isNotEmpty) {
+        _mobileController.text = mobile;
       }
 
-      if (email != null &&
-          email.trim().isNotEmpty) {
-        _emailController.text =
-            email;
+      if (email != null && email.trim().isNotEmpty) {
+        _emailController.text = email;
       } else {
         _emailController.clear();
       }
@@ -178,91 +133,65 @@ class _CompleteProfilePageState
       // Editable flags
       // ------------------------------------------------------
 
-      _fullNameEditable =
-          editable['fullName'] == true;
+      _fullNameEditable = editable['fullName'] == true;
 
-      _mobileEditable =
-          editable['mobileNumber'] == true;
+      _mobileEditable = editable['mobileNumber'] == true;
 
-      _emailEditable =
-          editable['email'] == true;
+      _emailEditable = editable['email'] == true;
 
       // ------------------------------------------------------
       // Emergency Contact 1
       // ------------------------------------------------------
 
-      final emergency1Relation =
-          details[
-            'emergencyContact1Relation'
-          ]?.toString();
+      final emergency1Relation = details['emergencyContact1Relation']
+          ?.toString();
 
-      final emergency1Number =
-          details[
-            'emergencyContact1Number'
-          ]?.toString();
+      final emergency1Number = details['emergencyContact1Number']?.toString();
 
       if (emergency1Relation != null &&
           emergency1Relation.isNotEmpty &&
-          _relations.contains(
-            emergency1Relation,
-          )) {
-        _emergency1Relation =
-            emergency1Relation;
+          _relations.contains(emergency1Relation)) {
+        _emergency1Relation = emergency1Relation;
       }
 
       if (emergency1Number != null) {
-        _emergency1ContactController.text =
-            emergency1Number;
+        _emergency1ContactController.text = emergency1Number;
       }
 
       // ------------------------------------------------------
       // Emergency Contact 2
       // ------------------------------------------------------
 
-      final emergency2Relation =
-          details[
-            'emergencyContact2Relation'
-          ]?.toString();
+      final emergency2Relation = details['emergencyContact2Relation']
+          ?.toString();
 
-      final emergency2Number =
-          details[
-            'emergencyContact2Number'
-          ]?.toString();
+      final emergency2Number = details['emergencyContact2Number']?.toString();
 
       if (emergency2Relation != null &&
           emergency2Relation.isNotEmpty &&
-          _relations.contains(
-            emergency2Relation,
-          )) {
-        _emergency2Relation =
-            emergency2Relation;
+          _relations.contains(emergency2Relation)) {
+        _emergency2Relation = emergency2Relation;
       }
 
       if (emergency2Number != null) {
-        _emergency2ContactController.text =
-            emergency2Number;
+        _emergency2ContactController.text = emergency2Number;
       }
 
       // ------------------------------------------------------
       // Addresses
       // ------------------------------------------------------
 
-      final permanentAddress =
-          details['permanentAddress']
-              ?.toString();
+      final permanentAddress = details['permanentAddress']?.toString();
 
-      final correspondenceAddress =
-          details['correspondenceAddress']
-              ?.toString();
+      final correspondenceAddress = details['correspondenceAddress']
+          ?.toString();
 
       if (permanentAddress != null) {
-        _permanentAddressController.text =
-            permanentAddress;
+        _permanentAddressController.text = permanentAddress;
       }
 
       if (correspondenceAddress != null) {
-        _correspondenceAddressController.text =
-            correspondenceAddress;
+        _correspondenceAddressController.text = correspondenceAddress;
       }
     });
   }
@@ -287,7 +216,7 @@ class _CompleteProfilePageState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _background,
+      backgroundColor: AppColors.whiteBackgroundColor,
       resizeToAvoidBottomInset: true,
       body: SafeArea(
         child: Column(
@@ -298,15 +227,9 @@ class _CompleteProfilePageState
                 child: SingleChildScrollView(
                   keyboardDismissBehavior:
                       ScrollViewKeyboardDismissBehavior.onDrag,
-                  padding: const EdgeInsets.fromLTRB(
-                    12,
-                    16,
-                    12,
-                    16,
-                  ),
+                  padding: const EdgeInsets.all(16),
                   child: Column(
-                    crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _buildHeader(),
 
@@ -318,14 +241,11 @@ class _CompleteProfilePageState
 
                       _buildEmergencyCard(
                         title: 'Emergency Contact 1',
-                        relation:
-                            _emergency1Relation,
-                        contactController:
-                            _emergency1ContactController,
+                        relation: _emergency1Relation,
+                        contactController: _emergency1ContactController,
                         onRelationChanged: (value) {
                           setState(() {
-                            _emergency1Relation =
-                                value;
+                            _emergency1Relation = value;
                           });
                         },
                       ),
@@ -334,14 +254,11 @@ class _CompleteProfilePageState
 
                       _buildEmergencyCard(
                         title: 'Emergency Contact 2',
-                        relation:
-                            _emergency2Relation,
-                        contactController:
-                            _emergency2ContactController,
+                        relation: _emergency2Relation,
+                        contactController: _emergency2ContactController,
                         onRelationChanged: (value) {
                           setState(() {
-                            _emergency2Relation =
-                                value;
+                            _emergency2Relation = value;
                           });
                         },
                       ),
@@ -373,26 +290,25 @@ class _CompleteProfilePageState
 
   Widget _buildHeader() {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           'Complete your profile',
           style: GoogleFonts.inter(
-            fontSize: 23,
-            fontWeight: FontWeight.w700,
-            color: _textPrimary,
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: AppColors.textColor,
             height: 1.2,
           ),
         ),
-        const SizedBox(height: 7),
+        const SizedBox(height: 8),
         Text(
           'Before you continue, please share a few more details '
           'required by your organization.',
           style: GoogleFonts.inter(
-            fontSize: 12.5,
+            fontSize: 14,
             fontWeight: FontWeight.w400,
-            color: _textSecondary,
+            color: AppColors.mutedColor,
             height: 1.45,
           ),
         ),
@@ -407,8 +323,7 @@ class _CompleteProfilePageState
   Widget _buildYourDetailsCard() {
     return _buildCard(
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildCardTitle('Your Details'),
 
@@ -419,21 +334,17 @@ class _CompleteProfilePageState
           const SizedBox(height: 10),
 
           Text(
-            'Details that are organizationally filled in cannot '
-            'be changed here. Please complete the ones left blank.',
+            'Details that are organizationally filled in cannot be changed here. Please complete the ones left blank.',
             style: GoogleFonts.inter(
-              fontSize: 11.5,
-              color: _textSecondary,
+              fontSize: 12,
+              color: AppColors.mutedColor,
               height: 1.4,
             ),
           ),
 
           const SizedBox(height: 16),
 
-          _buildLabelWithBadge(
-            label: 'Full Name',
-            badge: 'SET BY ADMIN',
-          ),
+          _buildLabelWithBadge(label: 'Full Name', badge: 'SET BY ADMIN'),
 
           const SizedBox(height: 6),
 
@@ -443,12 +354,9 @@ class _CompleteProfilePageState
             enabled: _fullNameEditable,
           ),
 
-          const SizedBox(height: 13),
+          const SizedBox(height: 12),
 
-          _buildLabelWithBadge(
-            label: 'Mobile Number',
-            badge: 'SET BY ADMIN',
-          ),
+          _buildLabelWithBadge(label: 'Mobile Number', badge: 'SET BY ADMIN'),
 
           const SizedBox(height: 6),
 
@@ -460,7 +368,7 @@ class _CompleteProfilePageState
             maxLength: 10,
           ),
 
-          const SizedBox(height: 13),
+          const SizedBox(height: 12),
 
           _buildFieldLabel('Email'),
 
@@ -470,11 +378,9 @@ class _CompleteProfilePageState
             controller: _emailController,
             readOnly: !_emailEditable,
             enabled: _emailEditable,
-            keyboardType:
-                TextInputType.emailAddress,
+            keyboardType: TextInputType.emailAddress,
             validator: (value) {
-              if (value == null ||
-                  value.trim().isEmpty) {
+              if (value == null || value.trim().isEmpty) {
                 return 'Email is required';
               }
 
@@ -493,15 +399,12 @@ class _CompleteProfilePageState
   Widget _buildEmergencyCard({
     required String title,
     required String? relation,
-    required TextEditingController
-        contactController,
-    required ValueChanged<String?>
-        onRelationChanged,
+    required TextEditingController contactController,
+    required ValueChanged<String?> onRelationChanged,
   }) {
     return _buildCard(
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildCardTitle(title),
 
@@ -512,14 +415,12 @@ class _CompleteProfilePageState
           const SizedBox(height: 13),
 
           Row(
-            crossAxisAlignment:
-                CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: _buildRelationField(
                   relation: relation,
-                  onChanged:
-                      onRelationChanged,
+                  onChanged: onRelationChanged,
                 ),
               ),
 
@@ -527,32 +428,23 @@ class _CompleteProfilePageState
 
               Expanded(
                 child: Column(
-                  crossAxisAlignment:
-                      CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildFieldLabel(
-                      'Contact Number',
-                    ),
+                    _buildFieldLabel('Contact Number'),
                     const SizedBox(height: 6),
                     _buildTextField(
-                      controller:
-                          contactController,
-                      hintText:
-                          '10-digit mobile number',
-                      keyboardType:
-                          TextInputType.phone,
+                      controller: contactController,
+                      hintText: '10-digit mobile number',
+                      keyboardType: TextInputType.phone,
                       maxLength: 10,
                       validator: (value) {
-                        final text =
-                            value?.trim() ?? '';
+                        final text = value?.trim() ?? '';
 
                         if (text.isEmpty) {
                           return 'Required';
                         }
 
-                        if (!RegExp(
-                          r'^[0-9]{10}$',
-                        ).hasMatch(text)) {
+                        if (!RegExp(r'^[0-9]{10}$').hasMatch(text)) {
                           return 'Invalid number';
                         }
 
@@ -571,12 +463,10 @@ class _CompleteProfilePageState
 
   Widget _buildRelationField({
     required String? relation,
-    required ValueChanged<String?>
-        onChanged,
+    required ValueChanged<String?> onChanged,
   }) {
     return Column(
-      crossAxisAlignment:
-          CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _buildFieldLabel('Relation'),
 
@@ -585,36 +475,24 @@ class _CompleteProfilePageState
         DropdownButtonFormField<String>(
           value: relation,
           isExpanded: true,
-          icon: const Icon(
-            Icons.keyboard_arrow_down_rounded,
-            size: 19,
-          ),
+          icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 19),
           style: GoogleFonts.inter(
             fontSize: 12.5,
-            color: _textPrimary,
+            color: AppColors.textColor,
             fontWeight: FontWeight.w400,
           ),
-          decoration:
-              _inputDecoration(
-                hintText: 'Select relation',
-              ),
+          decoration: _inputDecoration(hintText: 'Select relation'),
           items: _relations
               .map(
-                (relation) =>
-                    DropdownMenuItem<String>(
+                (relation) => DropdownMenuItem<String>(
                   value: relation,
-                  child: Text(
-                    relation,
-                    overflow:
-                        TextOverflow.ellipsis,
-                  ),
+                  child: Text(relation, overflow: TextOverflow.ellipsis),
                 ),
               )
               .toList(),
           onChanged: onChanged,
           validator: (value) {
-            if (value == null ||
-                value.isEmpty) {
+            if (value == null || value.isEmpty) {
               return 'Required';
             }
 
@@ -632,8 +510,7 @@ class _CompleteProfilePageState
   Widget _buildAddressCard() {
     return _buildCard(
       child: Column(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _buildCardTitle('Address'),
 
@@ -643,23 +520,18 @@ class _CompleteProfilePageState
 
           const SizedBox(height: 14),
 
-          _buildFieldLabel(
-            'Permanent Address',
-          ),
+          _buildFieldLabel('Permanent Address'),
 
           const SizedBox(height: 6),
 
           _buildTextField(
-            controller:
-                _permanentAddressController,
+            controller: _permanentAddressController,
             hintText: 'Enter your address',
             maxLines: 3,
             minLines: 3,
-            textInputAction:
-                TextInputAction.newline,
+            textInputAction: TextInputAction.newline,
             validator: (value) {
-              if (value == null ||
-                  value.trim().isEmpty) {
+              if (value == null || value.trim().isEmpty) {
                 return 'Permanent address is required';
               }
 
@@ -669,23 +541,18 @@ class _CompleteProfilePageState
 
           const SizedBox(height: 14),
 
-          _buildFieldLabel(
-            'Correspondence Address',
-          ),
+          _buildFieldLabel('Correspondence Address'),
 
           const SizedBox(height: 6),
 
           _buildTextField(
-            controller:
-                _correspondenceAddressController,
+            controller: _correspondenceAddressController,
             hintText: 'Enter your address',
             maxLines: 3,
             minLines: 3,
-            textInputAction:
-                TextInputAction.newline,
+            textInputAction: TextInputAction.newline,
             validator: (value) {
-              if (value == null ||
-                  value.trim().isEmpty) {
+              if (value == null || value.trim().isEmpty) {
                 return 'Correspondence address is required';
               }
 
@@ -703,13 +570,9 @@ class _CompleteProfilePageState
 
   Widget _buildTermsCard() {
     return _buildCard(
-      padding: const EdgeInsets.symmetric(
-        horizontal: 12,
-        vertical: 11,
-      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
       child: Row(
-        crossAxisAlignment:
-            CrossAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           SizedBox(
             width: 22,
@@ -718,20 +581,14 @@ class _CompleteProfilePageState
               value: _termsAccepted,
               activeColor: AppColors.primaryFillColor,
               checkColor: Colors.white,
-              side: const BorderSide(
-                color: Color(0xFFD2C9CC),
-                width: 1.3,
-              ),
+              side: const BorderSide(color: Color(0xFFD2C9CC), width: 1.3),
               shape: RoundedRectangleBorder(
-                borderRadius:
-                    BorderRadius.circular(4),
+                borderRadius: BorderRadius.circular(4),
               ),
-              materialTapTargetSize:
-                  MaterialTapTargetSize.shrinkWrap,
+              materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
               onChanged: (value) {
                 setState(() {
-                  _termsAccepted =
-                      value ?? false;
+                  _termsAccepted = value ?? false;
                 });
               },
             ),
@@ -741,49 +598,36 @@ class _CompleteProfilePageState
 
           Expanded(
             child: Padding(
-              padding:
-                  const EdgeInsets.only(top: 2),
+              padding: const EdgeInsets.only(top: 2),
               child: RichText(
                 text: TextSpan(
                   style: GoogleFonts.inter(
                     fontSize: 11.5,
-                    color: _textSecondary,
+                    color: AppColors.mutedColor,
                     height: 1.4,
                   ),
                   children: [
                     const TextSpan(
-                      text:
-                          'I have read and agree to the organization\'s ',
+                      text: 'I have read and agree to the organization\'s ',
                     ),
                     WidgetSpan(
-                      alignment:
-                          PlaceholderAlignment
-                              .baseline,
-                      baseline:
-                          TextBaseline.alphabetic,
+                      alignment: PlaceholderAlignment.baseline,
+                      baseline: TextBaseline.alphabetic,
                       child: GestureDetector(
-                        onTap:
-                            _showTermsSheet,
+                        onTap: _showTermsSheet,
                         child: Text(
                           'Terms & Conditions',
-                          style:
-                              GoogleFonts.inter(
+                          style: GoogleFonts.inter(
                             fontSize: 11.5,
                             color: AppColors.primaryFillColor,
-                            fontWeight:
-                                FontWeight.w500,
-                            decoration:
-                                TextDecoration
-                                    .underline,
-                            decorationColor:
-                                AppColors.primaryFillColor,
+                            fontWeight: FontWeight.w500,
+                            decoration: TextDecoration.underline,
+                            decorationColor: AppColors.primaryFillColor,
                           ),
                         ),
                       ),
                     ),
-                    const TextSpan(
-                      text: '.',
-                    ),
+                    const TextSpan(text: '.'),
                   ],
                 ),
               ),
@@ -807,23 +651,14 @@ class _CompleteProfilePageState
         return SafeArea(
           top: false,
           child: Container(
-            padding: const EdgeInsets.fromLTRB(
-              16,
-              14,
-              16,
-              12,
-            ),
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
             decoration: const BoxDecoration(
               color: Colors.white,
-              borderRadius:
-                  BorderRadius.vertical(
-                top: Radius.circular(18),
-              ),
+              borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
                   children: [
@@ -832,16 +667,14 @@ class _CompleteProfilePageState
                         'Terms & Conditions',
                         style: GoogleFonts.inter(
                           fontSize: 16,
-                          fontWeight:
-                              FontWeight.w700,
-                          color: _textPrimary,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textColor,
                         ),
                       ),
                     ),
 
                     InkWell(
-                      borderRadius:
-                          BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(20),
                       onTap: () {
                         Navigator.pop(context);
                       },
@@ -850,8 +683,7 @@ class _CompleteProfilePageState
                         child: Icon(
                           Icons.close_rounded,
                           size: 20,
-                          color:
-                              Color(0xFF777177),
+                          color: Color(0xFF777177),
                         ),
                       ),
                     ),
@@ -864,16 +696,13 @@ class _CompleteProfilePageState
                   'Test',
                   style: GoogleFonts.inter(
                     fontSize: 11.5,
-                    color: _textSecondary,
+                    color: AppColors.mutedColor,
                   ),
                 ),
 
                 const SizedBox(height: 12),
 
-                Container(
-                  height: 1,
-                  color: _border,
-                ),
+                Container(height: 1, color: AppColors.borderColor),
 
                 const SizedBox(height: 22),
 
@@ -884,7 +713,7 @@ class _CompleteProfilePageState
                     textAlign: TextAlign.center,
                     style: GoogleFonts.inter(
                       fontSize: 12,
-                      color: _textSecondary,
+                      color: AppColors.mutedColor,
                       height: 1.4,
                     ),
                   ),
@@ -903,24 +732,19 @@ class _CompleteProfilePageState
 
                       Navigator.pop(context);
                     },
-                    style:
-                        ElevatedButton.styleFrom(
+                    style: ElevatedButton.styleFrom(
                       backgroundColor: AppColors.primaryFillColor,
-                      foregroundColor:
-                          Colors.white,
+                      foregroundColor: Colors.white,
                       elevation: 0,
-                      shape:
-                          RoundedRectangleBorder(
-                        borderRadius:
-                            BorderRadius.circular(8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
                       ),
                     ),
                     child: Text(
                       'I Agree',
                       style: GoogleFonts.inter(
                         fontSize: 12.5,
-                        fontWeight:
-                            FontWeight.w600,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ),
@@ -939,18 +763,12 @@ class _CompleteProfilePageState
 
   Widget _buildBottomButton() {
     return Container(
-      padding: const EdgeInsets.fromLTRB(
-        12,
-        8,
-        12,
-        10,
-      ),
+      padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
       decoration: BoxDecoration(
-        color: _background,
+        color: AppColors.backgroundColor,
         boxShadow: [
           BoxShadow(
-            color:
-                Colors.black.withOpacity(0.04),
+            color: Colors.black.withOpacity(0.04),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),
@@ -960,25 +778,23 @@ class _CompleteProfilePageState
         width: double.infinity,
         height: 40,
         child: ElevatedButton(
-          onPressed:
-              _isSubmitting ? null : _submit,
+          onPressed: _isSubmitting ? null : _submit,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primaryFillColor,
-            disabledBackgroundColor:
-                AppColors.primaryFillColor.withOpacity(0.5),
+            disabledBackgroundColor: AppColors.primaryFillColor.withOpacity(
+              0.5,
+            ),
             foregroundColor: Colors.white,
             elevation: 0,
             shape: RoundedRectangleBorder(
-              borderRadius:
-                  BorderRadius.circular(9),
+              borderRadius: BorderRadius.circular(9),
             ),
           ),
           child: _isSubmitting
               ? const SizedBox(
                   height: 18,
                   width: 18,
-                  child:
-                      CircularProgressIndicator(
+                  child: CircularProgressIndicator(
                     strokeWidth: 2,
                     color: Colors.white,
                   ),
@@ -1002,79 +818,54 @@ class _CompleteProfilePageState
   Future<void> _submit() async {
     FocusScope.of(context).unfocus();
 
-    final valid =
-        _formKey.currentState?.validate() ??
-            false;
+    final valid = _formKey.currentState?.validate() ?? false;
 
     if (!valid) {
       return;
     }
 
     if (!_termsAccepted) {
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
             'Please accept the Terms & Conditions.',
-            style: GoogleFonts.inter(
-              fontSize: 12,
-            ),
+            style: GoogleFonts.inter(fontSize: 12),
           ),
-          behavior:
-              SnackBarBehavior.floating,
+          behavior: SnackBarBehavior.floating,
         ),
       );
 
       return;
     }
 
-    final fullName =
-        _fullNameController.text.trim();
+    final fullName = _fullNameController.text.trim();
 
-    final mobileNumber =
-        _mobileController.text.trim();
+    final mobileNumber = _mobileController.text.trim();
 
-    final email =
-        _emailController.text.trim();
+    final email = _emailController.text.trim();
 
-    final emergency1Relation =
-        _emergency1Relation;
+    final emergency1Relation = _emergency1Relation;
 
-    final emergency1Number =
-        _emergency1ContactController.text
-            .trim();
+    final emergency1Number = _emergency1ContactController.text.trim();
 
-    final emergency2Relation =
-        _emergency2Relation;
+    final emergency2Relation = _emergency2Relation;
 
-    final emergency2Number =
-        _emergency2ContactController.text
-            .trim();
+    final emergency2Number = _emergency2ContactController.text.trim();
 
-    final permanentAddress =
-        _permanentAddressController.text
-            .trim();
+    final permanentAddress = _permanentAddressController.text.trim();
 
-    final correspondenceAddress =
-        _correspondenceAddressController.text
-            .trim();
+    final correspondenceAddress = _correspondenceAddressController.text.trim();
 
     final data = <String, dynamic>{
       'fullName': fullName,
       'mobileNumber': mobileNumber,
       'email': email,
-      'emergencyContact1Relation':
-          emergency1Relation,
-      'emergencyContact1Number':
-          emergency1Number,
-      'emergencyContact2Relation':
-          emergency2Relation,
-      'emergencyContact2Number':
-          emergency2Number,
-      'permanentAddress':
-          permanentAddress,
-      'correspondenceAddress':
-          correspondenceAddress,
+      'emergencyContact1Relation': emergency1Relation,
+      'emergencyContact1Number': emergency1Number,
+      'emergencyContact2Relation': emergency2Relation,
+      'emergencyContact2Number': emergency2Number,
+      'permanentAddress': permanentAddress,
+      'correspondenceAddress': correspondenceAddress,
       'termsAccepted': _termsAccepted,
     };
 
@@ -1097,32 +888,16 @@ class _CompleteProfilePageState
         await ref
             .read(authProvider.notifier)
             .submitOnboarding(
-              emergencyContact1Relation:
-                  emergency1Relation!,
-              emergencyContact1Number:
-                  emergency1Number,
-              emergencyContact2Relation:
-                  emergency2Relation!,
-              emergencyContact2Number:
-                  emergency2Number,
-              permanentAddress:
-                  permanentAddress,
-              correspondenceAddress:
-                  correspondenceAddress,
-              termsAccepted:
-                  _termsAccepted,
-              fullName:
-                  _fullNameEditable
-                      ? fullName
-                      : null,
-              mobileNumber:
-                  _mobileEditable
-                      ? mobileNumber
-                      : null,
-              email:
-                  _emailEditable
-                      ? email
-                      : null,
+              emergencyContact1Relation: emergency1Relation!,
+              emergencyContact1Number: emergency1Number,
+              emergencyContact2Relation: emergency2Relation!,
+              emergencyContact2Number: emergency2Number,
+              permanentAddress: permanentAddress,
+              correspondenceAddress: correspondenceAddress,
+              termsAccepted: _termsAccepted,
+              fullName: _fullNameEditable ? fullName : null,
+              mobileNumber: _mobileEditable ? mobileNumber : null,
+              email: _emailEditable ? email : null,
             );
       }
 
@@ -1136,21 +911,15 @@ class _CompleteProfilePageState
     } catch (e) {
       if (!mounted) return;
 
-      final authError =
-          ref.read(authProvider).error;
+      final authError = ref.read(authProvider).error;
 
-      ScaffoldMessenger.of(context)
-          .showSnackBar(
+      ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            authError ??
-                e.toString(),
-            style: GoogleFonts.inter(
-              fontSize: 12,
-            ),
+            authError ?? e.toString(),
+            style: GoogleFonts.inter(fontSize: 12),
           ),
-          behavior:
-              SnackBarBehavior.floating,
+          behavior: SnackBarBehavior.floating,
         ),
       );
     } finally {
@@ -1168,24 +937,18 @@ class _CompleteProfilePageState
 
   Widget _buildCard({
     required Widget child,
-    EdgeInsetsGeometry padding =
-        const EdgeInsets.all(12),
+    EdgeInsetsGeometry padding = const EdgeInsets.all(12),
   }) {
     return Container(
       width: double.infinity,
       padding: padding,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius:
-            BorderRadius.circular(14),
-        border: Border.all(
-          color: _border,
-          width: 1,
-        ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderColor, width: 1),
         boxShadow: [
           BoxShadow(
-            color:
-                Colors.black.withOpacity(0.025),
+            color: Colors.black.withOpacity(0.025),
             blurRadius: 5,
             offset: const Offset(0, 2),
           ),
@@ -1201,53 +964,41 @@ class _CompleteProfilePageState
       style: GoogleFonts.inter(
         fontSize: 14,
         fontWeight: FontWeight.w700,
-        color: _textPrimary,
+        color: AppColors.textColor,
       ),
     );
   }
 
   Widget _buildDivider() {
-    return Container(
-      height: 1,
-      color: _border,
-    );
+    return Container(height: 1, color: AppColors.borderColor);
   }
 
   Widget _buildFieldLabel(String label) {
     return Text(
       label,
       style: GoogleFonts.inter(
-        fontSize: 11.5,
+        fontSize: 12,
         fontWeight: FontWeight.w500,
-        color: _textPrimary,
+        color: AppColors.textColor,
       ),
     );
   }
 
-  Widget _buildLabelWithBadge({
-    required String label,
-    required String badge,
-  }) {
+  Widget _buildLabelWithBadge({required String label, required String badge}) {
     return Row(
       children: [
         _buildFieldLabel(label),
-        const SizedBox(width: 7),
+        const SizedBox(width: 8),
         Container(
-          padding:
-              const EdgeInsets.symmetric(
-            horizontal: 6,
-            vertical: 2.5,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
           decoration: BoxDecoration(
-            color:
-                const Color(0xFFFFEEF2),
-            borderRadius:
-                BorderRadius.circular(4),
+            color: AppColors.primaryFillColor.withValues(alpha: .1),
+            borderRadius: BorderRadius.circular(8),
           ),
           child: Text(
             badge,
             style: GoogleFonts.inter(
-              fontSize: 7.5,
+              fontSize: 8,
               fontWeight: FontWeight.w600,
               color: AppColors.primaryFillColor,
               letterSpacing: 0.15,
@@ -1259,8 +1010,7 @@ class _CompleteProfilePageState
   }
 
   Widget _buildTextField({
-    required TextEditingController
-        controller,
+    required TextEditingController controller,
     String? hintText,
     bool enabled = true,
     bool readOnly = false,
@@ -1283,83 +1033,51 @@ class _CompleteProfilePageState
       validator: validator,
       style: GoogleFonts.inter(
         fontSize: 12,
-        color: enabled
-            ? _textPrimary
-            : _disabledText,
+        color: enabled ? AppColors.textColor : AppColors.mutedColor,
         fontWeight: FontWeight.w400,
       ),
       cursorColor: AppColors.primaryFillColor,
-      decoration: _inputDecoration(
-        hintText: hintText,
-      ).copyWith(
-        counterText: '',
-      ),
+      decoration: _inputDecoration(hintText: hintText)
+          .copyWith(counterText: ''),
     );
   }
 
-  InputDecoration _inputDecoration({
-    String? hintText,
-  }) {
+  InputDecoration _inputDecoration({String? hintText}) {
     return InputDecoration(
       hintText: hintText,
       hintStyle: GoogleFonts.inter(
-        fontSize: 11.5,
+        fontSize: 12,
         color: const Color(0xFFAAA2A6),
       ),
       filled: true,
-      fillColor: _fieldBackground,
-      contentPadding:
-          const EdgeInsets.symmetric(
-        horizontal: 10,
-        vertical: 10,
-      ),
+      fillColor: AppColors.backgroundColor,
+      contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
       border: OutlineInputBorder(
-        borderRadius:
-            BorderRadius.circular(8),
-        borderSide: const BorderSide(
-          color: _border,
-        ),
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.borderColor),
       ),
-      enabledBorder:
-          OutlineInputBorder(
-        borderRadius:
-            BorderRadius.circular(8),
-        borderSide: const BorderSide(
-          color: _border,
-        ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.borderColor),
       ),
-      focusedBorder:
-          OutlineInputBorder(
-        borderRadius:
-            BorderRadius.circular(8),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
         borderSide: const BorderSide(
           color: AppColors.primaryFillColor,
           width: 1,
         ),
       ),
-      disabledBorder:
-          OutlineInputBorder(
-        borderRadius:
-            BorderRadius.circular(8),
-        borderSide: const BorderSide(
-          color: _border,
-        ),
+      disabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: AppColors.borderColor),
       ),
-      errorBorder:
-          OutlineInputBorder(
-        borderRadius:
-            BorderRadius.circular(8),
-        borderSide: const BorderSide(
-          color: Color(0xFFE57373),
-        ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Color(0xFFE57373)),
       ),
-      focusedErrorBorder:
-          OutlineInputBorder(
-        borderRadius:
-            BorderRadius.circular(8),
-        borderSide: const BorderSide(
-          color: Color(0xFFE57373),
-        ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(8),
+        borderSide: const BorderSide(color: Color(0xFFE57373)),
       ),
       errorStyle: GoogleFonts.inter(
         fontSize: 9,

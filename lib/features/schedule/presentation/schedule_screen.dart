@@ -82,6 +82,10 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
+      appBar: AppBar(
+        backgroundColor: AppColors.whiteBackgroundColor,
+        surfaceTintColor: AppColors.whiteBackgroundColor,
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           physics: const AlwaysScrollableScrollPhysics(),

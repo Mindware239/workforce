@@ -17,12 +17,6 @@ import 'package:workforce/features/notification/providers/notification_provider.
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
 
-  static const Color backgroundColor = Color(0xFFFFE0E6);
-  static const Color cardColor = Color(0xFFFFE8EC);
-  static const Color primaryColor = Color(0xFF5125C8);
-  static const Color textColor = Color(0xFF1B1B24);
-  static const Color mutedColor = Color(0xFF585E6F);
-
   @override
   ConsumerState<HomeScreen> createState() => _HomeScreenState();
 }
@@ -238,6 +232,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(attendanceProvider.notifier).getDashboard();
       ref.read(attendanceProvider.notifier).getTodayAttendance();
+      ref.read(notificationProvider.notifier).startRealtimeNotifications();
     });
 
     _attendanceTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -273,15 +268,40 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
+      appBar: AppBar(
+        surfaceTintColor: AppColors.whiteBackgroundColor,
+        backgroundColor: AppColors.whiteBackgroundColor,
+        title: Text(
+          'Workforce',
+          style: GoogleFonts.inter(
+            fontSize: 24,
+            fontWeight: FontWeight.bold,
+            color: AppColors.primaryFillColor,
+          ),
+        ),
+
+        actions: [
+          IconButton(
+            onPressed: () {
+              context.push(AppRoutes.schedule);
+            },
+            splashRadius: 20,
+            padding: EdgeInsets.zero,
+            icon: const Icon(
+              Icons.calendar_today_outlined,
+              size: 21,
+              color: AppColors.textColor,
+            ),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(),
-
-              const SizedBox(height: 8),
+              // _buildHeader(),
 
               CurrentDateText(),
 
@@ -309,57 +329,56 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     );
   }
 
-  Widget _buildHeader() {
-    return SizedBox(
-      height: 56,
-      child: Row(
-        children: [
-          // ClipOval(
-          //   child: Image.asset(
-          //     'assets/images/profile.png',
-          //     height: 32,
-          //     width: 32,
-          //     fit: BoxFit.cover,
-          //     errorBuilder: (_, __, ___) {
-          //       return Container(
-          //         color: const Color(0xFFE7B8A8),
-          //         child: const Icon(
-          //           Icons.person,
-          //           size: 17,
-          //           color: Colors.white,
-          //         ),
-          //       );
-          //     },
-          //   ),
-          // ),
+  // Widget _buildHeader() {
+  //   return SizedBox(
+  //     height: 56,
+  //     child: Row(
+  //       children: [
+  //         // ClipOval(
+  //         //   child: Image.asset(
+  //         //     'assets/images/profile.png',
+  //         //     height: 32,
+  //         //     width: 32,
+  //         //     fit: BoxFit.cover,
+  //         //     errorBuilder: (_, __, ___) {
+  //         //       return Container(
+  //         //         color: const Color(0xFFE7B8A8),
+  //         //         child: const Icon(
+  //         //           Icons.person,
+  //         //           size: 17,
+  //         //           color: Colors.white,
+  //         //         ),
+  //         //       );
+  //         //     },
+  //         //   ),
+  //         // ),
 
-          // const SizedBox(width: 16),
+  //         // const SizedBox(width: 16),
+  //         Text(
+  //           'Workforce',
+  //           style: GoogleFonts.inter(
+  //             fontSize: 20,
+  //             fontWeight: FontWeight.bold,
+  //             color: AppColors.primaryFillColor,
+  //           ),
+  //         ),
 
-          Text(
-            'Workforce',
-            style: GoogleFonts.inter(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primaryFillColor,
-            ),
-          ),
+  //         const Spacer(),
 
-          const Spacer(),
-
-          // IconButton(
-          //   onPressed: () {},
-          //   splashRadius: 20,
-          //   padding: EdgeInsets.zero,
-          //   icon: const Icon(
-          //     Icons.calendar_today_outlined,
-          //     size: 21,
-          //     color: HomeScreen.textColor,
-          //   ),
-          // ),
-        ],
-      ),
-    );
-  }
+  //         IconButton(
+  //           onPressed: () {},
+  //           splashRadius: 20,
+  //           padding: EdgeInsets.zero,
+  //           icon: const Icon(
+  //             Icons.calendar_today_outlined,
+  //             size: 21,
+  //             color: AppColors.textColor,
+  //           ),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   Widget _buildGreeting(String fullName) {
     return Text(
@@ -515,7 +534,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             style: GoogleFonts.inter(
               fontSize: 16,
               fontWeight: FontWeight.w700,
-              color: HomeScreen.textColor,
+              color: AppColors.textColor,
             ),
           ),
 
@@ -533,7 +552,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   _startShift(true);
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: HomeScreen.primaryColor,
+                  backgroundColor: AppColors.primaryFillColor,
                   foregroundColor: Colors.white,
                   elevation: 0,
                   padding: EdgeInsets.zero,
@@ -594,9 +613,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             );
                           },
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: HomeScreen.primaryColor,
+                      backgroundColor: AppColors.primaryFillColor,
                       foregroundColor: Colors.white,
-                      disabledBackgroundColor: HomeScreen.primaryColor,
+                      disabledBackgroundColor: AppColors.primaryFillColor,
                       elevation: 0,
                       padding: EdgeInsets.zero,
                       shape: RoundedRectangleBorder(
@@ -647,8 +666,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             // -> call endSession()
                           },
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: HomeScreen.primaryColor,
-                      side: BorderSide(color: HomeScreen.primaryColor),
+                      foregroundColor: AppColors.primaryFillColor,
+                      side: BorderSide(color: AppColors.primaryFillColor),
                       elevation: 0,
                       padding: EdgeInsets.zero,
                       shape: RoundedRectangleBorder(
@@ -756,7 +775,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             fontSize: 12,
             fontWeight: FontWeight.w600,
             letterSpacing: .5,
-            color: HomeScreen.mutedColor,
+            color: AppColors.mutedColor,
           ),
         ),
 

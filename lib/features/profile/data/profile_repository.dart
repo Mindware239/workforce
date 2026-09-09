@@ -1,4 +1,4 @@
-import 'package:flutter/cupertino.dart';
+
 import 'package:workforce/core/network/api_client.dart';
 
 class ProfileRepository {
@@ -8,8 +8,8 @@ class ProfileRepository {
 
   Future<Map<String, dynamic>> getProfile() async {
     final response = await apiClient.get('/auth/profile');
-    debugPrint('✅ Status Code: ${response.statusCode}');
-    debugPrint('📦 Full Response: ${response.data}');
+    // debugPrint('✅ Status Code: ${response.statusCode}');
+    // debugPrint('📦 Full Response: ${response.data}');
 
     final responseData = response.data;
 

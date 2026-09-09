@@ -8,7 +8,7 @@ import 'package:workforce/features/attendence/presentation/attendence_screen.dar
 import 'package:workforce/features/dashboard/providers/dashboard_provider.dart';
 import 'package:workforce/features/home/presentation/home_screen.dart';
 import 'package:workforce/features/profile/presentation/profile_screen.dart';
-import 'package:workforce/features/schedule/presentation/schedule_screen.dart';
+// import 'package:workforce/features/schedule/presentation/schedule_screen.dart';
 import 'package:workforce/features/task/presentation/task_screen.dart';
 
 class DashboardPage extends ConsumerWidget {
@@ -20,7 +20,7 @@ class DashboardPage extends ConsumerWidget {
     HomeScreen(),
     AttendanceScreen(),
     TasksScreen(),
-    ScheduleScreen(),
+    // ScheduleScreen(),
     ProfileScreen(),
   ];
 
@@ -65,7 +65,7 @@ class _DashboardBottomNav extends StatelessWidget {
     _NavItem(label: 'Dashboard', icon: 'assets/icons/dashboard.svg'),
     _NavItem(label: 'Attendance', icon: 'assets/icons/attendence.svg'),
     _NavItem(label: 'Task', icon: 'assets/icons/task.svg'),
-    _NavItem(label: 'Schedule', icon: 'assets/icons/schedule.svg'),
+    // _NavItem(label: 'Schedule', icon: 'assets/icons/schedule.svg'),
     _NavItem(label: 'Profile', icon: 'assets/icons/profile.svg'),
   ];
 
