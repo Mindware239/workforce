@@ -1,7 +1,10 @@
+import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:workforce/features/attendence/presentation/attendance_history_screen.dart';
 import 'package:workforce/features/attendence/presentation/location_verification_unsuccessful.dart';
 import 'package:workforce/features/auth/presentation/employee_login_screen.dart';
+import 'package:workforce/features/chat/presentation/chat_detail_screen.dart';
+import 'package:workforce/features/chat/presentation/chat_list_screen.dart';
 import 'package:workforce/features/dashboard/presentation/dashboard_screen.dart';
 import 'package:workforce/features/attendence/presentation/face_capture_screen.dart';
 import 'package:workforce/features/attendence/presentation/photo_preview_screen.dart';
@@ -26,11 +29,13 @@ class AppRoutes {
   static const String home = '/dashboard/home';
   static const String attendance = '/dashboard/attendance';
   static const String attendanceHistory = '/dashboard/attendanceHistory';
-   static const String task = '/dashboard/task';
+  static const String task = '/dashboard/task';
   static const String schedule = '/dashboard/schedule';
   static const String profile = '/dashboard/profile';
   static const String document = '/dashboard/document';
   static const String notification = '/dashboard/notification';
+
+  static const String chat = '/dashboard/chat';
 
   static const String faceCapture = '/dashboard/faceCapture';
   static const String photoPreview = '/dashboard/photo-preview';
@@ -89,7 +94,7 @@ class AppRoutes {
       },
     ),
 
-     GoRoute(
+    GoRoute(
       path: completeProfile,
       name: 'completeProfile',
       builder: (context, state) {
@@ -120,6 +125,32 @@ class AppRoutes {
     ),
 
     GoRoute(
+      path: AppRoutes.chat,
+      builder: (context, state) {
+        return const ChatListScreen();
+      },
+    ),
+
+    GoRoute(
+      path: '${AppRoutes.chat}/:conversationId',
+      builder: (context, state) {
+        final conversationId = int.tryParse(
+          state.pathParameters['conversationId'] ?? '',
+        );
+
+        if (conversationId == null) {
+          return const Scaffold(
+            body: Center(child: Text('Invalid conversation.')),
+          );
+        }
+
+        final title = state.uri.queryParameters['title'] ?? 'Chat';
+
+        return ChatDetailScreen(conversationId: conversationId, title: title);
+      },
+    ),
+
+    GoRoute(
       path: locationVerificationUnsuccessful,
       name: 'locationVerificationUnsuccessful',
       builder: (context, state) {
@@ -139,7 +170,7 @@ class AppRoutes {
       },
     ),
 
-     GoRoute(
+    GoRoute(
       path: task,
       name: 'task',
       builder: (context, state) {
