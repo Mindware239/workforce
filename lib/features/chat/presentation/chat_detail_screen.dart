@@ -163,19 +163,6 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         surfaceTintColor: AppColors.whiteBackgroundColor,
         elevation: 0,
 
-        leading: IconButton(
-          onPressed: () {
-            context.pop();
-          },
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            size: 19,
-            color: Color(0xFF242126),
-          ),
-        ),
-
-        titleSpacing: 0,
-
         title: Row(
           children: [
             _buildAvatar(widget.title, 40),
@@ -706,8 +693,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       width: size,
       height: size,
       alignment: Alignment.center,
-      decoration: const BoxDecoration(
-        color: Color(0xFFFFE8ED),
+      decoration: BoxDecoration(
+        color: AppColors.primaryFillColor.withValues(alpha: .1),
         shape: BoxShape.circle,
       ),
       child: Text(

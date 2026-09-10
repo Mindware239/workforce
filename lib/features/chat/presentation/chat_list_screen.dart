@@ -170,34 +170,10 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
               ),
 
               const Spacer(),
-
-              if (state.unreadCount > 0)
-                Container(
-                  constraints: const BoxConstraints(
-                    minWidth: 24,
-                    minHeight: 24,
-                  ),
-                  padding: const EdgeInsets.symmetric(horizontal: 7),
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryFillColor,
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    state.unreadCount > 99
-                        ? '99+'
-                        : state.unreadCount.toString(),
-                    style: GoogleFonts.inter(
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
             ],
           ),
 
-          const SizedBox(height: 5),
+          const SizedBox(height: 6),
 
           Text(
             'Message your manager and the owner.',
