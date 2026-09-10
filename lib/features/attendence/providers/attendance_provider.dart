@@ -175,55 +175,54 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
     return const AttendanceState();
   }
 
-  
- Future<bool> checkIn({
-  required String attendanceType,
-  String? photoPath,
-  required double lat,
-  required double lng,
-  double? accuracy,
-  String? deviceId,
-  int? challengeId,
-  String? signature,
-}) async {
-  state = state.copyWith(
-    status: AttendanceStatus.loading,
-    clearMessage: true,
-  );
-
-  try {
-    // This POST is the authoritative check-in operation.
-    await repository.checkIn(
-      attendanceType: attendanceType,
-      photoPath: photoPath,
-      lat: lat,
-      lng: lng,
-      accuracy: accuracy,
-      deviceId: deviceId,
-      challengeId: challengeId,
-      signature: signature,
-    );
-
-    // The backend has already accepted the check-in.
-    // A GET refresh must never turn that successful operation
-    // into an error result shown to the user.
-    await _refreshTodaySilently();
-
+  Future<bool> checkIn({
+    required String attendanceType,
+    String? photoPath,
+    required double lat,
+    required double lng,
+    double? accuracy,
+    String? deviceId,
+    int? challengeId,
+    String? signature,
+  }) async {
     state = state.copyWith(
-      status: AttendanceStatus.success,
-      message: 'Check-in successful',
+      status: AttendanceStatus.loading,
+      clearMessage: true,
     );
 
-    return true;
-  } catch (e) {
-    state = state.copyWith(
-      status: AttendanceStatus.error,
-      message: _cleanError(e),
-    );
+    try {
+      // This POST is the authoritative check-in operation.
+      await repository.checkIn(
+        attendanceType: attendanceType,
+        photoPath: photoPath,
+        lat: lat,
+        lng: lng,
+        accuracy: accuracy,
+        deviceId: deviceId,
+        challengeId: challengeId,
+        signature: signature,
+      );
 
-    return false;
+      // The backend has already accepted the check-in.
+      // A GET refresh must never turn that successful operation
+      // into an error result shown to the user.
+      await _refreshTodaySilently();
+
+      state = state.copyWith(
+        status: AttendanceStatus.success,
+        message: 'Check-in successful',
+      );
+
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        status: AttendanceStatus.error,
+        message: _cleanError(e),
+      );
+
+      return false;
+    }
   }
-}
 
   Future<void> getTodayAttendance() async {
     state = state.copyWith(isLoadingToday: true, clearMessage: true);
@@ -281,6 +280,7 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
         activeBreak: activeBreakData is Map
             ? Map<String, dynamic>.from(activeBreakData)
             : null,
+        clearActiveBreak: activeBreakData is! Map,
 
         timeline: parsedTimeline,
       );
@@ -298,9 +298,7 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
       final data = response['data'];
 
       if (data is! Map) {
-        debugPrint(
-          '⚠️ Today attendance refresh returned invalid data.',
-        );
+        debugPrint('⚠️ Today attendance refresh returned invalid data.');
         return;
       }
 
@@ -315,9 +313,7 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
       if (breaksData is List) {
         for (final item in breaksData) {
           if (item is Map) {
-            parsedBreaks.add(
-              Map<String, dynamic>.from(item),
-            );
+            parsedBreaks.add(Map<String, dynamic>.from(item));
           }
         }
       }
@@ -327,18 +323,14 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
       if (timelineData is List) {
         for (final item in timelineData) {
           if (item is Map) {
-            parsedTimeline.add(
-              Map<String, dynamic>.from(item),
-            );
+            parsedTimeline.add(Map<String, dynamic>.from(item));
           }
         }
       }
 
       state = state.copyWith(
         isLoadingToday: false,
-        today: todayData is Map
-            ? Map<String, dynamic>.from(todayData)
-            : null,
+        today: todayData is Map ? Map<String, dynamic>.from(todayData) : null,
         schedule: scheduleData is Map
             ? Map<String, dynamic>.from(scheduleData)
             : null,
@@ -349,6 +341,8 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
         activeBreak: activeBreakData is Map
             ? Map<String, dynamic>.from(activeBreakData)
             : null,
+
+        clearActiveBreak: activeBreakData is! Map,
         timeline: parsedTimeline,
       );
     } catch (e) {
@@ -357,9 +351,7 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
         '⚠️ Attendance mutation succeeded, but today refresh failed: $e',
       );
 
-      state = state.copyWith(
-        isLoadingToday: false,
-      );
+      state = state.copyWith(isLoadingToday: false);
     }
   }
 
@@ -566,62 +558,59 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
   }
 
   Future<bool> checkout({
-  required String attendanceType,
-  String? photoPath,
-  String? workAudioPath,
-  String? workDescription,
-  required double lat,
-  required double lng,
-  double? accuracy,
-  String? deviceId,
-  int? challengeId,
-  String? signature,
-}) async {
-  state = state.copyWith(
-    status: AttendanceStatus.loading,
-    clearMessage: true,
-  );
-
-  try {
-    // This POST is the authoritative checkout operation.
-    await repository.checkout(
-      attendanceType: attendanceType,
-      photoPath: photoPath,
-      workAudioPath: workAudioPath,
-      workDescription: workDescription,
-      lat: lat,
-      lng: lng,
-      accuracy: accuracy,
-      deviceId: deviceId,
-      challengeId: challengeId,
-      signature: signature,
-    );
-
-    // Refresh today's attendance, but do not allow a GET failure
-    // to make the successful checkout look like a failed operation.
-    await _refreshTodaySilently();
-
+    required String attendanceType,
+    String? photoPath,
+    String? workAudioPath,
+    String? workDescription,
+    required double lat,
+    required double lng,
+    double? accuracy,
+    String? deviceId,
+    int? challengeId,
+    String? signature,
+  }) async {
     state = state.copyWith(
-      status: AttendanceStatus.success,
-      message: 'Session ended successfully',
+      status: AttendanceStatus.loading,
+      clearMessage: true,
     );
 
-    return true;
-  } catch (e) {
-    state = state.copyWith(
-      status: AttendanceStatus.error,
-      message: _cleanError(e),
-    );
+    try {
+      // This POST is the authoritative checkout operation.
+      await repository.checkout(
+        attendanceType: attendanceType,
+        photoPath: photoPath,
+        workAudioPath: workAudioPath,
+        workDescription: workDescription,
+        lat: lat,
+        lng: lng,
+        accuracy: accuracy,
+        deviceId: deviceId,
+        challengeId: challengeId,
+        signature: signature,
+      );
 
-    return false;
+      // Refresh today's attendance, but do not allow a GET failure
+      // to make the successful checkout look like a failed operation.
+      await _refreshTodaySilently();
+
+      state = state.copyWith(
+        status: AttendanceStatus.success,
+        message: 'Session ended successfully',
+      );
+
+      return true;
+    } catch (e) {
+      state = state.copyWith(
+        status: AttendanceStatus.error,
+        message: _cleanError(e),
+      );
+
+      return false;
+    }
   }
-}
 
   String _cleanError(Object error) {
-    return error
-        .toString()
-        .replaceFirst('Exception: ', '')
-        .trim();
+    return error.toString().replaceFirst('Exception: ', '').trim();
   }
 
   // ============================================================

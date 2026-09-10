@@ -588,24 +588,24 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         attendanceState.status == AttendanceStatus.loading
                         ? null
                         : () async {
-                            bool success;
+                            final wasBreakActive = isBreakActive;
 
-                            if (isBreakActive) {
-                              success = await ref
-                                  .read(attendanceProvider.notifier)
-                                  .endBreak();
-                            } else {
-                              success = await ref
-                                  .read(attendanceProvider.notifier)
-                                  .startBreak();
+                            final success = wasBreakActive
+                                ? await ref
+                                      .read(attendanceProvider.notifier)
+                                      .endBreak()
+                                : await ref
+                                      .read(attendanceProvider.notifier)
+                                      .startBreak();
+
+                            if (!mounted || !success) {
+                              return;
                             }
-
-                            if (!mounted || !success) return;
 
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(
-                                  isBreakActive
+                                  wasBreakActive
                                       ? 'Break ended'
                                       : 'Break started',
                                 ),
@@ -652,18 +652,6 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                         ? null
                         : () {
                             _startShift(false);
-                            // Open your End Session flow here.
-                            // This should eventually call:
-                            // POST /api/attendance/exit
-                            //
-                            // For FACE:
-                            // -> capture photo
-                            //
-                            // For FINGERPRINT:
-                            // -> challenge purpose:
-                            //    attendance_exit
-                            // -> sign challenge
-                            // -> call endSession()
                           },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.primaryFillColor,

@@ -6,8 +6,7 @@ import 'package:workforce/core/services/auth_service.dart';
 import 'package:workforce/core/services/secure_storage.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/features/notification/presentation/notification.dart';
-import 'package:workforce/features/onboarding/presentation/screen/language_selection_screen.dart';
-import 'package:workforce/features/attendence/presentation/verification_unsuccessful_screen.dart';
+import 'package:workforce/features/language/presentation/language_selection_screen.dart';
 import 'package:workforce/features/setting/presentation/help_support_screen.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -67,17 +66,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               _buildSettingsCard(
                 children: [
-                  _SettingsRow(
-                    icon: Icons.person_outline_rounded,
-                    title: 'Account',
-                    onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const HelpSupportScreen(),
-                        ),
-                      );
-                    },
-                  ),
+                  // _SettingsRow(
+                  //   icon: Icons.person_outline_rounded,
+                  //   title: 'Account',
+                  //   onTap: () {
+                  //     Navigator.of(context).push(
+                  //       MaterialPageRoute(
+                  //         builder: (context) => const HelpSupportScreen(),
+                  //       ),
+                  //     );
+                  //   },
+                  // ),
 
                   _SettingsRow(
                     icon: Icons.notifications_none_rounded,
@@ -120,11 +119,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     icon: Icons.lock_outline_rounded,
                     title: 'Security',
                     onTap: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute(
-                          builder: (context) => const VerificationUnsuccessfulScreen(),
-                        ),
-                      );
+                     
                     },
                   ),
 
@@ -147,8 +142,14 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   _SettingsRow(
                     icon: Icons.settings_outlined,
-                    title: 'App Preferences',
-                    onTap: () {},
+                    title: 'Help & Support',
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const HelpSupportScreen(),
+                        ),
+                      );
+                    },
                   ),
 
                   _SettingsRow(
