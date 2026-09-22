@@ -1,7 +1,4 @@
-enum AppLanguage {
-  english,
-  hindi,
-}
+enum AppLanguage { english, hindi }
 
 extension AppLanguageExtension on AppLanguage {
   String get code {
@@ -33,8 +30,7 @@ extension AppLanguageExtension on AppLanguage {
     }
   }
 
-
-String get hindiName {
+  String get hindiName {
     switch (this) {
       case AppLanguage.english:
         return 'अंग्रेज़ी';
@@ -42,6 +38,7 @@ String get hindiName {
         return 'हिन्दी';
     }
   }
+
   static AppLanguage fromCode(String? code) {
     switch (code) {
       case 'hi':

@@ -37,7 +37,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
 
   bool _isRecording = false;
 
-  static const String _fileBaseUrl = 'https://workforce.orkuts.com/api/upload';
+  static const String _fileBaseUrl = 'https://workforce.orkuts.com/api/';
 
   @override
   void initState() {
