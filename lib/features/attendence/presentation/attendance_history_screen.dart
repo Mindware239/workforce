@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/features/attendence/data/attendance_pdf_service.dart';
 
@@ -116,7 +117,7 @@ class _AttendanceHistoryScreenState
 
   Widget _buildHeader() {
     return Text(
-      'Attendance History',
+      ref.tr('attendanceHistory.title'),
       style: GoogleFonts.inter(
         fontSize: 30,
         fontWeight: FontWeight.bold,
@@ -277,7 +278,15 @@ class _AttendanceHistoryScreenState
   }
 
   Widget _buildWeekHeader() {
-    const days = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'];
+    final days = [
+      ref.tr('attendanceHistory.sun'),
+      ref.tr('attendanceHistory.mon'),
+      ref.tr('attendanceHistory.tue'),
+      ref.tr('attendanceHistory.wed'),
+      ref.tr('attendanceHistory.thu'),
+      ref.tr('attendanceHistory.fri'),
+      ref.tr('attendanceHistory.sat'),
+    ];
 
     return Row(
       children: days.map((day) {
@@ -304,7 +313,10 @@ class _AttendanceHistoryScreenState
 
         const Spacer(),
 
-        _LegendItem(color: const Color(0xFFE33D59), text: 'Absent'),
+        _LegendItem(
+          color: const Color(0xFFE33D59),
+          text: ref.tr('attendanceHistory.absent'),
+        ),
 
         // _LegendItem(color: const Color(0xFFF2A21B), text: 'Exception'),
       ],
@@ -326,7 +338,7 @@ class _AttendanceHistoryScreenState
       children: [
         Expanded(
           child: _SummaryCard(
-            title: 'Avg. Hours',
+            title: ref.tr('attendanceHistory.avgHours'),
             value: _formatDuration(averageMinutes),
             valueColor: const Color(0xFF00B889),
           ),
@@ -336,7 +348,7 @@ class _AttendanceHistoryScreenState
 
         Expanded(
           child: _SummaryCard(
-            title: 'On-Time Rate',
+            title: ref.tr('attendanceHistory.onTimeRate'),
             value: '${_formatNumber(onTimeRate)}%',
             valueColor: const Color(0xFF7657FF),
           ),
@@ -349,7 +361,7 @@ class _AttendanceHistoryScreenState
     return Row(
       children: [
         Text(
-          'LOG ENTRIES',
+          ref.tr('attendanceHistory.logEntries'),
           style: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w500,
@@ -373,7 +385,7 @@ class _AttendanceHistoryScreenState
 
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Attendance PDF exported successfully.'),
+                  content: Text(ref.tr('attendanceHistory.exportSuccess')),
                 ),
               );
 
@@ -381,8 +393,12 @@ class _AttendanceHistoryScreenState
             } catch (e) {
               if (!mounted) return;
 
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text('Unable to export attendance: $e')),
+              SnackBar(
+                content: Text(
+                  ref
+                      .tr('attendanceHistory.exportError')
+                      .replaceFirst('{error}', e.toString()),
+                ),
               );
             }
           },
@@ -399,7 +415,7 @@ class _AttendanceHistoryScreenState
                 ),
                 const SizedBox(width: 4),
                 Text(
-                  'Export',
+                  ref.tr('attendanceHistory.export'),
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -460,7 +476,7 @@ class _AttendanceHistoryScreenState
           ),
           const SizedBox(height: 8),
           Text(
-            'No attendance records',
+            ref.tr('attendanceHistory.noRecords'),
             style: GoogleFonts.inter(
               fontSize: 13,
               fontWeight: FontWeight.w600,
@@ -469,7 +485,7 @@ class _AttendanceHistoryScreenState
           ),
           const SizedBox(height: 3),
           Text(
-            'No attendance was recorded for this month.',
+            ref.tr('attendanceHistory.noRecordsSubtitle'),
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(fontSize: 10, color: AppColors.mutedColor),
           ),
@@ -548,7 +564,10 @@ class _AttendanceHistoryScreenState
 
           const SizedBox(height: 12),
 
-          ElevatedButton(onPressed: _loadHistory, child: const Text('Retry')),
+          ElevatedButton(
+            onPressed: _loadHistory,
+            child: Text(ref.tr('attendanceHistory.retry')),
+          ),
         ],
       ),
     );
@@ -584,22 +603,22 @@ class _AttendanceHistoryScreenState
   }
 
   String _monthName(int month) {
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
+    const keys = [
+      'attendanceHistory.january',
+      'attendanceHistory.february',
+      'attendanceHistory.march',
+      'attendanceHistory.april',
+      'attendanceHistory.may',
+      'attendanceHistory.june',
+      'attendanceHistory.july',
+      'attendanceHistory.august',
+      'attendanceHistory.september',
+      'attendanceHistory.october',
+      'attendanceHistory.november',
+      'attendanceHistory.december',
     ];
 
-    return months[month - 1];
+    return ref.tr(keys[month - 1]);
   }
 
   String _formatDuration(int minutes) {
@@ -806,13 +825,13 @@ class _SummaryCard extends StatelessWidget {
   }
 }
 
-class _AttendanceLogCard extends StatelessWidget {
+class _AttendanceLogCard extends ConsumerWidget {
   final Map<String, dynamic> record;
 
   const _AttendanceLogCard({required this.record});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final date = DateTime.tryParse(record['date']?.toString() ?? '');
 
     final entryTime = record['entryTime']?.toString();
@@ -848,7 +867,7 @@ class _AttendanceLogCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      date != null ? _weekdayName(date.weekday) : '--',
+                      date != null ? _weekdayName(date.weekday, ref) : '--',
                       style: GoogleFonts.inter(
                         fontSize: 12,
                         fontWeight: FontWeight.w700,
@@ -883,18 +902,21 @@ class _AttendanceLogCard extends StatelessWidget {
           Row(
             children: [
               _BottomInfo(
-                label: 'Total',
+                label: ref.tr('attendanceHistory.total'),
                 value: _formatDuration(workingMinutes),
               ),
 
               const SizedBox(width: 16),
 
-              _BottomInfo(label: 'Status', value: _statusLabel(status)),
+              _BottomInfo(
+                label: ref.tr('attendanceHistory.status'),
+                value: _statusLabel(status, ref),
+              ),
 
               const Spacer(),
 
               _BottomInfo(
-                label: 'Prod.',
+                label: ref.tr('attendanceHistory.productivity'),
                 value: productivity != null ? '$productivity%' : '--',
                 alignEnd: true,
               ),
@@ -965,38 +987,38 @@ class _AttendanceLogCard extends StatelessWidget {
     return '${hours}h ${mins}m';
   }
 
-  String _weekdayName(int weekday) {
-    const names = [
-      'Monday',
-      'Tuesday',
-      'Wednesday',
-      'Thursday',
-      'Friday',
-      'Saturday',
-      'Sunday',
+  String _weekdayName(int weekday, WidgetRef ref) {
+    const keys = [
+      'attendanceHistory.monday',
+      'attendanceHistory.tuesday',
+      'attendanceHistory.wednesday',
+      'attendanceHistory.thursday',
+      'attendanceHistory.friday',
+      'attendanceHistory.saturday',
+      'attendanceHistory.sunday',
     ];
 
-    return names[weekday - 1];
+    return ref.tr(keys[weekday - 1]);
   }
 
-  String _statusLabel(String status) {
+  String _statusLabel(String status, WidgetRef ref) {
     switch (status.toLowerCase()) {
       case 'late':
-        return 'Late';
+        return ref.tr('attendanceHistory.late');
 
       case 'on_time':
       case 'on-time':
-        return 'On Time';
+        return ref.tr('attendanceHistory.onTime');
 
       case 'early_exit':
       case 'early-exit':
-        return 'Early Exit';
+        return ref.tr('attendanceHistory.earlyExit');
 
       case 'present':
-        return 'Present';
+        return ref.tr('attendanceHistory.present');
 
       case 'absent':
-        return 'Absent';
+        return ref.tr('attendanceHistory.absent');
 
       default:
         return status.replaceAll('_', ' ');
@@ -1004,13 +1026,13 @@ class _AttendanceLogCard extends StatelessWidget {
   }
 }
 
-class _DateBadge extends StatelessWidget {
+class _DateBadge extends ConsumerWidget {
   final DateTime? date;
 
   const _DateBadge({required this.date});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     if (date == null) {
       return Container(
         width: 48,
@@ -1034,7 +1056,7 @@ class _DateBadge extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(
-            _monthShort(date!.month),
+            _monthShort(date!.month, ref),
             style: GoogleFonts.inter(
               fontSize: 9,
               fontWeight: FontWeight.w700,
@@ -1055,33 +1077,33 @@ class _DateBadge extends StatelessWidget {
     );
   }
 
-  String _monthShort(int month) {
-    const months = [
-      'JAN',
-      'FEB',
-      'MAR',
-      'APR',
-      'MAY',
-      'JUN',
-      'JUL',
-      'AUG',
-      'SEP',
-      'OCT',
-      'NOV',
-      'DEC',
+  String _monthShort(int month, WidgetRef ref) {
+    const keys = [
+      'attendanceHistory.jan',
+      'attendanceHistory.feb',
+      'attendanceHistory.mar',
+      'attendanceHistory.apr',
+      'attendanceHistory.mayShort',
+      'attendanceHistory.jun',
+      'attendanceHistory.jul',
+      'attendanceHistory.aug',
+      'attendanceHistory.sep',
+      'attendanceHistory.oct',
+      'attendanceHistory.nov',
+      'attendanceHistory.dec',
     ];
 
-    return months[month - 1];
+    return ref.tr(keys[month - 1]);
   }
 }
 
-class _StatusBadge extends StatelessWidget {
+class _StatusBadge extends ConsumerWidget  {
   final String status;
 
   const _StatusBadge({required this.status});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final normalized = status.toLowerCase();
 
     final isLate = normalized == 'late';
@@ -1107,7 +1129,7 @@ class _StatusBadge extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-        status.replaceAll('_', ' ').toUpperCase(),
+       _statusLabel(status, ref).toUpperCase(),
         style: GoogleFonts.inter(
           fontSize: 9,
           fontWeight: FontWeight.w700,
@@ -1116,6 +1138,30 @@ class _StatusBadge extends StatelessWidget {
       ),
     );
   }
+
+  String _statusLabel(String value, WidgetRef ref) {
+  switch (value.toLowerCase()) {
+    case 'late':
+      return ref.tr('attendanceHistory.late');
+
+    case 'on_time':
+    case 'on-time':
+      return ref.tr('attendanceHistory.onTime');
+
+    case 'early_exit':
+    case 'early-exit':
+      return ref.tr('attendanceHistory.earlyExit');
+
+    case 'present':
+      return ref.tr('attendanceHistory.present');
+
+    case 'absent':
+      return ref.tr('attendanceHistory.absent');
+
+    default:
+      return value.replaceAll('_', ' ');
+  }
+}
 }
 
 class _BottomInfo extends StatelessWidget {

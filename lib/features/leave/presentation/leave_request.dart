@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/features/leave/providers/leave_provider.dart';
 
@@ -187,7 +188,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Leave Request',
+          ref.tr('leave.title'),
           style: GoogleFonts.inter(
             fontSize: 30,
             fontWeight: FontWeight.bold,
@@ -198,7 +199,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
         const SizedBox(height: 4),
 
         Text(
-          'Submit a new time-off request or check your current balances.',
+          ref.tr('leave.subtitle'),
           style: GoogleFonts.inter(fontSize: 14, color: AppColors.mutedColor),
         ),
       ],
@@ -224,9 +225,9 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
       children: [
         Expanded(
           child: _BalanceCard(
-            title: 'CASUAL\nLEAVE',
+            title: ref.tr('leave.casualLeaveShort'),
             value: getRemaining('casual'),
-            suffix: 'days left',
+            suffix: ref.tr('leave.daysLeft'),
             icon: Icons.event_available_outlined,
             textColor: AppColors.primaryFillColor,
           ),
@@ -236,9 +237,9 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
 
         Expanded(
           child: _BalanceCard(
-            title: 'SICK LEAVE',
+            title: ref.tr('leave.sickLeaveShort'),
             value: getRemaining('sick'),
-            suffix: 'days left',
+            suffix: ref.tr('leave.daysLeft'),
             icon: Icons.sick_outlined,
             textColor: const Color(0xFF7E3000),
           ),
@@ -248,9 +249,9 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
 
         Expanded(
           child: _BalanceCard(
-            title: 'EARNED\nLEAVE',
+            title: ref.tr('leave.earnedLeaveShort'),
             value: getRemaining('earned'),
-            suffix: 'days left',
+            suffix: ref.tr('leave.daysLeft'),
             icon: Icons.beach_access_outlined,
             textColor: const Color(0xFF059669),
           ),
@@ -267,14 +268,14 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle('New Request'),
+          _sectionTitle(ref.tr('leave.newRequest')),
 
           const SizedBox(height: 12),
 
           // ------------------------------------------------------
           // LEAVE TYPE
           // ------------------------------------------------------
-          const _FieldLabel('Leave Type'),
+          _FieldLabel(ref.tr('leave.leaveType')),
 
           _DropdownField(
             value: leaveType,
@@ -288,6 +289,11 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
                     });
                   },
             items: const ['Casual Leave', 'Sick Leave', 'Earned Leave'],
+            labels: {
+              'Casual Leave': ref.tr('leave.casualLeave'),
+              'Sick Leave': ref.tr('leave.sickLeave'),
+              'Earned Leave': ref.tr('leave.earnedLeave'),
+            },
           ),
 
           const SizedBox(height: 8),
@@ -295,7 +301,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
           // ------------------------------------------------------
           // LEAVE DURATION
           // ------------------------------------------------------
-          const _FieldLabel('Leave Duration'),
+          _FieldLabel(ref.tr('leave.leaveDuration')),
 
           _DropdownField(
             value: leaveDuration,
@@ -323,6 +329,10 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
                     });
                   },
             items: const ['Full Day', 'Half Day'],
+            labels: {
+              'Full Day': ref.tr('leave.fullDay'),
+              'Half Day': ref.tr('leave.halfDay'),
+            },
           ),
 
           const SizedBox(height: 8),
@@ -330,7 +340,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
           // ------------------------------------------------------
           // NUMBER OF DAYS
           // ------------------------------------------------------
-          const _FieldLabel('Number of Days'),
+          _FieldLabel(ref.tr('leave.numberOfDays')),
 
           _DaysField(value: numberOfDays),
 
@@ -339,11 +349,11 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
           // ------------------------------------------------------
           // START DATE
           // ------------------------------------------------------
-          const _FieldLabel('Start Date'),
+          _FieldLabel(ref.tr('leave.startDate')),
 
           _TextField(
             controller: startDateController,
-            hint: 'dd/mm/yyyy',
+            hint: ref.tr('leave.dateHint'),
             suffixIcon: Icons.calendar_today_outlined,
             readOnly: true,
             onTap: isLoading ? null : _selectStartDate,
@@ -355,11 +365,11 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
           // FULL DAY → END DATE
           // ------------------------------------------------------
           if (leaveDuration == 'Full Day') ...[
-            const _FieldLabel('End Date'),
+            _FieldLabel(ref.tr('leave.endDate')),
 
             _TextField(
               controller: endDateController,
-              hint: 'dd/mm/yyyy',
+              hint: ref.tr('leave.dateHint'),
               suffixIcon: Icons.calendar_today_outlined,
               readOnly: true,
               onTap: isLoading ? null : _selectEndDate,
@@ -372,11 +382,11 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
           // HALF DAY → START TIME
           // ------------------------------------------------------
           if (leaveDuration == 'Half Day') ...[
-            const _FieldLabel('Start Time'),
+            _FieldLabel(ref.tr('leave.startTime')),
 
             _TextField(
               controller: startTimeController,
-              hint: 'Select start time',
+              hint: ref.tr('leave.startTimeHint'),
               suffixIcon: Icons.access_time_outlined,
               readOnly: true,
               onTap: isLoading ? null : _selectStartTime,
@@ -387,11 +397,11 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
             // ----------------------------------------------------
             // HALF DAY → END TIME
             // ----------------------------------------------------
-            const _FieldLabel('End Time'),
+            _FieldLabel(ref.tr('leave.endTime')),
 
             _TextField(
               controller: endTimeController,
-              hint: 'Select end time',
+              hint: ref.tr('leave.endTimeHint'),
               suffixIcon: Icons.access_time_outlined,
               readOnly: true,
               onTap: isLoading ? null : _selectEndTime,
@@ -403,11 +413,11 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
           // ------------------------------------------------------
           // REASON
           // ------------------------------------------------------
-          const _FieldLabel('Reason'),
+          _FieldLabel(ref.tr('leave.reason')),
 
           _TextField(
             controller: reasonController,
-            hint: 'Please provide a brief reason for your leave...',
+            hint: ref.tr('leave.reasonHint'),
             maxLines: 4,
             readOnly: isLoading,
           ),
@@ -436,7 +446,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
                     ),
                   ),
                   child: Text(
-                    'Cancel',
+                    ref.tr('leave.cancel'),
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -476,7 +486,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
                           ),
                         )
                       : Text(
-                          'Submit Request',
+                          ref.tr('leave.submitRequest'),
                           style: GoogleFonts.inter(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -525,7 +535,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
 
   Future<void> _selectEndDate() async {
     if (startDate == null) {
-      _showMessage('Please select the start date first.');
+      _showMessage(ref.tr('leave.selectStartDateFirst'));
       return;
     }
 
@@ -583,7 +593,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
 
   Future<void> _selectEndTime() async {
     if (startTime == null) {
-      _showMessage('Please select the start time first.');
+      _showMessage(ref.tr('leave.selectStartTimeFirst'));
       return;
     }
 
@@ -604,7 +614,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
     final endMinutes = picked.hour * 60 + picked.minute;
 
     if (endMinutes <= startMinutes) {
-      _showMessage('End time must be after start time.');
+      _showMessage(ref.tr('leave.endTimeAfterStart'));
       return;
     }
 
@@ -665,7 +675,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
     // ----------------------------------------------------------
 
     if (startDate == null) {
-      _showMessage('Please select the start date.');
+      _showMessage(ref.tr('leave.selectStartDate'));
       return;
     }
 
@@ -675,12 +685,12 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
 
     if (leaveDuration == 'Full Day') {
       if (endDate == null) {
-        _showMessage('Please select the end date.');
+        _showMessage(ref.tr('leave.selectEndDate'));
         return;
       }
 
       if (endDate!.isBefore(startDate!)) {
-        _showMessage('End date cannot be before start date.');
+        _showMessage(ref.tr('leave.endDateBeforeStart'));
         return;
       }
     }
@@ -691,12 +701,12 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
 
     if (leaveDuration == 'Half Day') {
       if (startTime == null) {
-        _showMessage('Please select the start time.');
+        _showMessage(ref.tr('leave.selectStartTime'));
         return;
       }
 
       if (endTime == null) {
-        _showMessage('Please select the end time.');
+        _showMessage(ref.tr('leave.selectEndTime'));
         return;
       }
 
@@ -705,7 +715,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
       final endMinutes = endTime!.hour * 60 + endTime!.minute;
 
       if (endMinutes <= startMinutes) {
-        _showMessage('End time must be after start time.');
+        _showMessage(ref.tr('leave.endTimeAfterStart'));
         return;
       }
     }
@@ -717,7 +727,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
     final reason = reasonController.text.trim();
 
     if (reason.isEmpty) {
-      _showMessage('Please provide a reason for your leave.');
+      _showMessage(ref.tr('leave.provideReason'));
       return;
     }
 
@@ -772,12 +782,12 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
       if (!mounted) return;
 
       if (success) {
-        _showMessage('Leave request submitted successfully.', isError: false);
+        _showMessage(ref.tr('leave.submittedSuccess'), isError: false);
 
         _clearForm();
       } else {
         final error =
-            ref.read(leaveProvider).error ?? 'Unable to submit leave request.';
+            ref.read(leaveProvider).error ?? ref.tr('leave.submitError');
 
         _showMessage(error);
       }
@@ -863,7 +873,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Recent Requests',
+          ref.tr('leave.recentRequests'),
           style: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -939,7 +949,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
               onPressed: () {
                 ref.read(leaveProvider.notifier).getMyLeaveRequests();
               },
-              child: const Text('Retry'),
+              child: Text(ref.tr('leave.retry')),
             ),
           ],
         ),
@@ -965,7 +975,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
             const SizedBox(height: 8),
 
             Text(
-              'No leave requests yet.',
+              ref.tr('leave.noRequests'),
               style: GoogleFonts.inter(
                 fontSize: 13,
                 color: AppColors.mutedColor,
@@ -1003,11 +1013,18 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
   // ============================================================
 
   String _formatStatus(String? status) {
-    if (status == null || status.trim().isEmpty) {
-      return 'UNKNOWN';
+    switch (status?.toLowerCase()) {
+      case 'approved':
+        return ref.tr('leave.approved');
+      case 'rejected':
+        return ref.tr('leave.rejected');
+      case 'pending':
+        return ref.tr('leave.pending');
+      case 'cancelled':
+        return ref.tr('leave.cancelled');
+      default:
+        return ref.tr('leave.unknown');
     }
-
-    return status.toUpperCase();
   }
 
   // ============================================================
@@ -1068,26 +1085,30 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
 
     switch (category.toLowerCase()) {
       case 'sick':
-        categoryName = 'Sick Leave';
+        categoryName = ref.tr('leave.sickLeave');
         break;
 
       case 'earned':
-        categoryName = 'Earned Leave';
+        categoryName = ref.tr('leave.earnedLeave');
         break;
 
       case 'casual':
       default:
-        categoryName = 'Casual Leave';
+        categoryName = ref.tr('leave.casualLeave');
         break;
     }
 
     if (totalDays == 0.5) {
-      return '$categoryName (Half Day)';
+      return '$categoryName (${ref.tr('leave.halfDayLabel')})';
     }
 
     final int days = totalDays.round();
 
-    return '$categoryName ($days ${days == 1 ? 'Day' : 'Days'})';
+    final dayLabel = days == 1
+        ? ref.tr('leave.day')
+        : ref.tr('leave.days');
+
+    return '$categoryName ($days $dayLabel)';
   }
 
   // ============================================================
@@ -1100,7 +1121,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
     final end = DateTime.tryParse(request['end_date']?.toString() ?? '');
 
     if (start == null) {
-      return 'Date unavailable';
+      return ref.tr('leave.dateUnavailable');
     }
 
     final startText = _formatShortDate(start);
@@ -1125,23 +1146,22 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
   // ============================================================
 
   String _formatShortDate(DateTime date) {
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+    const keys = [
+      'leave.jan',
+      'leave.feb',
+      'leave.mar',
+      'leave.apr',
+      'leave.may',
+      'leave.jun',
+      'leave.jul',
+      'leave.aug',
+      'leave.sep',
+      'leave.oct',
+      'leave.nov',
+      'leave.dec',
     ];
 
-    return '${date.day} '
-        '${months[date.month - 1]}';
+    return '${date.day} ${ref.tr(keys[date.month - 1])}';
   }
 
   // ============================================================
@@ -1389,11 +1409,13 @@ class _DropdownField extends StatelessWidget {
   final String value;
   final ValueChanged<String?>? onChanged;
   final List<String> items;
+  final Map<String, String>? labels;
 
   const _DropdownField({
     required this.value,
     required this.onChanged,
     required this.items,
+    this.labels,
   });
 
   @override
@@ -1421,7 +1443,7 @@ class _DropdownField extends StatelessWidget {
       ),
       items: items
           .map(
-            (item) => DropdownMenuItem<String>(value: item, child: Text(item)),
+            (item) => DropdownMenuItem<String>(value: item, child: Text(labels?[item] ?? item)),
           )
           .toList(),
     );

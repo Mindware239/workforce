@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shimmer/shimmer.dart';
+import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/features/attendence/providers/attendance_provider.dart';
 import 'package:workforce/features/schedule/data/payslip_pdf_service.dart';
@@ -90,7 +92,7 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
         surfaceTintColor: AppColors.whiteBackgroundColor,
         elevation: 0,
         title: Text(
-          'Monthly Summary',
+          ref.tr('monthlySummary.title'),
           style: GoogleFonts.inter(
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -109,7 +111,9 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
             child: state.isLoadingMonthlyReport
                 ? _buildLoading()
                 : state.monthlyReport == null
-                ? _buildError(state.message ?? 'Unable to load monthly report.')
+                ? _buildError(
+                    state.message ?? ref.tr('monthlySummary.unableToLoad'),
+                  )
                 : _buildContent(state.monthlyReport!),
           ),
         ),
@@ -190,7 +194,9 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
           children: [
             Expanded(
               child: Text(
-                '${_monthName(month)} Summary',
+                ref
+                    .tr('monthlySummary.monthSummary')
+                    .replaceFirst('{month}', _monthName(month)),
                 style: GoogleFonts.inter(
                   fontSize: 30,
                   height: 1,
@@ -216,8 +222,10 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
 
         Text(
           name != null && name.isNotEmpty
-              ? '$name · Your monthly performance and attendance overview.'
-              : 'Your monthly performance and attendance overview.',
+              ? ref
+                    .tr('monthlySummary.descriptionWithName')
+                    .replaceFirst('{name}', name)
+              : ref.tr('monthlySummary.description'),
           style: GoogleFonts.inter(
             fontSize: 13,
             height: 1.2,
@@ -255,7 +263,7 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
             Row(
               children: [
                 Text(
-                  'ATTENDANCE RATE',
+                  ref.tr('monthlySummary.attendanceRate'),
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -301,7 +309,10 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    '$presentDays present · $absentDays absent',
+                    ref
+                        .tr('monthlySummary.presentAbsent')
+                        .replaceFirst('{present}', presentDays.toString())
+                        .replaceFirst('{absent}', absentDays.toString()),
                     style: GoogleFonts.inter(
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
@@ -335,7 +346,7 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
       children: [
         Expanded(
           child: _SmallStatCard(
-            title: 'DAYS WORKED',
+            title: ref.tr('monthlySummary.daysWorked'),
             value: presentDays.toString(),
             secondaryValue: ' / $totalDays',
             icon: Icons.calendar_today_outlined,
@@ -346,7 +357,7 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
 
         Expanded(
           child: _SmallStatCard(
-            title: 'AVG PRODUCTIVITY',
+            title: ref.tr('monthlySummary.avgProductivity'),
             value: '${productivity.toStringAsFixed(0)}%',
             icon: Icons.trending_up,
           ),
@@ -375,7 +386,7 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'TOTAL HOURS LOGGED',
+                    ref.tr('monthlySummary.totalHoursLogged'),
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -405,7 +416,7 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
                         ),
 
                         TextSpan(
-                          text: ' h',
+                          text: ' ${ref.tr('monthlySummary.hours')}',
                           style: GoogleFonts.inter(
                             fontSize: 14,
                             fontWeight: FontWeight.w500,
@@ -423,7 +434,8 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
                           ),
                           TextSpan(
                             text:
-                                '${overtimeHours.toStringAsFixed(1)}h Overtime',
+                                '${overtimeHours.toStringAsFixed(1)} ${ref.tr('monthlySummary.hours')} ${ref.tr('monthlySummary.overtime')}',
+
                             style: GoogleFonts.inter(
                               fontSize: 14,
                               fontWeight: FontWeight.w500,
@@ -438,19 +450,19 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
               ),
             ),
 
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F2FF),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(
-                Icons.chevron_right,
-                size: 14,
-                color: AppColors.mutedColor,
-              ),
-            ),
+            // Container(
+            //   width: 32,
+            //   height: 32,
+            //   decoration: BoxDecoration(
+            //     color: const Color(0xFFF5F2FF),
+            //     borderRadius: BorderRadius.circular(8),
+            //   ),
+            //   child: const Icon(
+            //     Icons.chevron_right,
+            //     size: 14,
+            //     color: AppColors.mutedColor,
+            //   ),
+            // ),
           ],
         ),
       ),
@@ -468,7 +480,7 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Weekly Hours Breakdown',
+          ref.tr('monthlySummary.weeklyHoursBreakdown'),
           style: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -486,7 +498,16 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppColors.borderColor, width: 1),
           ),
-          child: _WeeklyChart(weeklyHours: weeklyHours),
+          child: _WeeklyChart(
+            weeklyHours: weeklyHours,
+            labels: [
+              ref.tr('monthlySummary.week1'),
+              ref.tr('monthlySummary.week2'),
+              ref.tr('monthlySummary.week3'),
+              ref.tr('monthlySummary.week4'),
+              ref.tr('monthlySummary.week5'),
+            ],
+          ),
         ),
       ],
     );
@@ -515,7 +536,7 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Notable Exceptions',
+          ref.tr('monthlySummary.notableExceptions'),
           style: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -535,7 +556,7 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
               ? Padding(
                   padding: const EdgeInsets.all(18),
                   child: Text(
-                    'No notable exceptions this month.',
+                    ref.tr('monthlySummary.noNotableExceptions'),
                     style: GoogleFonts.inter(
                       fontSize: 12,
                       color: AppColors.mutedColor,
@@ -595,7 +616,7 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
         Row(
           children: [
             Text(
-              'Payslip',
+              ref.tr('monthlySummary.payslip'),
               style: GoogleFonts.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -619,7 +640,11 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
 
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('${result.fileName} saved to Downloads.'),
+                        content: Text(
+                          ref
+                              .tr('monthlySummary.downloadSuccess')
+                              .replaceFirst('{fileName}', result.fileName),
+                        ),
                       ),
                     );
                   } catch (e) {
@@ -635,7 +660,7 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
                   }
                 },
                 icon: const Icon(Icons.download_outlined, size: 16),
-                label: const Text('Download'),
+                label: Text(ref.tr('monthlySummary.download')),
               ),
           ],
         ),
@@ -652,29 +677,41 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
           ),
           child: Column(
             children: [
-              _PayRow(label: 'Basic Salary', value: _money(basicSalary)),
-
-              _PayRow(label: 'Overtime Pay', value: _money(overtimePay)),
+              _PayRow(
+                label: ref.tr('monthlySummary.basicSalary'),
+                value: _money(basicSalary),
+              ),
 
               _PayRow(
-                label: 'Total Earnings',
+                label: ref.tr('monthlySummary.overtimePay'),
+                value: _money(overtimePay),
+              ),
+
+              _PayRow(
+                label: ref.tr('monthlySummary.totalEarnings'),
                 value: _money(totalEarnings),
                 bold: true,
               ),
 
               const Divider(height: 20),
 
-              _PayRow(label: 'PF', value: '-${_money(pf)}'),
-
-              _PayRow(label: 'ESI', value: '-${_money(esi)}'),
+              _PayRow(
+                label: ref.tr('monthlySummary.pf'),
+                value: '-${_money(pf)}',
+              ),
 
               _PayRow(
-                label: 'Attendance Deduction',
+                label: ref.tr('monthlySummary.esi'),
+                value: '-${_money(esi)}',
+              ),
+
+              _PayRow(
+                label: ref.tr('monthlySummary.attendanceDeduction'),
                 value: '-${_money(attendanceDeduction)}',
               ),
 
               _PayRow(
-                label: 'Total Deductions',
+                label: ref.tr('monthlySummary.totalDeductions'),
                 value: '-${_money(totalDeductions)}',
                 bold: true,
               ),
@@ -684,7 +721,7 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
               Row(
                 children: [
                   Text(
-                    'Net Salary',
+                    ref.tr('monthlySummary.netSalary'),
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -736,7 +773,7 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Organization',
+            ref.tr('monthlySummary.organization'),
             style: GoogleFonts.inter(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -746,12 +783,17 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
 
           const SizedBox(height: 10),
 
-          if (name != null) _InfoLine(label: 'Company', value: name),
+          if (name != null)
+            _InfoLine(label: ref.tr('monthlySummary.company'), value: name),
 
           if (workspace != null)
-            _InfoLine(label: 'Workspace', value: workspace),
+            _InfoLine(
+              label: ref.tr('monthlySummary.workspace'),
+              value: workspace,
+            ),
 
-          if (address != null) _InfoLine(label: 'Address', value: address),
+          if (address != null)
+            _InfoLine(label: ref.tr('monthlySummary.address'), value: address),
         ],
       ),
     );
@@ -763,50 +805,100 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
 
   Widget _buildLoading() {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          height: 104,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.borderColor),
-          ),
-          child: const Center(child: CircularProgressIndicator()),
+        // Header skeleton
+        Row(
+          children: [
+            Expanded(
+              child: _shimmerBox(
+                height: 34,
+                width: double.infinity,
+                borderRadius: 8,
+              ),
+            ),
+            const SizedBox(width: 12),
+            _shimmerBox(height: 30, width: 30, borderRadius: 8),
+            const SizedBox(width: 5),
+            _shimmerBox(height: 30, width: 30, borderRadius: 8),
+          ],
         ),
+
+        const SizedBox(height: 8),
+
+        _shimmerBox(height: 14, width: 270, borderRadius: 5),
 
         const SizedBox(height: 16),
 
+        // Attendance rate
+        _loadingBox(height: 104),
+
+        const SizedBox(height: 16),
+
+        // Mini stats
         Row(
           children: [
-            Expanded(child: _loadingBox()),
+            Expanded(child: _loadingBox(height: 120)),
             const SizedBox(width: 8),
-            Expanded(child: _loadingBox()),
+            Expanded(child: _loadingBox(height: 120)),
           ],
         ),
 
         const SizedBox(height: 16),
 
+        // Hours logged
+        _loadingBox(height: 100),
+
+        const SizedBox(height: 16),
+
+        // Weekly chart
+        _loadingBox(height: 200),
+
+        const SizedBox(height: 16),
+
+        // Exceptions
         _loadingBox(height: 150),
+
+        const SizedBox(height: 16),
+
+        // Payslip
+        _loadingBox(height: 300),
+
+        const SizedBox(height: 16),
+
+        // Organization
+        _loadingBox(height: 130),
       ],
     );
   }
 
-  Widget _loadingBox({double height = 100}) {
-    return Container(
+  Widget _loadingBox({double height = 100, double? width}) {
+    return _shimmerBox(
       height: height,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderColor),
-      ),
-      child: const Center(child: CircularProgressIndicator()),
+      width: width ?? double.infinity,
+      borderRadius: 12,
     );
   }
 
-  // ============================================================
-  // ERROR
-  // ============================================================
+  Widget _shimmerBox({
+    required double height,
+    required double width,
+    double borderRadius = 8,
+  }) {
+    return Shimmer.fromColors(
+      baseColor: const Color(0xFFF1ECEE),
+      highlightColor: const Color(0xFFFFFFFF),
+      period: const Duration(milliseconds: 1200),
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1ECEE),
+          borderRadius: BorderRadius.circular(borderRadius),
+        ),
+      ),
+    );
+  }
 
   Widget _buildError(String message) {
     return Container(
@@ -831,7 +923,10 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
 
           const SizedBox(height: 12),
 
-          ElevatedButton(onPressed: _loadReport, child: const Text('Retry')),
+          ElevatedButton(
+            onPressed: _loadReport,
+            child: Text(ref.tr('monthlySummary.retry')),
+          ),
         ],
       ),
     );
@@ -881,22 +976,22 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
   }
 
   String _monthName(int month) {
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
+    const keys = [
+      'monthlySummary.january',
+      'monthlySummary.february',
+      'monthlySummary.march',
+      'monthlySummary.april',
+      'monthlySummary.may',
+      'monthlySummary.june',
+      'monthlySummary.july',
+      'monthlySummary.august',
+      'monthlySummary.september',
+      'monthlySummary.october',
+      'monthlySummary.november',
+      'monthlySummary.december',
     ];
 
-    return months[month - 1];
+    return ref.tr(keys[month - 1]);
   }
 
   bool _isCurrentMonth(int year, int month) {
@@ -944,18 +1039,18 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
     final early = _int(record['earlyExitMinutes']) ?? 0;
 
     if (status == 'absent') {
-      return 'Absent';
+      return ref.tr('monthlySummary.absent');
     }
 
     if (late > 0 || status == 'late') {
-      return 'Late Arrival';
+      return ref.tr('monthlySummary.lateArrival');
     }
 
     if (early > 0) {
-      return 'Early Exit';
+      return ref.tr('monthlySummary.earlyExit');
     }
 
-    return 'Attendance Exception';
+    return ref.tr('monthlySummary.attendanceException');
   }
 
   String _exceptionSubtitle(Map<String, dynamic> record) {
@@ -1021,7 +1116,7 @@ class _SmallStatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 114,
+      height: 120,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
@@ -1287,13 +1382,14 @@ class _MonthButton extends StatelessWidget {
 
 class _WeeklyChart extends StatelessWidget {
   final List<double> weeklyHours;
+  final List<String> labels;
 
-  const _WeeklyChart({required this.weeklyHours});
+  const _WeeklyChart({required this.weeklyHours, required this.labels});
 
   @override
   Widget build(BuildContext context) {
     return CustomPaint(
-      painter: _WeeklyChartPainter(weeklyHours: weeklyHours),
+      painter: _WeeklyChartPainter(weeklyHours: weeklyHours, labels: labels),
       child: const SizedBox.expand(),
     );
   }
@@ -1301,8 +1397,9 @@ class _WeeklyChart extends StatelessWidget {
 
 class _WeeklyChartPainter extends CustomPainter {
   final List<double> weeklyHours;
+  final List<String> labels;
 
-  _WeeklyChartPainter({required this.weeklyHours});
+  _WeeklyChartPainter({required this.weeklyHours, required this.labels});
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -1316,7 +1413,6 @@ class _WeeklyChartPainter extends CustomPainter {
     final bottom = height - 22;
 
     final chartWidth = right - left;
-
     final chartHeight = bottom - top;
 
     final gridPaint = Paint()
@@ -1384,12 +1480,10 @@ class _WeeklyChartPainter extends CustomPainter {
       }
     }
 
-    const labels = ['W1', 'W2', 'W3', 'W4', 'W5'];
-
     for (int i = 0; i < labels.length; i++) {
-      final x = weeklyHours.length >= 5
-          ? left + chartWidth * (i / 4)
-          : left + chartWidth * (i / 4);
+      final x = labels.length == 1
+          ? left
+          : left + chartWidth * (i / (labels.length - 1));
 
       final textPainter = TextPainter(
         text: TextSpan(
@@ -1412,6 +1506,17 @@ class _WeeklyChartPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _WeeklyChartPainter oldDelegate) {
-    return oldDelegate.weeklyHours != weeklyHours;
+    return !_listEquals(oldDelegate.weeklyHours, weeklyHours) ||
+        oldDelegate.labels.join('|') != labels.join('|');
+  }
+
+  bool _listEquals(List<double> a, List<double> b) {
+    if (a.length != b.length) return false;
+
+    for (int i = 0; i < a.length; i++) {
+      if (a[i] != b[i]) return false;
+    }
+
+    return true;
   }
 }

@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/features/chat/providers/chat_provider.dart';
 
 class ChatListScreen extends ConsumerStatefulWidget {
@@ -161,7 +162,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
           Row(
             children: [
               Text(
-                'Chat',
+                ref.tr('chat.chat'),
                 style: GoogleFonts.inter(
                   fontSize: 30,
                   fontWeight: FontWeight.bold,
@@ -176,7 +177,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
           const SizedBox(height: 6),
 
           Text(
-            'Message your manager and the owner.',
+            ref.tr('chat.subtitle'),
             style: GoogleFonts.inter(fontSize: 16, color: AppColors.mutedColor),
           ),
 
@@ -217,7 +218,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                       )
                     : null,
 
-                hintText: 'Search chats',
+                hintText: ref.tr('chat.searchChats'),
 
                 hintStyle: GoogleFonts.inter(
                   fontSize: 14,
@@ -370,7 +371,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                       Expanded(
                         child: Text(
                           body.isEmpty
-                              ? 'No messages yet'
+                              ? ref.tr('chat.noMessages')
                               : senderName.isNotEmpty && senderName != title
                               ? '$senderName: $body'
                               : body,
@@ -431,7 +432,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
       onPressed: _showContactsSheet,
       icon: const Icon(Icons.edit_rounded, size: 18),
       label: Text(
-        'New message',
+        ref.tr('chat.newMessage'),
         style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
       ),
     );
@@ -475,7 +476,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
               return;
             }
 
-            final title = contact['fullName']?.toString() ?? 'Chat';
+            final title = contact['fullName']?.toString() ?? ref.tr('chat.chat');
 
             context.push(
               '${AppRoutes.chat}/$conversationId'
@@ -511,7 +512,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
         const SizedBox(height: 14),
 
         Text(
-          'No chats yet',
+          ref.tr('chat.noChats'),
           style: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w700,
@@ -522,7 +523,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
         const SizedBox(height: 5),
 
         Text(
-          'Start a conversation with someone from your contacts.',
+          ref.tr('chat.noChatsDesc'),
           textAlign: TextAlign.center,
           style: GoogleFonts.inter(fontSize: 11.5, color: AppColors.mutedColor),
         ),
@@ -550,7 +551,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
         const SizedBox(height: 14),
 
         Text(
-          'No chats found',
+          ref.tr('chat.noChatsFound'),
           style: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w700,
@@ -561,7 +562,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
         const SizedBox(height: 5),
 
         Text(
-          'Try searching with a different name or message.',
+          ref.tr('chat.searchNoResults'),
           textAlign: TextAlign.center,
           style: GoogleFonts.inter(fontSize: 11.5, color: AppColors.mutedColor),
         ),
@@ -637,7 +638,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
 
     final minute = local.minute.toString().padLeft(2, '0');
 
-    final period = local.hour >= 12 ? 'PM' : 'AM';
+    final period = local.hour >= 12 ? ref.tr('chat.pm') : ref.tr('chat.am');
 
     return '$hour:$minute $period';
   }
@@ -714,7 +715,7 @@ class _ContactsSheetState extends ConsumerState<_ContactsSheet> {
                 children: [
                   Expanded(
                     child: Text(
-                      'New message',
+                      ref.tr('chat.newMessage'),
                       style: GoogleFonts.inter(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
@@ -756,7 +757,7 @@ class _ContactsSheetState extends ConsumerState<_ContactsSheet> {
                         )
                       : null,
 
-                  hintText: 'Search people',
+                  hintText: ref.tr('chat.searchPeople'),
 
                   hintStyle: GoogleFonts.inter(
                     fontSize: 12,
@@ -805,7 +806,7 @@ class _ContactsSheetState extends ConsumerState<_ContactsSheet> {
                   : state.contacts.isEmpty
                   ? Center(
                       child: Text(
-                        'No people found',
+                        ref.tr('chat.noPeopleFound'),
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           color: const Color(0xFF777177),
@@ -829,7 +830,7 @@ class _ContactsSheetState extends ConsumerState<_ContactsSheet> {
   }
 
   Widget _buildContact(Map<String, dynamic> contact) {
-    final name = contact['fullName']?.toString() ?? 'Employee';
+    final name = contact['fullName']?.toString() ?? ref.tr('chat.employee');
 
     final employeeId = contact['employeeId']?.toString() ?? '';
 

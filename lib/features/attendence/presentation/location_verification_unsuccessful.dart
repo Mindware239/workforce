@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/features/attendence/data/attendance_repository.dart';
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 
@@ -57,9 +58,9 @@ class _LocationVerificationUnsuccessfulScreenState
         if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Location permission is required to start your shift.',
+              ref.tr('locationVerification.locationPermissionRequired'),
             ),
           ),
         );
@@ -99,9 +100,9 @@ class _LocationVerificationUnsuccessfulScreenState
 
       if (data == null) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Unable to verify office location.',
+              ref.tr('locationVerification.unableVerifyLocation'),
             ),
           ),
         );
@@ -131,9 +132,10 @@ class _LocationVerificationUnsuccessfulScreenState
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              'You are still outside the allowed area.\n'
-              'Distance: ${distance ?? '-'} m '
-              '(Allowed: ${allowedRadius ?? '-'} m)',
+              ref
+                  .tr('locationVerification.stillOutside')
+                  .replaceFirst('{distance}', '${distance ?? '-'}')
+                  .replaceFirst('{allowedRadius}', '${allowedRadius ?? '-'}'),
             ),
             duration: const Duration(seconds: 3),
           ),
@@ -198,9 +200,8 @@ class _LocationVerificationUnsuccessfulScreenState
 
               const SizedBox(height: 28),
 
-              // Title
               Text(
-                "Can't checkin here",
+                ref.tr('locationVerification.title'),
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   fontSize: 30,
@@ -211,10 +212,10 @@ class _LocationVerificationUnsuccessfulScreenState
 
               const SizedBox(height: 8),
 
-              // Description
               Text(
-                'You are $distance m outside the allowed area. '
-                'Move inside the premises and try again.',
+                ref
+                    .tr('locationVerification.description')
+                    .replaceFirst('{distance}', '$distance'),
                 textAlign: TextAlign.center,
                 style: GoogleFonts.inter(
                   fontSize: 16,
@@ -225,11 +226,10 @@ class _LocationVerificationUnsuccessfulScreenState
 
               const SizedBox(height: 16),
 
-              // Try Again
               WorkforcePrimaryButton(
                 title: _isChecking
-                    ? 'Checking location...'
-                    : 'Try Again',
+                    ? ref.tr('locationVerification.checkingLocation')
+                    : ref.tr('locationVerification.tryAgain'),
                 onPressed: _isChecking ? () {} : () => _startShift(),
               ),
 
@@ -280,7 +280,7 @@ class _LocationVerificationUnsuccessfulScreenState
           ),
         ),
         child: Text(
-          'Go to Dashboard',
+          ref.tr('locationVerification.goToDashboard'),
           style: GoogleFonts.inter(
             fontSize: 12,
             fontWeight: FontWeight.w600,

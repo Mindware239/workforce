@@ -40,7 +40,7 @@ dependencies:
   camera: ^0.12.1
   pdf: ^3.13.0
   path_provider: ^2.1.6
-  
+  shimmer: ^3.0.0
   record: ^6.1.2
   shared_preferences: ^2.5.3
   
@@ -59,7 +59,7 @@ dev_dependencies:
 flutter_launcher_icons:
   android: "launcher_icon"
   ios: true
-  image_path: "assets/images/WorkForce_logo.png"
+  image_path: "assets/images/logo.png"
   min_sdk_android: 21 
 
 
@@ -72,6 +72,7 @@ flutter:
   assets:
     - assets/icons/
     - assets/images/
+    - assets/localization/
    
 
   # An image asset can refer to one or more resolution-specific "variants", see

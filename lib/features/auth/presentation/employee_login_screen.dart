@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:workforce/app/routes/app_routes.dart';
-
+import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/features/auth/providers/auth_provider.dart';
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
@@ -43,13 +43,13 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
 
       // Show error.
       if (next.error != null && next.error != previous?.error) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(SnackBar(content: Text(next.error!)));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(next.error!)),
+        );
       }
     });
 
     final authState = ref.watch(authProvider);
-
     final isLoading = authState.isLoading;
 
     return Scaffold(
@@ -62,12 +62,12 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
             children: [
               const SizedBox(height: 48),
 
-              WorkforceBrand(),
+              const WorkforceBrand(),
 
               const SizedBox(height: 48),
 
               Text(
-                'Employee Login',
+                ref.tr('auth.employeeLogin'),
                 style: GoogleFonts.inter(
                   fontSize: 30,
                   height: 1,
@@ -79,7 +79,7 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
               const SizedBox(height: 6),
 
               Text(
-                'Enter your mobile number to access your account.',
+                ref.tr('auth.loginSubtitle'),
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   color: AppColors.mutedColor,
@@ -88,22 +88,24 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
 
               const SizedBox(height: 32),
 
-              _buildFieldLabel('Employee ID'),
+              _buildFieldLabel(ref.tr('auth.employeeId')),
 
               const SizedBox(height: 12),
 
-              _buildMobileField(),
+              _buildMobileField(ref),
 
               const SizedBox(height: 32),
 
               WorkforcePrimaryButton(
-                title: isLoading ? 'Signing In...' : 'Sign In',
+                title: isLoading
+                    ? ref.tr('auth.signingIn')
+                    : ref.tr('auth.signIn'),
                 onPressed: isLoading ? () {} : _login,
               ),
 
               const SizedBox(height: 24),
 
-              _buildHelpText(),
+              _buildHelpText(ref),
             ],
           ),
         ),
@@ -116,8 +118,8 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
 
     if (mobileNumber.length != 10) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter a valid 10-digit mobile number.'),
+        SnackBar(
+          content: Text(ref.tr('auth.invalidMobile')),
         ),
       );
 
@@ -148,18 +150,24 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
     );
   }
 
-  Widget _buildMobileField() {
+  Widget _buildMobileField(WidgetRef ref) {
     return Container(
       height: 48,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderColor, width: 1),
+        border: Border.all(
+          color: AppColors.borderColor,
+          width: 1,
+        ),
       ),
       child: TextField(
         controller: mobileController,
         keyboardType: TextInputType.phone,
         maxLength: 10,
-        style: GoogleFonts.inter(fontSize: 14, color: AppColors.textColor),
+        style: GoogleFonts.inter(
+          fontSize: 14,
+          color: AppColors.textColor,
+        ),
         decoration: InputDecoration(
           counterText: '',
           border: InputBorder.none,
@@ -169,7 +177,7 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
             color: AppColors.mutedColor,
           ),
           prefixIconConstraints: const BoxConstraints(minWidth: 35),
-          hintText: 'e.g. EMP-10294',
+          hintText: ref.tr('auth.employeeIdHint'),
           hintStyle: GoogleFonts.inter(
             fontSize: 14,
             color: AppColors.mutedColor,
@@ -180,17 +188,20 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
     );
   }
 
-  Widget _buildHelpText() {
+  Widget _buildHelpText(WidgetRef ref) {
     return Center(
       child: Column(
         children: [
           Text(
-            'Need help signing in?',
-            style: GoogleFonts.inter(fontSize: 12, color: AppColors.mutedColor),
+            ref.tr('auth.needHelpSigningIn'),
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: AppColors.mutedColor,
+            ),
           ),
           const SizedBox(height: 4),
           Text(
-            'Contact your administrator.',
+            ref.tr('auth.contactAdministrator'),
             style: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: FontWeight.w500,

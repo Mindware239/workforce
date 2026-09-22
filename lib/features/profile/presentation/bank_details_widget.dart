@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/features/profile/data/bank_details_repository.dart';
 
@@ -30,7 +31,6 @@ class _BankDetailsWidgetState
   File? _passbookFile;
   String? _passbookFileName;
 
-  // File already associated with the loaded/saved data.
   String? _savedPassbookFileName;
 
   bool _isSaving = false;
@@ -67,13 +67,9 @@ class _BankDetailsWidgetState
 
   Future<void> _loadBankDetails() async {
     try {
-     
-
       final response = await ref
           .read(bankDetailsRepositoryProvider)
           .getBankDetails();
-
-     
 
       if (!mounted) return;
 
@@ -84,8 +80,6 @@ class _BankDetailsWidgetState
           response['data'] as Map,
         );
       }
-
-      // debugPrint('🏦 INNER BANK DATA: $bankDetails');
 
       if (bankDetails != null) {
         _accountHolderController.text =
@@ -103,23 +97,17 @@ class _BankDetailsWidgetState
         _branchNameController.text =
             bankDetails['branchName']?.toString() ?? '';
 
-        /*
-         * If your backend later returns a passbook file name,
-         * this will automatically support it.
-         */
         _savedPassbookFileName =
             bankDetails['passbookFileName']?.toString() ??
                 bankDetails['passbookName']?.toString();
-
-      } else {
-        // debugPrint('ℹ️ No bank details saved yet');
       }
 
       setState(() {
         _isLoading = false;
       });
     } catch (e, stackTrace) {
-     
+      debugPrint('❌ Load bank details error: $e');
+      debugPrint('❌ Stack trace: $stackTrace');
 
       if (!mounted) return;
 
@@ -130,7 +118,7 @@ class _BankDetailsWidgetState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Unable to load bank details.',
+            ref.tr('bankDetails.loadError'),
             style: GoogleFonts.inter(),
           ),
         ),
@@ -157,10 +145,6 @@ class _BankDetailsWidgetState
   void _cancelEditing() {
     if (_isSaving) return;
 
-    /*
-     * Restore the last values loaded from the backend.
-     * This prevents unsaved changes from remaining in the form.
-     */
     _loadBankDetails().then((_) {
       if (!mounted) return;
 
@@ -196,26 +180,18 @@ class _BankDetailsWidgetState
         return;
       }
 
-      debugPrint(
-        '📄 Selected file: ${result.name}',
-      );
+      debugPrint('📄 Selected file: ${result.name}');
+      debugPrint('📂 File path: ${result.path}');
 
-      debugPrint(
-        '📂 File path: ${result.path}',
-      );
-
-      if (result.path == null ||
-          result.path!.isEmpty) {
-        debugPrint(
-          '❌ Selected file has no local path',
-        );
+      if (result.path == null || result.path!.isEmpty) {
+        debugPrint('❌ Selected file has no local path');
 
         if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Unable to access the selected file.',
+              ref.tr('bankDetails.fileAccessError'),
             ),
           ),
         );
@@ -226,16 +202,14 @@ class _BankDetailsWidgetState
       final file = File(result.path!);
 
       if (!await file.exists()) {
-        debugPrint(
-          '❌ Selected file does not exist',
-        );
+        debugPrint('❌ Selected file does not exist');
 
         if (!mounted) return;
 
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
+          SnackBar(
             content: Text(
-              'Selected file could not be found.',
+              ref.tr('bankDetails.fileNotFound'),
             ),
           ),
         );
@@ -252,20 +226,15 @@ class _BankDetailsWidgetState
         '✅ Passbook selected: $_passbookFileName',
       );
     } catch (e, stackTrace) {
-      debugPrint(
-        '❌ File picker error: $e',
-      );
-
-      debugPrint(
-        'Stack trace: $stackTrace',
-      );
+      debugPrint('❌ File picker error: $e');
+      debugPrint('Stack trace: $stackTrace');
 
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
+        SnackBar(
           content: Text(
-            'Unable to select passbook file.',
+            ref.tr('bankDetails.fileSelectError'),
           ),
         ),
       );
@@ -280,9 +249,7 @@ class _BankDetailsWidgetState
     FocusScope.of(context).unfocus();
 
     if (!_formKey.currentState!.validate()) {
-      debugPrint(
-        '❌ Bank details validation failed',
-      );
+      debugPrint('❌ Bank details validation failed');
       return;
     }
 
@@ -311,26 +278,11 @@ class _BankDetailsWidgetState
       '========== SAVING BANK DETAILS ==========',
     );
 
-    debugPrint(
-      'Account Holder: $accountHolderName',
-    );
-
-    debugPrint(
-      'Account Number: $accountNumber',
-    );
-
-    debugPrint(
-      'IFSC Code: $ifscCode',
-    );
-
-    debugPrint(
-      'Bank Name: $bankName',
-    );
-
-    debugPrint(
-      'Branch Name: $branchName',
-    );
-
+    debugPrint('Account Holder: $accountHolderName');
+    debugPrint('Account Number: $accountNumber');
+    debugPrint('IFSC Code: $ifscCode');
+    debugPrint('Bank Name: $bankName');
+    debugPrint('Branch Name: $branchName');
     debugPrint(
       'Passbook selected: ${_passbookFile != null}',
     );
@@ -340,12 +292,6 @@ class _BankDetailsWidgetState
     );
 
     try {
-      /*
-       * Current backend PUT API does not have a passbook
-       * upload field, so the selected passbook is kept
-       * locally for now.
-       */
-
       final response = await ref
           .read(bankDetailsRepositoryProvider)
           .saveBankDetails(
@@ -353,26 +299,16 @@ class _BankDetailsWidgetState
             accountNumber: accountNumber,
             ifscCode: ifscCode,
             bankName: bankName,
-            branchName:
-                branchName.isEmpty
-                    ? null
-                    : branchName,
+            branchName: branchName.isEmpty
+                ? null
+                : branchName,
           );
 
-      debugPrint(
-        '✅ Bank details saved successfully',
-      );
-
-      debugPrint(
-        '📥 Save response: $response',
-      );
+      debugPrint('✅ Bank details saved successfully');
+      debugPrint('📥 Save response: $response');
 
       if (!mounted) return;
 
-      /*
-       * If a new passbook was selected, keep its name
-       * visible in read-only mode.
-       */
       if (_passbookFileName != null) {
         _savedPassbookFileName =
             _passbookFileName;
@@ -385,18 +321,12 @@ class _BankDetailsWidgetState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Bank details saved successfully',
+            ref.tr('bankDetails.saveSuccess'),
             style: GoogleFonts.inter(),
           ),
         ),
       );
 
-      /*
-       * Reload backend values.
-       *
-       * Keep the locally selected passbook name because
-       * current API does not return/upload it.
-       */
       await _loadBankDetails();
 
       if (!mounted) return;
@@ -428,7 +358,7 @@ class _BankDetailsWidgetState
       if (!mounted) return;
 
       String errorMessage =
-          'Unable to save bank details.';
+          ref.tr('bankDetails.saveError');
 
       if (e is DioException) {
         final statusCode =
@@ -439,7 +369,7 @@ class _BankDetailsWidgetState
 
         if (statusCode == 401) {
           errorMessage =
-              'Your session has expired. Please login again.';
+              ref.tr('bankDetails.sessionExpired');
         } else if (data is Map) {
           if (data['message'] != null) {
             errorMessage =
@@ -489,8 +419,7 @@ class _BankDetailsWidgetState
                     .join('\n');
 
             if (messages.isNotEmpty) {
-              errorMessage =
-                  messages;
+              errorMessage = messages;
             }
           }
         }
@@ -524,17 +453,14 @@ class _BankDetailsWidgetState
         width: double.infinity,
         padding: const EdgeInsets.all(40),
         decoration: BoxDecoration(
-          color:
-              AppColors.whiteBackgroundColor,
-          borderRadius:
-              BorderRadius.circular(12),
+          color: AppColors.whiteBackgroundColor,
+          borderRadius: BorderRadius.circular(12),
           border: Border.all(
             color: AppColors.borderColor,
           ),
         ),
         child: const Center(
-          child:
-              CircularProgressIndicator(),
+          child: CircularProgressIndicator(),
         ),
       );
     }
@@ -543,10 +469,8 @@ class _BankDetailsWidgetState
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color:
-            AppColors.whiteBackgroundColor,
-        borderRadius:
-            BorderRadius.circular(12),
+        color: AppColors.whiteBackgroundColor,
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
           color: AppColors.borderColor,
           width: 1,
@@ -570,34 +494,40 @@ class _BankDetailsWidgetState
   // ============================================================
 
   Widget _buildViewMode() {
+    final accountHolder =
+        _accountHolderController.text.trim();
+
+    final accountNumber =
+        _accountNumberController.text.trim();
+
+    final ifscCode =
+        _ifscController.text.trim();
+
+    final bankName =
+        _bankNameController.text.trim();
+
     return Column(
       crossAxisAlignment:
           CrossAxisAlignment.start,
       children: [
-        // Header
         Row(
           children: [
             const Icon(
               Icons.credit_card_outlined,
               size: 20,
-              color:
-                  AppColors.primaryFillColor,
+              color: AppColors.primaryFillColor,
             ),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
-                'Bank Details',
+                ref.tr('bankDetails.bankDetails'),
                 style: GoogleFonts.inter(
                   fontSize: 16,
-                  fontWeight:
-                      FontWeight.w600,
-                  color:
-                      AppColors.textColor,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textColor,
                 ),
               ),
             ),
-
-            // EDIT BUTTON
             InkWell(
               onTap: _startEditing,
               borderRadius:
@@ -609,15 +539,13 @@ class _BankDetailsWidgetState
                   shape: BoxShape.circle,
                   color: Colors.white,
                   border: Border.all(
-                    color:
-                        AppColors.borderColor,
+                    color: AppColors.borderColor,
                   ),
                 ),
                 child: const Icon(
                   Icons.edit_outlined,
                   size: 18,
-                  color:
-                      AppColors.primaryFillColor,
+                  color: AppColors.primaryFillColor,
                 ),
               ),
             ),
@@ -634,61 +562,44 @@ class _BankDetailsWidgetState
         const SizedBox(height: 10),
 
         _buildViewItem(
-          label: 'ACCOUNT HOLDER',
-          value:
-              _accountHolderController
-                  .text
-                  .trim()
-                  .isEmpty
-                  ? 'Not provided'
-                  : _accountHolderController
-                      .text
-                      .trim(),
+          label: ref.tr('bankDetails.accountHolder')
+              .toUpperCase(),
+          value: accountHolder.isEmpty
+              ? ref.tr('bankDetails.notProvided')
+              : accountHolder,
         ),
 
         _buildViewItem(
-          label: 'ACCOUNT NUMBER',
-          value:
-              _accountNumberController
-                  .text
-                  .trim()
-                  .isEmpty
-                  ? 'Not provided'
-                  : _accountNumberController
-                      .text
-                      .trim(),
+          label: ref.tr('bankDetails.accountNumber')
+              .toUpperCase(),
+          value: accountNumber.isEmpty
+              ? ref.tr('bankDetails.notProvided')
+              : accountNumber,
         ),
 
         _buildViewItem(
-          label: 'IFSC CODE',
-          value:
-              _ifscController.text
-                      .trim()
-                      .isEmpty
-                  ? 'Not provided'
-                  : _ifscController
-                      .text
-                      .trim(),
+          label: ref.tr('bankDetails.ifscCode')
+              .toUpperCase(),
+          value: ifscCode.isEmpty
+              ? ref.tr('bankDetails.notProvided')
+              : ifscCode,
         ),
 
         _buildViewItem(
-          label: 'BANK NAME',
-          value:
-              _bankNameController.text
-                      .trim()
-                      .isEmpty
-                  ? 'Not provided'
-                  : _bankNameController
-                      .text
-                      .trim(),
+          label: ref.tr('bankDetails.bankName')
+              .toUpperCase(),
+          value: bankName.isEmpty
+              ? ref.tr('bankDetails.notProvided')
+              : bankName,
         ),
 
         _buildViewItem(
-          label: 'PASSBOOK',
+          label: ref.tr('bankDetails.passbook')
+              .toUpperCase(),
           value:
               _savedPassbookFileName ??
                   _passbookFileName ??
-                  'Not uploaded',
+                  ref.tr('bankDetails.notUploaded'),
           isLast: true,
         ),
       ],
@@ -715,8 +626,7 @@ class _BankDetailsWidgetState
             ? null
             : const Border(
                 bottom: BorderSide(
-                  color:
-                      AppColors.borderColor,
+                  color: AppColors.borderColor,
                   width: 1,
                 ),
               ),
@@ -729,11 +639,9 @@ class _BankDetailsWidgetState
             label,
             style: GoogleFonts.inter(
               fontSize: 9,
-              fontWeight:
-                  FontWeight.w600,
+              fontWeight: FontWeight.w600,
               letterSpacing: 1.1,
-              color:
-                  AppColors.mutedColor,
+              color: AppColors.mutedColor,
             ),
           ),
 
@@ -742,14 +650,11 @@ class _BankDetailsWidgetState
           Text(
             value,
             maxLines: 1,
-            overflow:
-                TextOverflow.ellipsis,
+            overflow: TextOverflow.ellipsis,
             style: GoogleFonts.inter(
               fontSize: 14,
-              fontWeight:
-                  FontWeight.w500,
-              color:
-                  AppColors.textColor,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textColor,
             ),
           ),
         ],
@@ -768,24 +673,20 @@ class _BankDetailsWidgetState
         crossAxisAlignment:
             CrossAxisAlignment.start,
         children: [
-          // Header
           Row(
             children: [
               const Icon(
                 Icons.credit_card_outlined,
                 size: 20,
-                color:
-                    AppColors.primaryFillColor,
+                color: AppColors.primaryFillColor,
               ),
               const SizedBox(width: 8),
               Text(
-                'Bank Details',
+                ref.tr('bankDetails.bankDetails'),
                 style: GoogleFonts.inter(
                   fontSize: 16,
-                  fontWeight:
-                      FontWeight.w600,
-                  color:
-                      AppColors.textColor,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textColor,
                 ),
               ),
             ],
@@ -794,48 +695,47 @@ class _BankDetailsWidgetState
           const SizedBox(height: 12),
 
           _buildLabel(
-            'Account Holder Name',
+            ref.tr('bankDetails.accountHolderName'),
           ),
 
           const SizedBox(height: 6),
 
           _buildTextField(
-            controller:
-                _accountHolderController,
-            hintText:
-                'As per bank records',
+            controller: _accountHolderController,
+            hintText: ref.tr(
+              'bankDetails.accountHolderNameHint',
+            ),
           ),
 
           const SizedBox(height: 12),
 
           _buildLabel(
-            'Account Number',
+            ref.tr('bankDetails.accountNumber'),
           ),
 
           const SizedBox(height: 6),
 
           _buildTextField(
-            controller:
-                _accountNumberController,
-            hintText:
-                'Account number',
-            keyboardType:
-                TextInputType.number,
+            controller: _accountNumberController,
+            hintText: ref.tr(
+              'bankDetails.accountNumberHint',
+            ),
+            keyboardType: TextInputType.number,
           ),
 
           const SizedBox(height: 12),
 
           _buildLabel(
-            'IFSC Code',
+            ref.tr('bankDetails.ifscCode'),
           ),
 
           const SizedBox(height: 6),
 
           _buildTextField(
-            controller:
-                _ifscController,
-            hintText:
-                'E.G. HDFC0001234',
+            controller: _ifscController,
+            hintText: ref.tr(
+              'bankDetails.ifscCodeHint',
+            ),
             textCapitalization:
                 TextCapitalization.characters,
           ),
@@ -843,38 +743,38 @@ class _BankDetailsWidgetState
           const SizedBox(height: 12),
 
           _buildLabel(
-            'Bank Name',
+            ref.tr('bankDetails.bankName'),
           ),
 
           const SizedBox(height: 6),
 
           _buildTextField(
-            controller:
-                _bankNameController,
-            hintText:
-                'Bank name',
+            controller: _bankNameController,
+            hintText: ref.tr(
+              'bankDetails.bankNameHint',
+            ),
           ),
 
           const SizedBox(height: 12),
 
           _buildLabel(
-            'Branch Name (optional)',
+            ref.tr('bankDetails.branchNameOptional'),
           ),
 
           const SizedBox(height: 6),
 
           _buildTextField(
-            controller:
-                _branchNameController,
-            hintText:
-                'Branch name',
+            controller: _branchNameController,
+            hintText: ref.tr(
+              'bankDetails.branchNameHint',
+            ),
             requiredField: false,
           ),
 
           const SizedBox(height: 12),
 
           _buildLabel(
-            'Passbook (first page) — image or PDF',
+            ref.tr('bankDetails.passbookUploadLabel'),
           ),
 
           const SizedBox(height: 8),
@@ -883,40 +783,30 @@ class _BankDetailsWidgetState
 
           const SizedBox(height: 16),
 
-          // SAVE + CANCEL
           Row(
             children: [
               Expanded(
                 child: SizedBox(
                   height: 48,
-                  child:
-                      ElevatedButton(
-                    onPressed:
-                        _isSaving
-                            ? null
-                            : _saveBankDetails,
+                  child: ElevatedButton(
+                    onPressed: _isSaving
+                        ? null
+                        : _saveBankDetails,
                     style:
                         ElevatedButton.styleFrom(
                       backgroundColor:
-                          AppColors
-                              .primaryFillColor,
+                          AppColors.primaryFillColor,
                       elevation: 2,
                       shadowColor:
-                          const Color(
-                        0x33000000,
-                      ),
+                          const Color(0x33000000),
                       padding:
-                          const EdgeInsets
-                              .symmetric(
+                          const EdgeInsets.symmetric(
                         horizontal: 16,
                       ),
                       shape:
                           RoundedRectangleBorder(
                         borderRadius:
-                            BorderRadius
-                                .circular(
-                          12,
-                        ),
+                            BorderRadius.circular(12),
                       ),
                     ),
                     child: _isSaving
@@ -925,23 +815,20 @@ class _BankDetailsWidgetState
                             height: 16,
                             child:
                                 CircularProgressIndicator(
-                              strokeWidth:
-                                  2,
-                              color:
-                                  Colors.white,
+                              strokeWidth: 2,
+                              color: Colors.white,
                             ),
                           )
                         : Text(
-                            'Save Bank Details',
+                            ref.tr(
+                              'bankDetails.saveDetails',
+                            ),
                             style:
                                 GoogleFonts.inter(
-                              fontSize:
-                                  14,
+                              fontSize: 14,
                               fontWeight:
-                                  FontWeight
-                                      .w700,
-                              color:
-                                  Colors.white,
+                                  FontWeight.w700,
+                              color: Colors.white,
                             ),
                           ),
                   ),
@@ -952,48 +839,35 @@ class _BankDetailsWidgetState
 
               SizedBox(
                 height: 48,
-                child:
-                    OutlinedButton(
-                  onPressed:
-                      _isSaving
-                          ? null
-                          : _cancelEditing,
+                child: OutlinedButton(
+                  onPressed: _isSaving
+                      ? null
+                      : _cancelEditing,
                   style:
                       OutlinedButton.styleFrom(
                     foregroundColor:
-                        AppColors
-                            .primaryFillColor,
-                    side:
-                        const BorderSide(
-                      color:
-                          AppColors
-                              .borderColor,
+                        AppColors.primaryFillColor,
+                    side: const BorderSide(
+                      color: AppColors.borderColor,
                       width: 1,
                     ),
                     padding:
-                        const EdgeInsets
-                            .symmetric(
+                        const EdgeInsets.symmetric(
                       horizontal: 20,
                     ),
                     shape:
                         RoundedRectangleBorder(
                       borderRadius:
-                          BorderRadius
-                              .circular(
-                        12,
-                      ),
+                          BorderRadius.circular(12),
                     ),
                   ),
                   child: Text(
-                    'Cancel',
-                    style:
-                        GoogleFonts.inter(
+                    ref.tr('common.cancel'),
+                    style: GoogleFonts.inter(
                       fontSize: 14,
-                      fontWeight:
-                          FontWeight.w600,
+                      fontWeight: FontWeight.w600,
                       color:
-                          AppColors
-                              .primaryFillColor,
+                          AppColors.primaryFillColor,
                     ),
                   ),
                 ),
@@ -1014,10 +888,8 @@ class _BankDetailsWidgetState
       text,
       style: GoogleFonts.inter(
         fontSize: 11,
-        fontWeight:
-            FontWeight.w500,
-        color:
-            AppColors.mutedColor,
+        fontWeight: FontWeight.w500,
+        color: AppColors.mutedColor,
       ),
     );
   }
@@ -1027,128 +899,89 @@ class _BankDetailsWidgetState
   // ============================================================
 
   Widget _buildTextField({
-    required TextEditingController
-        controller,
+    required TextEditingController controller,
     required String hintText,
     TextInputType? keyboardType,
-    TextCapitalization
-        textCapitalization =
+    TextCapitalization textCapitalization =
         TextCapitalization.none,
     bool requiredField = true,
   }) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      textCapitalization:
-          textCapitalization,
-
+      textCapitalization: textCapitalization,
       style: GoogleFonts.inter(
         fontSize: 16,
         color: AppColors.textColor,
       ),
-
       decoration: InputDecoration(
         hintText: hintText,
-
         hintStyle: GoogleFonts.inter(
           fontSize: 16,
-          color:
-              const Color(0xFF8A8588),
+          color: const Color(0xFF8A8588),
         ),
-
         contentPadding:
             const EdgeInsets.symmetric(
           horizontal: 10,
           vertical: 4,
         ),
-
         filled: true,
         fillColor: Colors.white,
-
         border: OutlineInputBorder(
-          borderRadius:
-              BorderRadius.circular(
-            12,
-          ),
-          borderSide:
-              const BorderSide(
-            color:
-                AppColors.borderColor,
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: AppColors.borderColor,
             width: 1,
           ),
         ),
-
         enabledBorder:
             OutlineInputBorder(
-          borderRadius:
-              BorderRadius.circular(
-            12,
-          ),
-          borderSide:
-              const BorderSide(
-            color:
-                AppColors.borderColor,
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: AppColors.borderColor,
             width: 1,
           ),
         ),
-
         focusedBorder:
             OutlineInputBorder(
-          borderRadius:
-              BorderRadius.circular(
-            12,
-          ),
-          borderSide:
-              const BorderSide(
-            color: AppColors
-                .primaryFillColor,
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
+            color: AppColors.primaryFillColor,
             width: 1,
           ),
         ),
-
         errorBorder:
             OutlineInputBorder(
-          borderRadius:
-              BorderRadius.circular(
-            12,
-          ),
-          borderSide:
-              const BorderSide(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
             color: Colors.red,
             width: 1,
           ),
         ),
-
         focusedErrorBorder:
             OutlineInputBorder(
-          borderRadius:
-              BorderRadius.circular(
-            12,
-          ),
-          borderSide:
-              const BorderSide(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(
             color: Colors.red,
             width: 1,
           ),
         ),
       ),
-
       validator: requiredField
           ? (value) {
               if (value == null ||
                   value.trim().isEmpty) {
-                return 'Required';
+                return ref.tr(
+                  'bankDetails.required',
+                );
               }
 
               return null;
             }
           : null,
-
       onChanged: (value) {
-        if (controller ==
-            _ifscController) {
-          final upper =
-              value.toUpperCase();
+        if (controller == _ifscController) {
+          final upper = value.toUpperCase();
 
           if (upper != value) {
             controller.value =
@@ -1156,8 +989,7 @@ class _BankDetailsWidgetState
               text: upper,
               selection:
                   TextSelection.collapsed(
-                offset:
-                    upper.length,
+                offset: upper.length,
               ),
             );
           }
@@ -1179,85 +1011,58 @@ class _BankDetailsWidgetState
       onTap: _isSaving
           ? null
           : _pickPassbook,
-
       borderRadius:
           BorderRadius.circular(12),
-
       child: Container(
         width: double.infinity,
         padding:
             const EdgeInsets.all(16),
-
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius:
-              BorderRadius.circular(
-            12,
-          ),
+              BorderRadius.circular(12),
           border: Border.all(
-            color:
-                AppColors.borderColor,
+            color: AppColors.borderColor,
           ),
         ),
-
         child: Row(
           children: [
             Container(
               padding:
-                  const EdgeInsets
-                      .symmetric(
+                  const EdgeInsets.symmetric(
                 horizontal: 6,
                 vertical: 4,
               ),
-
-              decoration:
-                  BoxDecoration(
-                color:
-                    const Color(
-                  0xFFF1F1F1,
-                ),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1F1F1),
                 borderRadius:
-                    BorderRadius
-                        .circular(
-                  4,
-                ),
+                    BorderRadius.circular(4),
               ),
-
               child: Text(
-                'Choose file',
-                style:
-                    GoogleFonts.inter(
+                ref.tr('bankDetails.chooseFile'),
+                style: GoogleFonts.inter(
                   fontSize: 14,
-                  color:
-                      Colors.black,
+                  color: Colors.black,
                 ),
               ),
             ),
 
-            const SizedBox(
-              width: 12,
-            ),
+            const SizedBox(width: 12),
 
             Expanded(
               child: Text(
                 fileName ??
-                    'No file chosen',
-
+                    ref.tr(
+                      'bankDetails.noFileChosen',
+                    ),
                 maxLines: 1,
-
                 overflow:
-                    TextOverflow
-                        .ellipsis,
-
-                style:
-                    GoogleFonts.inter(
+                    TextOverflow.ellipsis,
+                style: GoogleFonts.inter(
                   fontSize: 14,
                   color: fileName == null
-                      ? const Color(
-                          0xFF555155,
-                        )
-                      : AppColors
-                          .textColor,
+                      ? const Color(0xFF555155)
+                      : AppColors.textColor,
                 ),
               ),
             ),
@@ -1267,3 +1072,4 @@ class _BankDetailsWidgetState
     );
   }
 }
+

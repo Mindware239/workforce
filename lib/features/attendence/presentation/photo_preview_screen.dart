@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:workforce/core/localization/app_localization.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -95,8 +96,8 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
           SnackBar(
             content: Text(
               widget.isStart == true
-                  ? 'Check-in successful'
-                  : 'Check-out successful',
+                  ? ref.tr('photoPreview.checkInSuccessful')
+                  : ref.tr('photoPreview.checkOutSuccessful'),
             ),
           ),
         );
@@ -109,7 +110,7 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            attendanceState.message ?? 'Unable to check in. Please try again.',
+            attendanceState.message ?? ref.tr('photoPreview.unableCheckIn'),
           ),
         ),
       );
@@ -161,7 +162,9 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
               const SizedBox(height: 16),
 
               WorkforcePrimaryButton(
-                title: _isSubmitting ? 'Checking In...' : 'Use This Photo',
+                title: _isSubmitting
+                    ? ref.tr('photoPreview.checkingIn')
+                    : ref.tr('photoPreview.useThisPhoto'),
                 icon: Icons.check_circle_outline,
                 onPressed: _isSubmitting
                     ? () {}
@@ -212,7 +215,7 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'HQ – Factory Floor',
+                  ref.tr('photoPreview.locationLabel'),
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: AppColors.textColor,
@@ -273,11 +276,12 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
   }
 
   String _locationText() {
+    final localization = ref.read(appLocalizationProvider);
     final lat = widget.latitude.toStringAsFixed(6);
     final lng = widget.longitude.toStringAsFixed(6);
 
     if (widget.accuracy != null) {
-      return '$lat, $lng · Accuracy '
+      return '$lat, $lng · ${localization.tr('photoPreview.accuracy')} '
           '${widget.accuracy!.toStringAsFixed(0)}m';
     }
 
@@ -287,19 +291,21 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
   String _currentDateTime() {
     final now = DateTime.now();
 
-    const months = [
-      'January',
-      'February',
-      'March',
-      'April',
-      'May',
-      'June',
-      'July',
-      'August',
-      'September',
-      'October',
-      'November',
-      'December',
+    final localization = ref.read(appLocalizationProvider);
+
+    final months = [
+      localization.tr('months.january'),
+      localization.tr('months.february'),
+      localization.tr('months.march'),
+      localization.tr('months.april'),
+      localization.tr('months.may'),
+      localization.tr('months.june'),
+      localization.tr('months.july'),
+      localization.tr('months.august'),
+      localization.tr('months.september'),
+      localization.tr('months.october'),
+      localization.tr('months.november'),
+      localization.tr('months.december'),
     ];
 
     final hour = now.hour > 12
@@ -326,8 +332,7 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
           const SizedBox(height: 8),
 
           Text(
-            'Make sure your face is clearly visible, well-lit, '
-            'and not obstructed before continuing.',
+            ref.tr('photoPreview.securityMessage'),
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(fontSize: 14, color: AppColors.mutedColor),
           ),
@@ -347,7 +352,7 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
           const SizedBox(width: 8),
 
           Text(
-            'Secure Attendance Verification',
+            ref.tr('photoPreview.secureAttendanceVerification'),
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(fontSize: 11, color: AppColors.mutedColor),
           ),
@@ -375,7 +380,7 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
         ),
         icon: const Icon(Icons.refresh_rounded, size: 16),
         label: Text(
-          'Retake Photo',
+          ref.tr('photoPreview.retakePhoto'),
           style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500),
         ),
       ),

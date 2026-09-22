@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:workforce/app/routes/app_routes.dart';
-
+import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/features/profile/presentation/bank_details_widget.dart';
 import 'package:workforce/features/profile/providers/profile_provider.dart';
@@ -54,7 +54,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final organizationId = _getValue(profile['organizationId']);
 
     final workspaceId = _getValue(
-      profile['workspaceId'] ?? profile['workspace'] ?? profile['workspaceId'],
+      profile['workspaceId'] ??
+          profile['workspace'] ??
+          profile['workspaceId'],
     );
 
     final department = _getValue(profile['department']);
@@ -98,55 +100,57 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ],
         ),
-
         body: SafeArea(
           child: profileState.isLoading && profileState.profile == null
-              ? const Center(child: CircularProgressIndicator())
-              : profileState.error != null && profileState.profile == null
-              ? _buildError(profileState.error!)
-              : SingleChildScrollView(
-                  physics: const AlwaysScrollableScrollPhysics(),
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      _buildProfileHeader(
-                        fullName: fullName,
-                        employeeId: employeeId,
-                        hasPhoto: hasPhoto,
-                        photoPath: photoPath,
+              ? const Center(
+                  child: CircularProgressIndicator(),
+                )
+              : profileState.error != null &&
+                      profileState.profile == null
+                  ? _buildError(profileState.error!)
+                  : SingleChildScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          _buildProfileHeader(
+                            fullName: fullName,
+                            employeeId: employeeId,
+                            hasPhoto: hasPhoto,
+                            photoPath: photoPath,
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          _buildEmploymentDetails(
+                            role: role,
+                            designation: designation,
+                            mobileNumber: mobileNumber,
+                            email: email,
+                            department: department,
+                            joiningDate: joiningDate,
+                            reportingManager: reportingManager,
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          _buildWorkplace(
+                            organizationName: organizationName,
+                            workspaceId: workspaceId,
+                            organizationId: organizationId,
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          _buildDocument(context),
+
+                          const SizedBox(height: 16),
+
+                          const BankDetailsWidget(),
+                        ],
                       ),
-
-                      const SizedBox(height: 24),
-
-                      _buildEmploymentDetails(
-                        role: role,
-                        designation: designation,
-                        mobileNumber: mobileNumber,
-                        email: email,
-                        department: department,
-                        joiningDate: joiningDate,
-                        reportingManager: reportingManager,
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      _buildWorkplace(
-                        organizationName: organizationName,
-                        workspaceId: workspaceId,
-                        organizationId: organizationId,
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      _buildDocument(context),
-
-                      const SizedBox(height: 16),
-
-                      const BankDetailsWidget(),
-                    ],
-                  ),
-                ),
+                    ),
         ),
       ),
     );
@@ -162,7 +166,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     required bool hasPhoto,
     required String? photoPath,
   }) {
-    final photoUrl = _getPhotoUrl(hasPhoto: hasPhoto, photoPath: photoPath);
+    final photoUrl = _getPhotoUrl(
+      hasPhoto: hasPhoto,
+      photoPath: photoPath,
+    );
 
     return Column(
       children: [
@@ -172,7 +179,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           decoration: BoxDecoration(
             shape: BoxShape.circle,
             color: AppColors.primaryFillColor,
-            border: Border.all(color: AppColors.borderColor, width: 1),
+            border: Border.all(
+              color: AppColors.borderColor,
+              width: 1,
+            ),
           ),
           child: ClipOval(
             child: photoUrl != null
@@ -184,7 +194,11 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     errorBuilder: (_, __, ___) {
                       return _buildInitials(fullName);
                     },
-                    loadingBuilder: (context, child, loadingProgress) {
+                    loadingBuilder: (
+                      context,
+                      child,
+                      loadingProgress,
+                    ) {
                       if (loadingProgress == null) {
                         return child;
                       }
@@ -211,7 +225,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         const SizedBox(height: 4),
 
         Text(
-          'ID: $employeeId',
+          '${ref.tr('profile.employeeId')}: $employeeId',
           style: GoogleFonts.inter(
             fontSize: 12,
             fontWeight: FontWeight.w400,
@@ -221,6 +235,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
         const SizedBox(height: 8),
 
+        // Edit Profile button intentionally remains disabled.
         // SizedBox(
         //   width: 160,
         //   height: 48,
@@ -240,7 +255,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         //       size: 16,
         //     ),
         //     label: Text(
-        //       'Edit Profile',
+        //       ref.tr('profile.editProfile'),
         //       style: GoogleFonts.inter(
         //         fontSize: 16,
         //         fontWeight: FontWeight.w600,
@@ -297,7 +312,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   // PHOTO URL
   // ============================================================
 
-  String? _getPhotoUrl({required bool hasPhoto, required String? photoPath}) {
+  String? _getPhotoUrl({
+    required bool hasPhoto,
+    required String? photoPath,
+  }) {
     if (!hasPhoto) {
       return null;
     }
@@ -326,27 +344,45 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _CardHeader(
+          _CardHeader(
             icon: Icons.business_center_outlined,
-            title: 'Employment Details',
+            title: ref.tr('profile.employmentDetails'),
           ),
 
           const SizedBox(height: 8),
 
-          _DetailItem(label: 'ROLE', value: role),
-
-          _DetailItem(label: 'DESIGNATION', value: designation),
-
-          _DetailItem(label: 'DEPARTMENT', value: department),
-
-          _DetailItem(label: 'MOBILE NUMBER', value: mobileNumber),
-
-          _DetailItem(label: 'EMAIL', value: email),
-
-          _DetailItem(label: 'JOINING DATE', value: joiningDate),
+          _DetailItem(
+            label: ref.tr('profile.role'),
+            value: role,
+          ),
 
           _DetailItem(
-            label: 'REPORTING MANAGER',
+            label: ref.tr('profile.designation'),
+            value: designation,
+          ),
+
+          _DetailItem(
+            label: ref.tr('profile.department'),
+            value: department,
+          ),
+
+          _DetailItem(
+            label: ref.tr('profile.mobileNumber'),
+            value: mobileNumber,
+          ),
+
+          _DetailItem(
+            label: ref.tr('profile.email'),
+            value: email,
+          ),
+
+          _DetailItem(
+            label: ref.tr('profile.joiningDate'),
+            value: joiningDate,
+          ),
+
+          _DetailItem(
+            label: ref.tr('profile.reportingManager'),
             value: reportingManager,
             isLast: true,
           ),
@@ -369,9 +405,9 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _CardHeader(
+          _CardHeader(
             icon: Icons.location_on_outlined,
-            title: 'Workplace',
+            title: ref.tr('profile.workplace'),
           ),
 
           const SizedBox(height: 8),
@@ -381,7 +417,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: AppColors.borderColor, width: 1),
+              border: Border.all(
+                color: AppColors.borderColor,
+                width: 1,
+              ),
             ),
             child: Row(
               children: [
@@ -389,7 +428,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF3525CD).withValues(alpha: 0.1),
+                    color: const Color(0xFF3525CD)
+                        .withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: const Icon(
@@ -407,7 +447,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'ORGANIZATION',
+                        ref.tr('profile.organization').toUpperCase(),
                         style: GoogleFonts.inter(
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
@@ -432,7 +472,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                       const SizedBox(height: 2),
 
                       Text(
-                        'Workspace: $workspaceId',
+                        '${ref.tr('profile.workspace')}: $workspaceId',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: GoogleFonts.inter(
@@ -445,7 +485,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                         const SizedBox(height: 2),
 
                         Text(
-                          'Organization ID: $organizationId',
+                          '${ref.tr('profile.organizationId')}: '
+                          '$organizationId',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: GoogleFonts.inter(
@@ -475,7 +516,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const _CardHeader(icon: Icons.file_copy, title: 'Documents'),
+          _CardHeader(
+            icon: Icons.file_copy,
+            title: ref.tr('profile.documents'),
+          ),
 
           const SizedBox(height: 8),
 
@@ -484,16 +528,22 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               context.push(AppRoutes.document);
             },
             style: OutlinedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(
+                horizontal: 16,
+                vertical: 10,
+              ),
               minimumSize: Size.zero,
               tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              side: const BorderSide(color: AppColors.borderColor, width: 1),
+              side: const BorderSide(
+                color: AppColors.borderColor,
+                width: 1,
+              ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(12),
               ),
             ),
             child: Text(
-              'View & Upload Documents',
+              ref.tr('profile.viewAndUploadDocuments'),
               style: GoogleFonts.inter(
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
@@ -539,9 +589,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
             ElevatedButton(
               onPressed: () {
-                ref.read(profileProvider.notifier).getProfile();
+                ref
+                    .read(profileProvider.notifier)
+                    .getProfile();
               },
-              child: const Text('Retry'),
+              child: Text(
+                ref.tr('common.retry'),
+              ),
             ),
           ],
         ),
@@ -555,11 +609,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   String _getValue(dynamic value) {
     if (value == null) {
-      return 'Not available';
+      return ref.tr('common.notAvailable');
     }
 
     if (value is String) {
-      return value.isEmpty ? 'Not available' : value;
+      return value.isEmpty
+          ? ref.tr('common.notAvailable')
+          : value;
     }
 
     if (value is num || value is bool) {
@@ -579,7 +635,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       for (final key in possibleKeys) {
         final nestedValue = value[key];
 
-        if (nestedValue != null && nestedValue.toString().isNotEmpty) {
+        if (nestedValue != null &&
+            nestedValue.toString().isNotEmpty) {
           return nestedValue.toString();
         }
       }
@@ -609,7 +666,10 @@ class _ProfileCard extends StatelessWidget {
       padding: padding,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.borderColor, width: 1),
+        border: Border.all(
+          color: AppColors.borderColor,
+          width: 1,
+        ),
       ),
       child: child,
     );
@@ -624,13 +684,20 @@ class _CardHeader extends StatelessWidget {
   final IconData icon;
   final String title;
 
-  const _CardHeader({required this.icon, required this.title});
+  const _CardHeader({
+    required this.icon,
+    required this.title,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Row(
       children: [
-        Icon(icon, size: 20, color: AppColors.primaryFillColor),
+        Icon(
+          icon,
+          size: 20,
+          color: AppColors.primaryFillColor,
+        ),
 
         const SizedBox(width: 8),
 
@@ -671,7 +738,10 @@ class _DetailItem extends StatelessWidget {
         border: isLast
             ? null
             : const Border(
-                bottom: BorderSide(color: AppColors.borderColor, width: 1),
+                bottom: BorderSide(
+                  color: AppColors.borderColor,
+                  width: 1,
+                ),
               ),
       ),
       child: Column(

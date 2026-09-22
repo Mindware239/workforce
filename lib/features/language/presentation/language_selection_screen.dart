@@ -1,31 +1,29 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
+
+import 'package:workforce/core/localization/app_language.dart';
+import 'package:workforce/core/localization/app_localization.dart';
+
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/features/language/providers/language_provider.dart';
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 import 'package:workforce/features/onboarding/presentation/widget/radio_circle.dart';
 import 'package:workforce/features/onboarding/presentation/widget/workforce_brand.dart';
 
-class LanguageSelectionScreen extends StatefulWidget {
+class LanguageSelectionScreen extends ConsumerWidget {
   const LanguageSelectionScreen({super.key});
 
   @override
-  State<LanguageSelectionScreen> createState() =>
-      _LanguageSelectionScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final selectedLanguage = ref.watch(languageProvider);
 
-class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
-  String selectedLanguage = 'English';
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
       appBar: AppBar(
         centerTitle: true,
         backgroundColor: AppColors.whiteBackgroundColor,
         surfaceTintColor: AppColors.whiteBackgroundColor,
-       
-        
       ),
       body: SafeArea(
         child: Padding(
@@ -40,7 +38,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
               const SizedBox(height: 48),
 
               Text(
-                'Choose your language',
+                ref.tr('language.choose'),
                 style: GoogleFonts.inter(
                   fontSize: 30,
                   fontWeight: FontWeight.bold,
@@ -51,8 +49,7 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
               const SizedBox(height: 6),
 
               Text(
-                'Select the language you prefer to use\n'
-                'throughout the application.',
+                ref.tr('language.description'),
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   height: 1.4,
@@ -65,11 +62,11 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
               _LanguageOption(
                 title: 'English',
                 subtitle: 'English',
-                selected: selectedLanguage == 'English',
+                selected: selectedLanguage == AppLanguage.english,
                 onTap: () {
-                  setState(() {
-                    selectedLanguage = 'English';
-                  });
+                  ref
+                      .read(languageProvider.notifier)
+                      .setLanguage(AppLanguage.english);
                 },
               ),
 
@@ -78,19 +75,29 @@ class _LanguageSelectionScreenState extends State<LanguageSelectionScreen> {
               _LanguageOption(
                 title: 'हिन्दी',
                 subtitle: 'Hindi',
-                selected: selectedLanguage == 'Hindi',
+                selected: selectedLanguage == AppLanguage.hindi,
                 onTap: () {
-                  setState(() {
-                    selectedLanguage = 'Hindi';
-                  });
+                  ref
+                      .read(languageProvider.notifier)
+                      .setLanguage(AppLanguage.hindi);
                 },
               ),
 
               const Spacer(),
-              Divider(color: AppColors.borderColor, thickness: 1),
+
+              Divider(
+                color: AppColors.borderColor,
+                thickness: 1,
+              ),
+
               const SizedBox(height: 4),
 
-              WorkforcePrimaryButton(title: 'Continue', onPressed: () {}),
+              // WorkforcePrimaryButton(
+              //   title: ref.tr('language.continue'),
+              //   onPressed: () {
+              //     Navigator.of(context).pop();
+              //   },
+              // ),
 
               const SizedBox(height: 4),
             ],
@@ -149,9 +156,7 @@ class _LanguageOption extends StatelessWidget {
                       color: AppColors.textColor,
                     ),
                   ),
-
                   const SizedBox(height: 4),
-
                   Text(
                     subtitle,
                     style: GoogleFonts.inter(
@@ -161,10 +166,10 @@ class _LanguageOption extends StatelessWidget {
                   ),
                 ],
               ),
-
               const Spacer(),
-
-              RadioCircle(selected: selected),
+              RadioCircle(
+                selected: selected,
+              ),
             ],
           ),
         ),

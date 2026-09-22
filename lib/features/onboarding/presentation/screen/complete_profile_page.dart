@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/features/auth/providers/auth_provider.dart';
 
 class CompleteProfilePage extends ConsumerStatefulWidget {
@@ -240,7 +241,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                       const SizedBox(height: 12),
 
                       _buildEmergencyCard(
-                        title: 'Emergency Contact 1',
+                        title: ref.tr('completeProfile.emergencyContact1'),
                         relation: _emergency1Relation,
                         contactController: _emergency1ContactController,
                         onRelationChanged: (value) {
@@ -253,7 +254,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                       const SizedBox(height: 12),
 
                       _buildEmergencyCard(
-                        title: 'Emergency Contact 2',
+                        title: ref.tr('completeProfile.emergencyContact2'),
                         relation: _emergency2Relation,
                         contactController: _emergency2ContactController,
                         onRelationChanged: (value) {
@@ -293,7 +294,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Complete your profile',
+          ref.tr('completeProfile.title'),
           style: GoogleFonts.inter(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -303,8 +304,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
         ),
         const SizedBox(height: 8),
         Text(
-          'Before you continue, please share a few more details '
-          'required by your organization.',
+          ref.tr('completeProfile.subtitle'),
           style: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w400,
@@ -325,7 +325,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCardTitle('Your Details'),
+          _buildCardTitle(ref.tr('completeProfile.yourDetails')),
 
           const SizedBox(height: 10),
 
@@ -334,7 +334,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
           const SizedBox(height: 10),
 
           Text(
-            'Details that are organizationally filled in cannot be changed here. Please complete the ones left blank.',
+            ref.tr('completeProfile.detailsNote'),
             style: GoogleFonts.inter(
               fontSize: 12,
               color: AppColors.mutedColor,
@@ -344,7 +344,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
 
           const SizedBox(height: 16),
 
-          _buildLabelWithBadge(label: 'Full Name', badge: 'SET BY ADMIN'),
+          _buildLabelWithBadge(label: ref.tr('completeProfile.fullName'), badge: ref.tr('completeProfile.setByAdmin')),
 
           const SizedBox(height: 6),
 
@@ -356,7 +356,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
 
           const SizedBox(height: 12),
 
-          _buildLabelWithBadge(label: 'Mobile Number', badge: 'SET BY ADMIN'),
+          _buildLabelWithBadge(label: ref.tr('completeProfile.mobileNumber'), badge: ref.tr('completeProfile.setByAdmin')),
 
           const SizedBox(height: 6),
 
@@ -370,7 +370,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
 
           const SizedBox(height: 12),
 
-          _buildFieldLabel('Email'),
+          _buildFieldLabel(ref.tr('completeProfile.email')),
 
           const SizedBox(height: 6),
 
@@ -381,7 +381,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
             keyboardType: TextInputType.emailAddress,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Email is required';
+                return ref.tr('completeProfile.emailRequired');
               }
 
               return null;
@@ -430,22 +430,22 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildFieldLabel('Contact Number'),
+                    _buildFieldLabel(ref.tr('completeProfile.contactNumber')),
                     const SizedBox(height: 6),
                     _buildTextField(
                       controller: contactController,
-                      hintText: '10-digit mobile number',
+                      hintText: ref.tr('completeProfile.mobileHint'),
                       keyboardType: TextInputType.phone,
                       maxLength: 10,
                       validator: (value) {
                         final text = value?.trim() ?? '';
 
                         if (text.isEmpty) {
-                          return 'Required';
+                          return ref.tr('completeProfile.required');
                         }
 
                         if (!RegExp(r'^[0-9]{10}$').hasMatch(text)) {
-                          return 'Invalid number';
+                          return ref.tr('completeProfile.invalidNumber');
                         }
 
                         return null;
@@ -461,6 +461,31 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
     );
   }
 
+  String _relationLabel(String relation) {
+    switch (relation) {
+      case 'Father':
+        return ref.tr('completeProfile.father');
+      case 'Mother':
+        return ref.tr('completeProfile.mother');
+      case 'Brother':
+        return ref.tr('completeProfile.brother');
+      case 'Sister':
+        return ref.tr('completeProfile.sister');
+      case 'Spouse':
+        return ref.tr('completeProfile.spouse');
+      case 'Son':
+        return ref.tr('completeProfile.son');
+      case 'Daughter':
+        return ref.tr('completeProfile.daughter');
+      case 'Friend':
+        return ref.tr('completeProfile.friend');
+      case 'Other':
+        return ref.tr('completeProfile.other');
+      default:
+        return relation;
+    }
+  }
+
   Widget _buildRelationField({
     required String? relation,
     required ValueChanged<String?> onChanged,
@@ -468,7 +493,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _buildFieldLabel('Relation'),
+        _buildFieldLabel(ref.tr('completeProfile.relation')),
 
         const SizedBox(height: 6),
 
@@ -481,19 +506,19 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
             color: AppColors.textColor,
             fontWeight: FontWeight.w400,
           ),
-          decoration: _inputDecoration(hintText: 'Select relation'),
+          decoration: _inputDecoration(hintText: ref.tr('completeProfile.selectRelation')),
           items: _relations
               .map(
                 (relation) => DropdownMenuItem<String>(
                   value: relation,
-                  child: Text(relation, overflow: TextOverflow.ellipsis),
+                  child: Text(_relationLabel(relation), overflow: TextOverflow.ellipsis),
                 ),
               )
               .toList(),
           onChanged: onChanged,
           validator: (value) {
             if (value == null || value.isEmpty) {
-              return 'Required';
+              return ref.tr('completeProfile.required');
             }
 
             return null;
@@ -512,7 +537,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildCardTitle('Address'),
+          _buildCardTitle(ref.tr('completeProfile.address')),
 
           const SizedBox(height: 10),
 
@@ -520,19 +545,19 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
 
           const SizedBox(height: 14),
 
-          _buildFieldLabel('Permanent Address'),
+          _buildFieldLabel(ref.tr('completeProfile.permanentAddress')),
 
           const SizedBox(height: 6),
 
           _buildTextField(
             controller: _permanentAddressController,
-            hintText: 'Enter your address',
+            hintText: ref.tr('completeProfile.enterAddress'),
             maxLines: 3,
             minLines: 3,
             textInputAction: TextInputAction.newline,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Permanent address is required';
+                return ref.tr('completeProfile.permanentAddressRequired');
               }
 
               return null;
@@ -541,19 +566,19 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
 
           const SizedBox(height: 14),
 
-          _buildFieldLabel('Correspondence Address'),
+          _buildFieldLabel(ref.tr('completeProfile.correspondenceAddress')),
 
           const SizedBox(height: 6),
 
           _buildTextField(
             controller: _correspondenceAddressController,
-            hintText: 'Enter your address',
+            hintText: ref.tr('completeProfile.enterAddress'),
             maxLines: 3,
             minLines: 3,
             textInputAction: TextInputAction.newline,
             validator: (value) {
               if (value == null || value.trim().isEmpty) {
-                return 'Correspondence address is required';
+                return ref.tr('completeProfile.correspondenceAddressRequired');
               }
 
               return null;
@@ -607,8 +632,8 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                     height: 1.4,
                   ),
                   children: [
-                    const TextSpan(
-                      text: 'I have read and agree to the organization\'s ',
+                     TextSpan(
+                      text: ref.tr('completeProfile.agreePrefix'),
                     ),
                     WidgetSpan(
                       alignment: PlaceholderAlignment.baseline,
@@ -616,7 +641,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                       child: GestureDetector(
                         onTap: _showTermsSheet,
                         child: Text(
-                          'Terms & Conditions',
+                          ref.tr('completeProfile.termsConditions'),
                           style: GoogleFonts.inter(
                             fontSize: 11.5,
                             color: AppColors.primaryFillColor,
@@ -664,7 +689,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                   children: [
                     Expanded(
                       child: Text(
-                        'Terms & Conditions',
+                        ref.tr('completeProfile.termsConditions'),
                         style: GoogleFonts.inter(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
@@ -693,7 +718,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                 const SizedBox(height: 4),
 
                 Text(
-                  'Test',
+                  ref.tr('completeProfile.test'),
                   style: GoogleFonts.inter(
                     fontSize: 11.5,
                     color: AppColors.mutedColor,
@@ -708,8 +733,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
 
                 Center(
                   child: Text(
-                    'Your organization has not published '
-                    'any terms yet.',
+                    '${ref.tr('completeProfile.termsNotPublished')}any terms yet.',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.inter(
                       fontSize: 12,
@@ -741,7 +765,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                       ),
                     ),
                     child: Text(
-                      'I Agree',
+                      ref.tr('completeProfile.iAgree'),
                       style: GoogleFonts.inter(
                         fontSize: 12.5,
                         fontWeight: FontWeight.w600,
@@ -800,7 +824,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                   ),
                 )
               : Text(
-                  'Submit & Continue',
+                  ref.tr('completeProfile.submitContinue'),
                   style: GoogleFonts.inter(
                     fontSize: 12.5,
                     fontWeight: FontWeight.w600,
@@ -828,7 +852,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Please accept the Terms & Conditions.',
+            ref.tr('completeProfile.acceptTerms'),
             style: GoogleFonts.inter(fontSize: 12),
           ),
           behavior: SnackBarBehavior.floating,

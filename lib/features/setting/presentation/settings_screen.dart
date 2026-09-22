@@ -1,42 +1,48 @@
+
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+
 import 'package:workforce/app/routes/app_routes.dart';
+import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/services/auth_service.dart';
 import 'package:workforce/core/services/secure_storage.dart';
 import 'package:workforce/core/styles/app_colors.dart';
-import 'package:workforce/features/notification/presentation/notification.dart';
 import 'package:workforce/features/language/presentation/language_selection_screen.dart';
+import 'package:workforce/features/language/providers/language_provider.dart';
+import 'package:workforce/features/notification/presentation/notification.dart';
 import 'package:workforce/features/setting/presentation/help_support_screen.dart';
 
-class SettingsScreen extends StatefulWidget {
+class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
 
   @override
-  State<SettingsScreen> createState() => _SettingsScreenState();
+  ConsumerState<SettingsScreen> createState() => _SettingsScreenState();
 }
 
-class _SettingsScreenState extends State<SettingsScreen> {
+class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   bool isDarkMode = false;
 
   Future<void> _logout() async {
-  final secureStorage = SecureStorage();
+    final secureStorage = SecureStorage();
 
-  // Remove JWT and saved employee data
-  await secureStorage.clearAuth();
-  // await LocationTrackingService.stop();
+    // Remove JWT and saved employee data
+    await secureStorage.clearAuth();
 
-  // Update authentication state
-  AuthService.logout();
+    // Update authentication state
+    AuthService.logout();
 
-  if (!mounted) return;
+    if (!mounted) return;
 
-  // Go to login and remove previous navigation history
-  context.go(AppRoutes.login);
-}
+    // Go to login and remove previous navigation history
+    context.go(AppRoutes.login);
+  }
 
   @override
   Widget build(BuildContext context) {
+    final selectedLanguage = ref.watch(languageProvider);
+
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
       appBar: AppBar(
@@ -44,14 +50,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
         backgroundColor: AppColors.whiteBackgroundColor,
         surfaceTintColor: AppColors.whiteBackgroundColor,
         title: Text(
-          'Setting',
+          ref.tr('settings.settings'),
           style: GoogleFonts.inter(
             fontSize: 20,
             fontWeight: FontWeight.w700,
             color: AppColors.textColor,
           ),
         ),
-        
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -60,27 +65,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSectionTitle('GENERAL'),
+              // GENERAL
+              _buildSectionTitle(
+                ref.tr('settings.general'),
+              ),
 
               const SizedBox(height: 8),
 
               _buildSettingsCard(
                 children: [
-                  // _SettingsRow(
-                  //   icon: Icons.person_outline_rounded,
-                  //   title: 'Account',
-                  //   onTap: () {
-                  //     Navigator.of(context).push(
-                  //       MaterialPageRoute(
-                  //         builder: (context) => const HelpSupportScreen(),
-                  //       ),
-                  //     );
-                  //   },
-                  // ),
-
                   _SettingsRow(
                     icon: Icons.notifications_none_rounded,
-                    title: 'Notifications',
+                    title: ref.tr('settings.notifications'),
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
@@ -92,13 +88,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   _SettingsRow(
                     icon: Icons.language_rounded,
-                    title: 'Language',
-                    trailingText: 'English',
-
+                    title: ref.tr('settings.language'),
+                    trailingText: selectedLanguage.name,
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (context) => const LanguageSelectionScreen(),
+                          builder: (context) =>
+                              const LanguageSelectionScreen(),
                         ),
                       );
                     },
@@ -109,7 +105,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               const SizedBox(height: 16),
 
-              _buildSectionTitle('SECURITY & PRIVACY'),
+              // SECURITY & PRIVACY
+              _buildSectionTitle(
+                ref.tr('settings.security_privacy'),
+              ),
 
               const SizedBox(height: 16),
 
@@ -117,15 +116,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 children: [
                   _SettingsRow(
                     icon: Icons.lock_outline_rounded,
-                    title: 'Security',
-                    onTap: () {
-                     
-                    },
+                    title: ref.tr('settings.security'),
+                    onTap: () {},
                   ),
 
                   _SettingsRow(
                     icon: Icons.shield_outlined,
-                    title: 'Privacy',
+                    title: ref.tr('settings.privacy'),
                     onTap: () {},
                     isLast: true,
                   ),
@@ -134,40 +131,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
               const SizedBox(height: 16),
 
-              _buildSectionTitle('PREFERENCES'),
+              // PREFERENCES
+              _buildSectionTitle(
+                ref.tr('settings.preferences'),
+              ),
 
               const SizedBox(height: 16),
+
+              
 
               _buildSettingsCard(
                 children: [
                   _SettingsRow(
                     icon: Icons.settings_outlined,
-                    title: 'Help & Support',
+                    title: ref.tr('settings.helpSupport'),
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (context) => const HelpSupportScreen(),
+                          builder: (context) =>
+                              const HelpSupportScreen(),
                         ),
                       );
                     },
                   ),
 
-                  _SettingsRow(
-                    icon: Icons.dark_mode_outlined,
-                    title: 'Dark Mode',
-
-                    trailing: Switch(
-                      value: isDarkMode,
-                      onChanged: (value) {
-                        setState(() {
-                          isDarkMode = value;
-                        });
-                      },
-                      activeThumbColor: AppColors.primaryFillColor,
-                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    ),
-                    isLast: true,
-                  ),
+                  // _SettingsRow(
+                  //   icon: Icons.dark_mode_outlined,
+                  //   title: ref.tr('settings.dark_mode'),
+                  //   trailing: Switch(
+                  //     value: isDarkMode,
+                  //     onChanged: (value) {
+                  //       setState(() {
+                  //         isDarkMode = value;
+                  //       });
+                  //     },
+                  //     activeThumbColor: AppColors.primaryFillColor,
+                  //     materialTapTargetSize:
+                  //         MaterialTapTargetSize.shrinkWrap,
+                  //   ),
+                  //   isLast: true,
+                  // ),
                 ],
               ),
 
@@ -193,28 +196,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
-  Widget _buildSettingsCard({required List<Widget> children}) {
+  Widget _buildSettingsCard({
+    required List<Widget> children,
+  }) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(9),
-        border: Border.all(color: AppColors.borderColor, width: 1),
+        border: Border.all(
+          color: AppColors.borderColor,
+          width: 1,
+        ),
       ),
-      child: Column(children: children),
+      child: Column(
+        children: children,
+      ),
     );
   }
 
   Widget _buildLogoutButton() {
     return GestureDetector(
-      onTap: () {
-         _logout();
-      },
+      onTap: _logout,
       child: Container(
         width: double.infinity,
         height: 56,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFFFDAD6), width: 1),
+          border: Border.all(
+            color: const Color(0xFFFFDAD6),
+            width: 1,
+          ),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -228,7 +239,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             const SizedBox(width: 8),
 
             Text(
-              'Logout',
+              ref.tr('settings.logout'),
               style: GoogleFonts.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
@@ -273,12 +284,19 @@ class _SettingsRow extends StatelessWidget {
             border: isLast
                 ? null
                 : const Border(
-                    bottom: BorderSide(color: AppColors.borderColor, width: 1),
+                    bottom: BorderSide(
+                      color: AppColors.borderColor,
+                      width: 1,
+                    ),
                   ),
           ),
           child: Row(
             children: [
-              Icon(icon, size: 18, color: AppColors.mutedColor),
+              Icon(
+                icon,
+                size: 18,
+                color: AppColors.mutedColor,
+              ),
 
               const SizedBox(width: 8),
 
@@ -302,7 +320,8 @@ class _SettingsRow extends StatelessWidget {
                   ),
                 ),
 
-              if (trailingText != null) const SizedBox(width: 4),
+              if (trailingText != null)
+                const SizedBox(width: 4),
 
               if (trailing != null)
                 trailing!
@@ -319,3 +338,5 @@ class _SettingsRow extends StatelessWidget {
     );
   }
 }
+
+

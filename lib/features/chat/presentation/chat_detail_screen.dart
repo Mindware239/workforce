@@ -9,6 +9,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/features/chat/providers/chat_provider.dart';
 
 class ChatDetailScreen extends ConsumerStatefulWidget {
@@ -22,48 +23,33 @@ class ChatDetailScreen extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<ChatDetailScreen> createState() =>
-      _ChatDetailScreenState();
+  ConsumerState<ChatDetailScreen> createState() => _ChatDetailScreenState();
 }
 
-class _ChatDetailScreenState
-    extends ConsumerState<ChatDetailScreen> {
-  final TextEditingController _messageController =
-      TextEditingController();
+class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
+  final TextEditingController _messageController = TextEditingController();
 
-  final ScrollController _scrollController =
-      ScrollController();
+  final ScrollController _scrollController = ScrollController();
 
-  final ImagePicker _imagePicker =
-      ImagePicker();
+  final ImagePicker _imagePicker = ImagePicker();
 
-  final AudioRecorder _audioRecorder =
-      AudioRecorder();
+  final AudioRecorder _audioRecorder = AudioRecorder();
 
   bool _isRecording = false;
 
-  static const String _fileBaseUrl =
-      'https://workforce.orkuts.com';
+  static const String _fileBaseUrl = 'https://workforce.orkuts.com/api/upload';
 
   @override
   void initState() {
     super.initState();
 
-    _scrollController.addListener(
-      _handleScroll,
-    );
+    _scrollController.addListener(_handleScroll);
 
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) {
-        if (!mounted) return;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
 
-        ref
-            .read(chatProvider.notifier)
-            .loadMessages(
-              widget.conversationId,
-            );
-      },
-    );
+      ref.read(chatProvider.notifier).loadMessages(widget.conversationId);
+    });
   }
 
   @override
@@ -84,39 +70,28 @@ class _ChatDetailScreenState
     }
 
     if (_scrollController.position.pixels <= 100) {
-      ref
-          .read(chatProvider.notifier)
-          .loadOlderMessages(
-            widget.conversationId,
-          );
+      ref.read(chatProvider.notifier).loadOlderMessages(widget.conversationId);
     }
   }
 
   void _scrollToBottom() {
-    WidgetsBinding.instance.addPostFrameCallback(
-      (_) {
-        if (!mounted ||
-            !_scrollController.hasClients) {
-          return;
-        }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scrollController.hasClients) {
+        return;
+      }
 
-        _scrollController.animateTo(
-          0,
-          duration:
-              const Duration(milliseconds: 220),
-          curve: Curves.easeOut,
-        );
-      },
-    );
+      _scrollController.animateTo(
+        0,
+        duration: const Duration(milliseconds: 220),
+        curve: Curves.easeOut,
+      );
+    });
   }
 
   Future<void> _refresh() async {
     await ref
         .read(chatProvider.notifier)
-        .loadMessages(
-          widget.conversationId,
-          refresh: true,
-        );
+        .loadMessages(widget.conversationId, refresh: true);
   }
 
   // ==============================================================
@@ -124,8 +99,7 @@ class _ChatDetailScreenState
   // ==============================================================
 
   Future<void> _send() async {
-    final text =
-        _messageController.text.trim();
+    final text = _messageController.text.trim();
 
     if (text.isEmpty) {
       return;
@@ -135,11 +109,7 @@ class _ChatDetailScreenState
 
     final message = await ref
         .read(chatProvider.notifier)
-        .sendMessage(
-          conversationId:
-              widget.conversationId,
-          body: text,
-        );
+        .sendMessage(conversationId: widget.conversationId, body: text);
 
     if (!mounted || message == null) {
       return;
@@ -154,8 +124,7 @@ class _ChatDetailScreenState
 
   Future<void> _pickImage() async {
     try {
-      final image =
-          await _imagePicker.pickImage(
+      final image = await _imagePicker.pickImage(
         source: ImageSource.gallery,
         imageQuality: 85,
       );
@@ -164,8 +133,7 @@ class _ChatDetailScreenState
         return;
       }
 
-      final file =
-          await _makePersistentFile(
+      final file = await _makePersistentFile(
         File(image.path),
         prefix: 'image',
         extension: _extension(image.path),
@@ -176,8 +144,7 @@ class _ChatDetailScreenState
       await ref
           .read(chatProvider.notifier)
           .sendAttachment(
-            conversationId:
-                widget.conversationId,
+            conversationId: widget.conversationId,
             file: file,
             type: 'image',
           );
@@ -186,9 +153,7 @@ class _ChatDetailScreenState
     } catch (e) {
       if (!mounted) return;
 
-      _showMessage(
-        _cleanError(e),
-      );
+      _showMessage(_cleanError(e));
     }
   }
 
@@ -206,21 +171,17 @@ class _ChatDetailScreenState
 
   Future<void> _startRecording() async {
     try {
-      final permission =
-          await _audioRecorder.hasPermission();
+      final permission = await _audioRecorder.hasPermission();
 
       if (!permission) {
         if (!mounted) return;
 
-        _showMessage(
-          'Microphone permission is required.',
-        );
+        _showMessage(ref.tr('chat.microphonePermissionRequired'));
 
         return;
       }
 
-      final file =
-          await _createRecordingFile();
+      final file = await _createRecordingFile();
 
       await _audioRecorder.start(
         const RecordConfig(
@@ -239,9 +200,7 @@ class _ChatDetailScreenState
     } catch (e) {
       if (!mounted) return;
 
-      _showMessage(
-        _cleanError(e),
-      );
+      _showMessage(_cleanError(e));
     }
   }
 
@@ -251,8 +210,7 @@ class _ChatDetailScreenState
     }
 
     try {
-      final path =
-          await _audioRecorder.stop();
+      final path = await _audioRecorder.stop();
 
       if (!mounted) return;
 
@@ -273,8 +231,7 @@ class _ChatDetailScreenState
       await ref
           .read(chatProvider.notifier)
           .sendAttachment(
-            conversationId:
-                widget.conversationId,
+            conversationId: widget.conversationId,
             file: file,
             type: 'voice',
           );
@@ -287,15 +244,12 @@ class _ChatDetailScreenState
         _isRecording = false;
       });
 
-      _showMessage(
-        _cleanError(e),
-      );
+      _showMessage(_cleanError(e));
     }
   }
 
   Future<File> _createRecordingFile() async {
-    final directory =
-        await getApplicationDocumentsDirectory();
+    final directory = await getApplicationDocumentsDirectory();
 
     final folder = Directory(
       '${directory.path}${Platform.pathSeparator}'
@@ -303,9 +257,7 @@ class _ChatDetailScreenState
       '${widget.conversationId}',
     );
 
-    await folder.create(
-      recursive: true,
-    );
+    await folder.create(recursive: true);
 
     return File(
       '${folder.path}${Platform.pathSeparator}'
@@ -318,8 +270,7 @@ class _ChatDetailScreenState
     required String prefix,
     required String extension,
   }) async {
-    final directory =
-        await getApplicationDocumentsDirectory();
+    final directory = await getApplicationDocumentsDirectory();
 
     final folder = Directory(
       '${directory.path}${Platform.pathSeparator}'
@@ -327,18 +278,14 @@ class _ChatDetailScreenState
       '${widget.conversationId}',
     );
 
-    await folder.create(
-      recursive: true,
-    );
+    await folder.create(recursive: true);
 
     final destination = File(
       '${folder.path}${Platform.pathSeparator}'
       '${prefix}_${DateTime.now().millisecondsSinceEpoch}$extension',
     );
 
-    return source.copy(
-      destination.path,
-    );
+    return source.copy(destination.path);
   }
 
   String _extension(String path) {
@@ -359,13 +306,11 @@ class _ChatDetailScreenState
   Widget build(BuildContext context) {
     final state = ref.watch(chatProvider);
 
-    final thread = state.threads[
-            widget.conversationId] ??
-        const ChatThreadState();
+    final thread =
+        state.threads[widget.conversationId] ?? const ChatThreadState();
 
     return Scaffold(
-      backgroundColor:
-          AppColors.whiteBackgroundColor,
+      backgroundColor: AppColors.whiteBackgroundColor,
       appBar: AppBar(
         elevation: 0,
         backgroundColor: Colors.white,
@@ -381,28 +326,23 @@ class _ChatDetailScreenState
         ),
         titleSpacing: 0,
         title: Column(
-          crossAxisAlignment:
-              CrossAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               widget.title,
               maxLines: 1,
-              overflow:
-                  TextOverflow.ellipsis,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.inter(
                 fontSize: 16,
-                fontWeight:
-                    FontWeight.w700,
-                color:
-                    AppColors.textColor,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textColor,
               ),
             ),
             Text(
-              'Chat',
+              ref.tr('chat.chat'),
               style: GoogleFonts.inter(
                 fontSize: 11,
-                color:
-                    AppColors.mutedColor,
+                color: AppColors.mutedColor,
               ),
             ),
           ],
@@ -412,19 +352,11 @@ class _ChatDetailScreenState
         children: [
           Expanded(
             child: RefreshIndicator(
-              color:
-                  AppColors.primaryFillColor,
+              color: AppColors.primaryFillColor,
               onRefresh: _refresh,
-              child:
-                  thread.isLoading &&
-                          thread.messages.isEmpty
-                      ? const Center(
-                          child:
-                              CircularProgressIndicator(),
-                        )
-                      : _buildMessages(
-                          thread,
-                        ),
+              child: thread.isLoading && thread.messages.isEmpty
+                  ? const Center(child: CircularProgressIndicator())
+                  : _buildMessages(thread),
             ),
           ),
           _buildComposer(),
@@ -437,88 +369,47 @@ class _ChatDetailScreenState
   // MESSAGES
   // ==============================================================
 
-  Widget _buildMessages(
-    ChatThreadState thread,
-  ) {
+  Widget _buildMessages(ChatThreadState thread) {
     if (thread.messages.isEmpty) {
       return ListView(
         reverse: true,
-        physics:
-            const AlwaysScrollableScrollPhysics(),
-        children: [
-          const SizedBox(height: 180),
-          _buildEmptyState(),
-        ],
+        physics: const AlwaysScrollableScrollPhysics(),
+        children: [const SizedBox(height: 180), _buildEmptyState()],
       );
     }
 
-    final items =
-        <_MessageListItem>[];
+    final items = <_MessageListItem>[];
 
     String? lastDate;
 
-    for (final message
-        in thread.messages) {
-      final date =
-          DateTime.tryParse(
-        message['createdAt']
-                ?.toString() ??
-            '',
-      );
+    for (final message in thread.messages) {
+      final date = DateTime.tryParse(message['createdAt']?.toString() ?? '');
 
-      final key =
-          date == null
-              ? ''
-              : _dateKey(date);
+      final key = date == null ? '' : _dateKey(date);
 
       if (key != lastDate) {
-        items.add(
-          _MessageListItem.date(
-            date,
-          ),
-        );
+        items.add(_MessageListItem.date(date));
 
         lastDate = key;
       }
 
-      items.add(
-        _MessageListItem.message(
-          message,
-        ),
-      );
+      items.add(_MessageListItem.message(message));
     }
 
     return ListView.builder(
       reverse: true,
-      controller:
-          _scrollController,
-      physics:
-          const AlwaysScrollableScrollPhysics(),
-      padding:
-          const EdgeInsets.fromLTRB(
-        16,
-        16,
-        16,
-        12,
-      ),
+      controller: _scrollController,
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
       itemCount: items.length,
-      itemBuilder:
-          (context, index) {
-        final item =
-            items[
-                items.length -
-                    1 -
-                    index];
+      itemBuilder: (context, index) {
+        final item = items[items.length - 1 - index];
 
         if (item.isDate) {
-          return _buildDateDivider(
-            item.date!,
-          );
+          return _buildDateDivider(item.date!);
         }
 
-        return _buildMessageBubble(
-          item.message!,
-        );
+        return _buildMessageBubble(item.message!);
       },
     );
   }
@@ -527,41 +418,23 @@ class _ChatDetailScreenState
   // DATE
   // ==============================================================
 
-  Widget _buildDateDivider(
-    DateTime date,
-  ) {
+  Widget _buildDateDivider(DateTime date) {
     return Padding(
-      padding:
-          const EdgeInsets.symmetric(
-        vertical: 14,
-      ),
+      padding: const EdgeInsets.symmetric(vertical: 14),
       child: Center(
         child: Container(
-          padding:
-              const EdgeInsets.symmetric(
-            horizontal: 13,
-            vertical: 6,
-          ),
-          decoration:
-              BoxDecoration(
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
+          decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius:
-                BorderRadius.circular(
-              20,
-            ),
-            border: Border.all(
-              color:
-                  AppColors.borderColor,
-            ),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: AppColors.borderColor),
           ),
           child: Text(
             _formatDate(date),
             style: GoogleFonts.inter(
               fontSize: 10,
-              fontWeight:
-                  FontWeight.w600,
-              color:
-                  AppColors.mutedColor,
+              fontWeight: FontWeight.w600,
+              color: AppColors.mutedColor,
             ),
           ),
         ),
@@ -573,245 +446,106 @@ class _ChatDetailScreenState
   // MESSAGE
   // ==============================================================
 
- Widget _buildMessageBubble(
-  Map<String, dynamic> message,
-) {
-  final mine = message['mine'] == true;
+  Widget _buildMessageBubble(Map<String, dynamic> message) {
+    final mine = message['mine'] == true;
 
-  final type = _messageType(message);
+    final type = _messageType(message);
 
-  final pending = message['pending'] == true;
-  final failed = message['failed'] == true;
+    // final pending = message['pending'] == true;
+    final failed = message['failed'] == true;
 
-  Widget content;
+    Widget content;
 
-  switch (type) {
-    case 'image':
-      content = _buildImageMessage(
-        message,
-        mine,
-      );
-      break;
+    switch (type) {
+      case 'image':
+        content = _buildImageMessage(message, mine);
+        break;
 
-    case 'voice':
-      content = _buildVoiceMessage(
-        message,
-        mine,
-      );
-      break;
+      case 'voice':
+        content = _buildVoiceMessage(message, mine);
+        break;
 
-    default:
-      content = _buildTextMessage(
-        message,
-        mine,
-      );
-  }
+      default:
+        content = _buildTextMessage(message, mine);
+    }
 
-  return Padding(
-    padding: const EdgeInsets.only(
-      bottom: 8,
-    ),
-    child: Row(
-      mainAxisAlignment: mine
-          ? MainAxisAlignment.end
-          : MainAxisAlignment.start,
-      crossAxisAlignment:
-          CrossAxisAlignment.end,
-      children: [
-        if (mine && failed)
-          Padding(
-            padding: const EdgeInsets.only(
-              right: 6,
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        mainAxisAlignment: mine
+            ? MainAxisAlignment.end
+            : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          if (mine && failed)
+            Padding(
+              padding: const EdgeInsets.only(right: 6),
+              child: GestureDetector(
+                onTap: () => _retryMessage(message),
+                child: const Icon(
+                  Icons.refresh_rounded,
+                  size: 20,
+                  color: Colors.redAccent,
+                ),
+              ),
             ),
+
+          // IMPORTANT:
+          // Constrain the bubble, but DON'T force
+          // it to take the full width.
+          Flexible(
             child: GestureDetector(
-              onTap: () => _retryMessage(
-                message,
-              ),
-              child: const Icon(
-                Icons.refresh_rounded,
-                size: 20,
-                color: Colors.redAccent,
+              onTap: failed ? () => _retryMessage(message) : null,
+              onLongPress: mine ? () => _showDeleteDialog(message) : null,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: MediaQuery.of(context).size.width * 0.72,
+                ),
+                child: content,
               ),
             ),
           ),
-
-        // IMPORTANT:
-        // Constrain the bubble, but DON'T force
-        // it to take the full width.
-        Flexible(
-          child: GestureDetector(
-            onTap: failed
-                ? () => _retryMessage(message)
-                : null,
-            onLongPress: mine
-                ? () => _showDeleteDialog(
-                      message,
-                    )
-                : null,
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxWidth:
-                    MediaQuery.of(context).size.width *
-                        0.72,
-              ),
-              child: content,
-            ),
-          ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
   // ==============================================================
   // TEXT
   // ==============================================================
 
-  Widget _buildTextMessage(
-  Map<String, dynamic> message,
-  bool mine,
-) {
-  final pending =
-      message['pending'] == true;
+  Widget _buildTextMessage(Map<String, dynamic> message, bool mine) {
+    final pending = message['pending'] == true;
 
-  final failed =
-      message['failed'] == true;
+    final failed = message['failed'] == true;
 
-  return Container(
-    padding: const EdgeInsets.symmetric(
-      horizontal: 13,
-      vertical: 9,
-    ),
-    decoration: BoxDecoration(
-      color: mine
-          ? AppColors.primaryFillColor
-          : Colors.white,
-      borderRadius: BorderRadius.only(
-        topLeft: const Radius.circular(16),
-        topRight: const Radius.circular(16),
-        bottomLeft: Radius.circular(
-          mine ? 16 : 4,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
+      decoration: BoxDecoration(
+        color: mine ? AppColors.primaryFillColor : Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: const Radius.circular(16),
+          topRight: const Radius.circular(16),
+          bottomLeft: Radius.circular(mine ? 16 : 4),
+          bottomRight: Radius.circular(mine ? 4 : 16),
         ),
-        bottomRight: Radius.circular(
-          mine ? 4 : 16,
-        ),
+        border: mine ? null : Border.all(color: AppColors.borderColor),
       ),
-      border: mine
-          ? null
-          : Border.all(
-              color: AppColors.borderColor,
-            ),
-    ),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment:
-          CrossAxisAlignment.end,
-      children: [
-        Text(
-          message['body']?.toString() ?? '',
-          style: GoogleFonts.inter(
-            fontSize: 13,
-            height: 1.35,
-            color: mine
-                ? Colors.white
-                : AppColors.textColor,
-          ),
-        ),
-
-        const SizedBox(height: 4),
-
-        Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              _messageTime(message),
-              style: GoogleFonts.inter(
-                fontSize: 9,
-                color: mine
-                    ? Colors.white.withValues(
-                        alpha: .70,
-                      )
-                    : AppColors.mutedColor,
-              ),
-            ),
-
-            if (mine) ...[
-              const SizedBox(width: 4),
-
-              _buildStatusIcon(
-                pending: pending,
-                failed: failed,
-                color: Colors.white,
-              ),
-            ],
-          ],
-        ),
-      ],
-    ),
-  );
-}
-  // ==============================================================
-  // IMAGE
-  // ==============================================================
-
-  Widget _buildImageMessage(
-  Map<String, dynamic> message,
-  bool mine,
-) {
-  final localPath = _localPath(message);
-  final url = _attachmentUrl(message);
-
-  final pending = message['pending'] == true;
-  final failed = message['failed'] == true;
-
-  return Container(
-    padding: const EdgeInsets.all(5),
-    decoration: BoxDecoration(
-      color: mine
-          ? AppColors.primaryFillColor
-          : Colors.white,
-      borderRadius: BorderRadius.only(
-        topLeft: const Radius.circular(16),
-        topRight: const Radius.circular(16),
-        bottomLeft: Radius.circular(
-          mine ? 16 : 4,
-        ),
-        bottomRight: Radius.circular(
-          mine ? 4 : 16,
-        ),
-      ),
-      border: mine
-          ? null
-          : Border.all(
-              color: AppColors.borderColor,
-            ),
-    ),
-    child: Column(
-      mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.end,
-      children: [
-        GestureDetector(
-          onTap: pending
-              ? null
-              : () => _showImageViewer(
-                    localPath,
-                    url,
-                  ),
-          child: ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: _buildImage(
-              localPath,
-              url,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(
+            message['body']?.toString() ?? '',
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              height: 1.35,
+              color: mine ? Colors.white : AppColors.textColor,
             ),
           ),
-        ),
 
-        Padding(
-          padding: const EdgeInsets.only(
-            right: 4,
-            top: 4,
-            bottom: 2,
-          ),
-          child: Row(
+          const SizedBox(height: 4),
+
+          Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
@@ -823,8 +557,10 @@ class _ChatDetailScreenState
                       : AppColors.mutedColor,
                 ),
               ),
+
               if (mine) ...[
                 const SizedBox(width: 4),
+
                 _buildStatusIcon(
                   pending: pending,
                   failed: failed,
@@ -833,42 +569,108 @@ class _ChatDetailScreenState
               ],
             ],
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
+  // ==============================================================
+  // IMAGE
+  // ==============================================================
 
-  Widget _buildImage(
-    String localPath,
-    String url,
-  ) {
-    if (localPath.isNotEmpty &&
-        File(localPath).existsSync()) {
+  Widget _buildImageMessage(Map<String, dynamic> message, bool mine) {
+    final localPath = _localPath(message);
+    final url = _attachmentUrl(message);
+
+    final pending = message['pending'] == true;
+    final failed = message['failed'] == true;
+
+    return Container(
+      padding: const EdgeInsets.all(5),
+      decoration: BoxDecoration(
+        color: mine ? AppColors.primaryFillColor : Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: const Radius.circular(16),
+          topRight: const Radius.circular(16),
+          bottomLeft: Radius.circular(mine ? 16 : 4),
+          bottomRight: Radius.circular(mine ? 4 : 16),
+        ),
+        border: mine ? null : Border.all(color: AppColors.borderColor),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          GestureDetector(
+            onTap: pending ? null : () => _showImageViewer(localPath, url),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(12),
+              child: _buildImage(localPath, url),
+            ),
+          ),
+
+          Padding(
+            padding: const EdgeInsets.only(right: 4, top: 4, bottom: 2),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _messageTime(message),
+                  style: GoogleFonts.inter(
+                    fontSize: 9,
+                    color: mine
+                        ? Colors.white.withValues(alpha: .70)
+                        : AppColors.mutedColor,
+                  ),
+                ),
+                if (mine) ...[
+                  const SizedBox(width: 4),
+                  _buildStatusIcon(
+                    pending: pending,
+                    failed: failed,
+                    color: Colors.white,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildImage(String localPath, String url) {
+    debugPrint('========== IMAGE LOAD ==========');
+    debugPrint('Local path: $localPath');
+    debugPrint('Image URL: $url');
+
+    if (localPath.isNotEmpty && File(localPath).existsSync()) {
+      debugPrint('Loading image from LOCAL FILE');
+
       return Image.file(
         File(localPath),
         width: 240,
         height: 190,
         fit: BoxFit.cover,
-        errorBuilder:
-            (_, __, ___) =>
-                _imageError(),
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint('LOCAL IMAGE ERROR: $error');
+          debugPrint('STACK: $stackTrace');
+          return _imageError();
+        },
       );
     }
 
     if (url.isNotEmpty) {
+      debugPrint('Loading image from NETWORK');
+
       return Image.network(
         url,
         width: 240,
         height: 190,
         fit: BoxFit.cover,
-        loadingBuilder:
-            (
-          context,
-          child,
-          progress,
-        ) {
+
+        loadingBuilder: (context, child, progress) {
           if (progress == null) {
+            debugPrint('IMAGE LOADED SUCCESSFULLY');
             return child;
           }
 
@@ -876,20 +678,24 @@ class _ChatDetailScreenState
             width: 240,
             height: 190,
             child: Center(
-              child:
-                  CircularProgressIndicator(
+              child: CircularProgressIndicator(
                 strokeWidth: 2,
-                color: AppColors
-                    .primaryFillColor,
+                color: AppColors.primaryFillColor,
               ),
             ),
           );
         },
-        errorBuilder:
-            (_, __, ___) =>
-                _imageError(),
+        errorBuilder: (context, error, stackTrace) {
+          debugPrint('NETWORK IMAGE ERROR: $error');
+          debugPrint('IMAGE URL: $url');
+          debugPrint('STACK: $stackTrace');
+
+          return _imageError();
+        },
       );
     }
+
+    debugPrint('IMAGE URL IS EMPTY');
 
     return _imageError();
   }
@@ -898,17 +704,12 @@ class _ChatDetailScreenState
     return Container(
       width: 240,
       height: 190,
-      color: const Color(
-        0xFFF4F1F3,
-      ),
-      alignment:
-          Alignment.center,
+      color: const Color(0xFFF4F1F3),
+      alignment: Alignment.center,
       child: Icon(
-        Icons
-            .image_not_supported_outlined,
+        Icons.image_not_supported_outlined,
         size: 38,
-        color:
-            AppColors.mutedColor,
+        color: AppColors.mutedColor,
       ),
     );
   }
@@ -917,51 +718,34 @@ class _ChatDetailScreenState
   // VOICE
   // ==============================================================
 
- Widget _buildVoiceMessage(
-  Map<String, dynamic> message,
-  bool mine,
-) {
-  final localPath = _localPath(message);
-  final url = _attachmentUrl(message);
+  Widget _buildVoiceMessage(Map<String, dynamic> message, bool mine) {
+    final localPath = _localPath(message);
+    final url = _attachmentUrl(message);
 
-  return Container(
-    padding: const EdgeInsets.symmetric(
-      horizontal: 10,
-      vertical: 9,
-    ),
-    decoration: BoxDecoration(
-      color: mine
-          ? AppColors.primaryFillColor
-          : Colors.white,
-      borderRadius: BorderRadius.only(
-        topLeft: const Radius.circular(16),
-        topRight: const Radius.circular(16),
-        bottomLeft: Radius.circular(
-          mine ? 16 : 4,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
+      decoration: BoxDecoration(
+        color: mine ? AppColors.primaryFillColor : Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: const Radius.circular(16),
+          topRight: const Radius.circular(16),
+          bottomLeft: Radius.circular(mine ? 16 : 4),
+          bottomRight: Radius.circular(mine ? 4 : 16),
         ),
-        bottomRight: Radius.circular(
-          mine ? 4 : 16,
-        ),
+        border: mine ? null : Border.all(color: AppColors.borderColor),
       ),
-      border: mine
-          ? null
-          : Border.all(
-              color: AppColors.borderColor,
-            ),
-    ),
-    child: _VoicePlayer(
-      key: ValueKey(
-        message['id']?.toString(),
+      child: _VoicePlayer(
+        key: ValueKey(message['id']?.toString()),
+        localPath: localPath,
+        url: url,
+        mine: mine,
+        time: _messageTime(message),
+        pending: message['pending'] == true,
+        failed: message['failed'] == true,
+        audioErrorText: ref.tr('chat.audioCouldNotBePlayed'),
       ),
-      localPath: localPath,
-      url: url,
-      mine: mine,
-      time: _messageTime(message),
-      pending: message['pending'] == true,
-      failed: message['failed'] == true,
-    ),
-  );
-}
+    );
+  }
   // ==============================================================
   // COMPOSER
   // ==============================================================
@@ -970,88 +754,56 @@ class _ChatDetailScreenState
     return SafeArea(
       top: false,
       child: Container(
-        padding:
-            const EdgeInsets.fromLTRB(
-          12,
-          8,
-          12,
-          10,
-        ),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
         color: Colors.white,
         child: Row(
-          crossAxisAlignment:
-              CrossAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Container(
               width: 42,
               height: 42,
-              decoration:
-                  const BoxDecoration(
-                color:
-                    Color(0xFFF8F4F6),
+              decoration: const BoxDecoration(
+                color: Color(0xFFF8F4F6),
                 shape: BoxShape.circle,
               ),
               child: IconButton(
-                onPressed:
-                    _pickImage,
-                padding:
-                    EdgeInsets.zero,
+                onPressed: _pickImage,
+                padding: EdgeInsets.zero,
                 icon: Icon(
-                  Icons
-                      .attach_file_rounded,
+                  Icons.attach_file_rounded,
                   size: 21,
-                  color: AppColors
-                      .primaryFillColor,
+                  color: AppColors.primaryFillColor,
                 ),
               ),
             ),
             const SizedBox(width: 7),
             Expanded(
               child: Container(
-                constraints:
-                    const BoxConstraints(
+                constraints: const BoxConstraints(
                   minHeight: 44,
                   maxHeight: 120,
                 ),
-                decoration:
-                    BoxDecoration(
-                  color: const Color(
-                    0xFFF8F4F6,
-                  ),
-                  borderRadius:
-                      BorderRadius.circular(
-                    22,
-                  ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8F4F6),
+                  borderRadius: BorderRadius.circular(22),
                 ),
                 child: TextField(
-                  controller:
-                      _messageController,
+                  controller: _messageController,
                   minLines: 1,
                   maxLines: 5,
-                  textCapitalization:
-                      TextCapitalization
-                          .sentences,
-                  style:
-                      GoogleFonts.inter(
+                  textCapitalization: TextCapitalization.sentences,
+                  style: GoogleFonts.inter(
                     fontSize: 13,
-                    color: AppColors
-                        .textColor,
+                    color: AppColors.textColor,
                   ),
-                  decoration:
-                      InputDecoration(
-                    border:
-                        InputBorder.none,
-                    hintText:
-                        'Type a message...',
-                    hintStyle:
-                        GoogleFonts.inter(
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    hintText: ref.tr('chat.typeMessage'),
+                    hintStyle: GoogleFonts.inter(
                       fontSize: 13,
-                      color: AppColors
-                          .mutedColor,
+                      color: AppColors.mutedColor,
                     ),
-                    contentPadding:
-                        const EdgeInsets
-                            .symmetric(
+                    contentPadding: const EdgeInsets.symmetric(
                       horizontal: 16,
                       vertical: 11,
                     ),
@@ -1066,30 +818,21 @@ class _ChatDetailScreenState
             Container(
               width: 42,
               height: 42,
-              decoration:
-                  BoxDecoration(
+              decoration: BoxDecoration(
                 color: _isRecording
                     ? Colors.redAccent
-                    : const Color(
-                        0xFFF8F4F6,
-                      ),
+                    : const Color(0xFFF8F4F6),
                 shape: BoxShape.circle,
               ),
               child: IconButton(
-                onPressed:
-                    _toggleRecording,
-                padding:
-                    EdgeInsets.zero,
+                onPressed: _toggleRecording,
+                padding: EdgeInsets.zero,
                 icon: Icon(
-                  _isRecording
-                      ? Icons.stop_rounded
-                      : Icons
-                          .mic_none_rounded,
+                  _isRecording ? Icons.stop_rounded : Icons.mic_none_rounded,
                   size: 21,
                   color: _isRecording
                       ? Colors.white
-                      : AppColors
-                          .primaryFillColor,
+                      : AppColors.primaryFillColor,
                 ),
               ),
             ),
@@ -1097,19 +840,15 @@ class _ChatDetailScreenState
             Container(
               width: 42,
               height: 42,
-              decoration:
-                  const BoxDecoration(
-                color: AppColors
-                    .primaryFillColor,
+              decoration: const BoxDecoration(
+                color: AppColors.primaryFillColor,
                 shape: BoxShape.circle,
               ),
               child: IconButton(
                 onPressed: _send,
-                padding:
-                    EdgeInsets.zero,
+                padding: EdgeInsets.zero,
                 icon: const Icon(
-                  Icons
-                      .arrow_upward_rounded,
+                  Icons.arrow_upward_rounded,
                   size: 21,
                   color: Colors.white,
                 ),
@@ -1142,56 +881,34 @@ class _ChatDetailScreenState
       return SizedBox(
         width: 11,
         height: 11,
-        child:
-            CircularProgressIndicator(
-          strokeWidth: 1.5,
-          color: color,
-        ),
+        child: CircularProgressIndicator(strokeWidth: 1.5, color: color),
       );
     }
 
-    return Icon(
-      Icons.done_all_rounded,
-      size: 13,
-      color: color,
-    );
+    return Icon(Icons.done_all_rounded, size: 13, color: color);
   }
 
   // ==============================================================
   // RETRY
   // ==============================================================
 
-  Future<void> _retryMessage(
-    Map<String, dynamic> message,
-  ) async {
-    final id =
-        message['id']?.toString();
+  Future<void> _retryMessage(Map<String, dynamic> message) async {
+    final id = message['id']?.toString();
 
-    if (id == null ||
-        !id.startsWith('local_')) {
+    if (id == null || !id.startsWith('local_')) {
       return;
     }
 
-    final type =
-        _messageType(message);
+    final type = _messageType(message);
 
-    if (type == 'image' ||
-        type == 'voice') {
+    if (type == 'image' || type == 'voice') {
       await ref
           .read(chatProvider.notifier)
-          .retryAttachment(
-            conversationId:
-                widget.conversationId,
-            localId: id,
-          );
+          .retryAttachment(conversationId: widget.conversationId, localId: id);
     } else {
       await ref
           .read(chatProvider.notifier)
-          .retryMessage(
-            conversationId:
-                widget.conversationId,
-            localId: id,
-          );
+          .retryMessage(conversationId: widget.conversationId, localId: id);
     }
   }
 
@@ -1199,114 +916,72 @@ class _ChatDetailScreenState
   // DELETE
   // ==============================================================
 
-  Future<void> _showDeleteDialog(
-    Map<String, dynamic> message,
-  ) async {
-    final result =
-        await showDialog<bool>(
+  Future<void> _showDeleteDialog(Map<String, dynamic> message) async {
+    final result = await showDialog<bool>(
       context: context,
       builder: (context) {
         return Dialog(
-          shape:
-              RoundedRectangleBorder(
-            borderRadius:
-                BorderRadius.circular(
-              18,
-            ),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
           ),
           child: Padding(
-            padding:
-                const EdgeInsets.all(
-              20,
-            ),
+            padding: const EdgeInsets.all(20),
             child: Column(
-              mainAxisSize:
-                  MainAxisSize.min,
-              crossAxisAlignment:
-                  CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Delete message',
-                  style:
-                      GoogleFonts.inter(
+                  ref.tr('chat.deleteMessage'),
+                  style: GoogleFonts.inter(
                     fontSize: 17,
-                    fontWeight:
-                        FontWeight.w700,
-                    color: AppColors
-                        .textColor,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textColor,
                   ),
                 ),
-                const SizedBox(
-                  height: 8,
-                ),
+                const SizedBox(height: 8),
                 Text(
-                  'This message will disappear for everyone in this chat. This cannot be undone.',
-                  style:
-                      GoogleFonts.inter(
+                  ref.tr('chat.deleteMessageDescription'),
+                  style: GoogleFonts.inter(
                     fontSize: 12,
                     height: 1.4,
-                    color: AppColors
-                        .mutedColor,
+                    color: AppColors.mutedColor,
                   ),
                 ),
-                const SizedBox(
-                  height: 20,
-                ),
+                const SizedBox(height: 20),
                 Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment.end,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     TextButton(
                       onPressed: () {
-                        Navigator.of(
-                          context,
-                        ).pop(false);
+                        Navigator.of(context).pop(false);
                       },
                       child: Text(
-                        'Cancel',
-                        style:
-                            GoogleFonts.inter(
+                        ref.tr('chat.cancel'),
+                        style: GoogleFonts.inter(
                           fontSize: 12,
-                          fontWeight:
-                              FontWeight.w600,
-                          color: AppColors
-                              .mutedColor,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.mutedColor,
                         ),
                       ),
                     ),
-                    const SizedBox(
-                      width: 6,
-                    ),
+                    const SizedBox(width: 6),
                     ElevatedButton(
                       onPressed: () {
-                        Navigator.of(
-                          context,
-                        ).pop(true);
+                        Navigator.of(context).pop(true);
                       },
-                      style:
-                          ElevatedButton.styleFrom(
-                        backgroundColor:
-                            AppColors
-                                .primaryFillColor,
-                        foregroundColor:
-                            Colors.white,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primaryFillColor,
+                        foregroundColor: Colors.white,
                         elevation: 0,
-                        shape:
-                            RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius
-                                  .circular(
-                            10,
-                          ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
                         ),
                       ),
                       child: Text(
-                        'Delete',
-                        style:
-                            GoogleFonts.inter(
+                        ref.tr('chat.delete'),
+                        style: GoogleFonts.inter(
                           fontSize: 12,
-                          fontWeight:
-                              FontWeight.w600,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
                     ),
@@ -1319,28 +994,24 @@ class _ChatDetailScreenState
       },
     );
 
-    if (result != true ||
-        !mounted) {
+    if (result != true || !mounted) {
       return;
     }
 
-    final id =
-        message['id']?.toString() ?? '';
+    final id = message['id']?.toString() ?? '';
 
     if (id.startsWith('local_')) {
       await ref
           .read(chatProvider.notifier)
           .removeLocalMessage(
-            conversationId:
-                widget.conversationId,
+            conversationId: widget.conversationId,
             localId: id,
           );
 
       return;
     }
 
-    final messageId =
-        int.tryParse(id);
+    final messageId = int.tryParse(id);
 
     if (messageId == null) {
       return;
@@ -1349,8 +1020,7 @@ class _ChatDetailScreenState
     await ref
         .read(chatProvider.notifier)
         .deleteMessage(
-          conversationId:
-              widget.conversationId,
+          conversationId: widget.conversationId,
           messageId: messageId,
         );
   }
@@ -1359,45 +1029,28 @@ class _ChatDetailScreenState
   // IMAGE VIEWER
   // ==============================================================
 
-  void _showImageViewer(
-    String localPath,
-    String url,
-  ) {
-    if (localPath.isEmpty &&
-        url.isEmpty) {
+  void _showImageViewer(String localPath, String url) {
+    if (localPath.isEmpty && url.isEmpty) {
       return;
     }
 
     showDialog(
       context: context,
-      barrierColor:
-          Colors.black87,
+      barrierColor: Colors.black87,
       builder: (_) {
         Widget image;
 
-        if (localPath.isNotEmpty &&
-            File(localPath).existsSync()) {
-          image = Image.file(
-            File(localPath),
-            fit: BoxFit.contain,
-          );
+        if (localPath.isNotEmpty && File(localPath).existsSync()) {
+          image = Image.file(File(localPath), fit: BoxFit.contain);
         } else {
-          image = Image.network(
-            url,
-            fit: BoxFit.contain,
-          );
+          image = Image.network(url, fit: BoxFit.contain);
         }
 
         return GestureDetector(
           onTap: () {
-            Navigator.of(context)
-                .pop();
+            Navigator.of(context).pop();
           },
-          child: Center(
-            child: InteractiveViewer(
-              child: image,
-            ),
-          ),
+          child: Center(child: InteractiveViewer(child: image)),
         );
       },
     );
@@ -1407,9 +1060,31 @@ class _ChatDetailScreenState
   // ATTACHMENT RESOLUTION
   // ==============================================================
 
-  String _attachmentUrl(
-    Map<String, dynamic> message,
-  ) {
+  String _attachmentUrl(Map<String, dynamic> message) {
+    final attachment = message['attachment'];
+
+    if (attachment is Map) {
+      final path = attachment['path']?.toString().trim() ?? '';
+
+      debugPrint('========== CHAT ATTACHMENT ==========');
+      debugPrint('Message ID: ${message['id']}');
+      debugPrint('Attachment kind: ${attachment['kind']}');
+      debugPrint('Attachment path: $path');
+      debugPrint('Attachment name: ${attachment['name']}');
+      debugPrint('Attachment mimeType: ${attachment['mimeType']}');
+      debugPrint('Attachment size: ${attachment['size']}');
+
+      if (path.isNotEmpty) {
+        final resolved = _resolveUrl(path);
+
+        debugPrint('Final attachment URL: $resolved');
+        debugPrint('====================================');
+
+        return resolved;
+      }
+    }
+
+    // Fallback for other possible API response formats.
     final candidates = <dynamic>[
       message['attachmentUrl'],
       message['fileUrl'],
@@ -1419,19 +1094,24 @@ class _ChatDetailScreenState
       message['url'],
       message['filePath'],
       message['path'],
-      message['attachment'],
       message['file'],
       message['media'],
     ];
 
     for (final candidate in candidates) {
-      final result =
-          _findUrl(candidate);
+      final result = _findUrl(candidate);
 
       if (result.isNotEmpty) {
-        return _resolveUrl(result);
+        final resolved = _resolveUrl(result);
+
+        debugPrint('Fallback attachment value: $result');
+        debugPrint('Final attachment URL: $resolved');
+
+        return resolved;
       }
     }
+
+    debugPrint('No attachment URL found for message ${message['id']}');
 
     return '';
   }
@@ -1452,10 +1132,7 @@ class _ChatDetailScreenState
     }
 
     if (value is Map) {
-      final map =
-          Map<String, dynamic>.from(
-        value,
-      );
+      final map = Map<String, dynamic>.from(value);
 
       final keys = [
         'url',
@@ -1472,8 +1149,7 @@ class _ChatDetailScreenState
       ];
 
       for (final key in keys) {
-        final result =
-            _findUrl(map[key]);
+        final result = _findUrl(map[key]);
 
         if (result.isNotEmpty) {
           return result;
@@ -1482,8 +1158,7 @@ class _ChatDetailScreenState
 
       // Some APIs nest the attachment.
       for (final value in map.values) {
-        final result =
-            _findUrl(value);
+        final result = _findUrl(value);
 
         if (result.isNotEmpty) {
           return result;
@@ -1495,8 +1170,7 @@ class _ChatDetailScreenState
   }
 
   String _resolveUrl(String value) {
-    if (value.startsWith('http://') ||
-        value.startsWith('https://')) {
+    if (value.startsWith('http://') || value.startsWith('https://')) {
       return value;
     }
 
@@ -1511,11 +1185,8 @@ class _ChatDetailScreenState
     return '$_fileBaseUrl/$value';
   }
 
-  bool _looksLikeAttachment(
-    String value,
-  ) {
-    final lower =
-        value.toLowerCase();
+  bool _looksLikeAttachment(String value) {
+    final lower = value.toLowerCase();
 
     return lower.endsWith('.jpg') ||
         lower.endsWith('.jpeg') ||
@@ -1533,9 +1204,7 @@ class _ChatDetailScreenState
         lower.contains('/media/');
   }
 
-  String _localPath(
-    Map<String, dynamic> message,
-  ) {
+  String _localPath(Map<String, dynamic> message) {
     final candidates = [
       message['localPath'],
       message['filePath'],
@@ -1544,25 +1213,18 @@ class _ChatDetailScreenState
       message['imagePath'],
     ];
 
-    for (final candidate
-        in candidates) {
-      final value =
-          candidate?.toString().trim() ??
-              '';
+    for (final candidate in candidates) {
+      final value = candidate?.toString().trim() ?? '';
 
       if (value.isNotEmpty) {
         return value;
       }
     }
 
-    final attachment =
-        message['attachment'];
+    final attachment = message['attachment'];
 
     if (attachment is Map) {
-      final path =
-          attachment['localPath']
-                  ?.toString() ??
-              '';
+      final path = attachment['localPath']?.toString() ?? '';
 
       if (path.isNotEmpty) {
         return path;
@@ -1576,9 +1238,7 @@ class _ChatDetailScreenState
   // TYPE
   // ==============================================================
 
-  String _messageType(
-    Map<String, dynamic> message,
-  ) {
+  String _messageType(Map<String, dynamic> message) {
     final values = [
       message['type'],
       message['messageType'],
@@ -1587,17 +1247,13 @@ class _ChatDetailScreenState
     ];
 
     for (final value in values) {
-      final type =
-          value?.toString()
-              .trim()
-              .toLowerCase();
+      final type = value?.toString().trim().toLowerCase();
 
       if (type == 'image') {
         return 'image';
       }
 
-      if (type == 'voice' ||
-          type == 'audio') {
+      if (type == 'voice' || type == 'audio') {
         return 'voice';
       }
 
@@ -1613,10 +1269,7 @@ class _ChatDetailScreenState
     ];
 
     for (final value in mimeValues) {
-      final mime =
-          value?.toString()
-              .toLowerCase() ??
-          '';
+      final mime = value?.toString().toLowerCase() ?? '';
 
       if (mime.startsWith('image/')) {
         return 'image';
@@ -1627,15 +1280,10 @@ class _ChatDetailScreenState
       }
     }
 
-    final attachment =
-        message['attachment'];
+    final attachment = message['attachment'];
 
     if (attachment is Map) {
-      final mime =
-          attachment['mimeType']
-                  ?.toString()
-                  .toLowerCase() ??
-              '';
+      final mime = attachment['mimeType']?.toString().toLowerCase() ?? '';
 
       if (mime.startsWith('image/')) {
         return 'image';
@@ -1646,9 +1294,7 @@ class _ChatDetailScreenState
       }
     }
 
-    final url =
-        _attachmentUrl(message)
-            .toLowerCase();
+    final url = _attachmentUrl(message).toLowerCase();
 
     if (_isImageUrl(url)) {
       return 'image';
@@ -1658,9 +1304,7 @@ class _ChatDetailScreenState
       return 'voice';
     }
 
-    final local =
-        _localPath(message)
-            .toLowerCase();
+    final local = _localPath(message).toLowerCase();
 
     if (_isImageUrl(local)) {
       return 'image';
@@ -1694,15 +1338,8 @@ class _ChatDetailScreenState
   // TIME
   // ==============================================================
 
-  String _messageTime(
-    Map<String, dynamic> message,
-  ) {
-    final date =
-        DateTime.tryParse(
-      message['createdAt']
-              ?.toString() ??
-          '',
-    );
+  String _messageTime(Map<String, dynamic> message) {
+    final date = DateTime.tryParse(message['createdAt']?.toString() ?? '');
 
     if (date == null) {
       return '';
@@ -1711,33 +1348,23 @@ class _ChatDetailScreenState
     return _formatTime(date);
   }
 
-  String _formatTime(
-    DateTime date,
-  ) {
+  String _formatTime(DateTime date) {
     final local = date.toLocal();
 
     final hour = local.hour == 0
         ? 12
         : local.hour > 12
-            ? local.hour - 12
-            : local.hour;
+        ? local.hour - 12
+        : local.hour;
 
-    final minute =
-        local.minute
-            .toString()
-            .padLeft(2, '0');
+    final minute = local.minute.toString().padLeft(2, '0');
 
-    final period =
-        local.hour >= 12
-            ? 'PM'
-            : 'AM';
+    final period = local.hour >= 12 ? 'PM' : 'AM';
 
     return '$hour:$minute $period';
   }
 
-  String _dateKey(
-    DateTime date,
-  ) {
+  String _dateKey(DateTime date) {
     final local = date.toLocal();
 
     return '${local.year}-'
@@ -1745,38 +1372,23 @@ class _ChatDetailScreenState
         '${local.day}';
   }
 
-  String _formatDate(
-    DateTime date,
-  ) {
-    final local =
-        date.toLocal();
+  String _formatDate(DateTime date) {
+    final local = date.toLocal();
 
-    final now =
-        DateTime.now();
+    final now = DateTime.now();
 
-    final today = DateTime(
-      now.year,
-      now.month,
-      now.day,
-    );
+    final today = DateTime(now.year, now.month, now.day);
 
-    final messageDay = DateTime(
-      local.year,
-      local.month,
-      local.day,
-    );
+    final messageDay = DateTime(local.year, local.month, local.day);
 
-    final difference =
-        today
-            .difference(messageDay)
-            .inDays;
+    final difference = today.difference(messageDay).inDays;
 
     if (difference == 0) {
-      return 'Today';
+      return ref.tr('chat.today');
     }
 
     if (difference == 1) {
-      return 'Yesterday';
+      return ref.tr('chat.yesterday');
     }
 
     return '${local.day.toString().padLeft(2, '0')}/'
@@ -1784,30 +1396,18 @@ class _ChatDetailScreenState
         '${local.year}';
   }
 
-  void _showMessage(
-    String message,
-  ) {
+  void _showMessage(String message) {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text(
-            message,
-            style: GoogleFonts.inter(
-              fontSize: 12,
-            ),
-          ),
+          content: Text(message, style: GoogleFonts.inter(fontSize: 12)),
         ),
       );
   }
 
   String _cleanError(Object error) {
-    return error
-        .toString()
-        .replaceFirst(
-          'Exception: ',
-          '',
-        );
+    return error.toString().replaceFirst('Exception: ', '');
   }
 
   Widget _buildEmptyState() {
@@ -1816,42 +1416,30 @@ class _ChatDetailScreenState
         Container(
           width: 64,
           height: 64,
-          decoration:
-              BoxDecoration(
-            color: AppColors
-                .primaryFillColor
-                .withValues(alpha: .10),
+          decoration: BoxDecoration(
+            color: AppColors.primaryFillColor.withValues(alpha: .10),
             shape: BoxShape.circle,
           ),
           child: Icon(
-            Icons
-                .chat_bubble_outline_rounded,
-            color:
-                AppColors.primaryFillColor,
+            Icons.chat_bubble_outline_rounded,
+            color: AppColors.primaryFillColor,
             size: 28,
           ),
         ),
         const SizedBox(height: 14),
         Text(
-          'Say hello',
+          ref.tr('chat.sayHello'),
           style: GoogleFonts.inter(
             fontSize: 16,
-            fontWeight:
-                FontWeight.w700,
-            color:
-                AppColors.textColor,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textColor,
           ),
         ),
         const SizedBox(height: 5),
         Text(
-          'No messages here yet — send the first one.',
-          textAlign:
-              TextAlign.center,
-          style: GoogleFonts.inter(
-            fontSize: 11.5,
-            color:
-                AppColors.mutedColor,
-          ),
+          ref.tr('chat.noMessages'),
+          textAlign: TextAlign.center,
+          style: GoogleFonts.inter(fontSize: 11.5, color: AppColors.mutedColor),
         ),
       ],
     );
@@ -1866,30 +1454,25 @@ class _MessageListItem {
   final Map<String, dynamic>? message;
   final DateTime? date;
 
-  const _MessageListItem.message(
-    this.message,
-  ) : date = null;
+  const _MessageListItem.message(this.message) : date = null;
 
-  const _MessageListItem.date(
-    this.date,
-  ) : message = null;
+  const _MessageListItem.date(this.date) : message = null;
 
-  bool get isDate =>
-      message == null;
+  bool get isDate => message == null;
 }
 
 // ================================================================
 // Voice Player
 // ================================================================
 
-class _VoicePlayer
-    extends StatefulWidget {
+class _VoicePlayer extends StatefulWidget {
   final String localPath;
   final String url;
   final bool mine;
   final String time;
   final bool pending;
   final bool failed;
+  final String audioErrorText;
 
   const _VoicePlayer({
     super.key,
@@ -1899,17 +1482,15 @@ class _VoicePlayer
     required this.time,
     required this.pending,
     required this.failed,
+    required this.audioErrorText,
   });
 
   @override
-  State<_VoicePlayer> createState() =>
-      _VoicePlayerState();
+  State<_VoicePlayer> createState() => _VoicePlayerState();
 }
 
-class _VoicePlayerState
-    extends State<_VoicePlayer> {
-  final AudioPlayer _player =
-      AudioPlayer();
+class _VoicePlayerState extends State<_VoicePlayer> {
+  final AudioPlayer _player = AudioPlayer();
 
   bool _loading = false;
   bool _loaded = false;
@@ -1921,13 +1502,11 @@ class _VoicePlayerState
   }
 
   Future<void> _playPause() async {
-    if (widget.pending ||
-        widget.failed) {
+    if (widget.pending || widget.failed) {
       return;
     }
 
-    if (widget.localPath.isEmpty &&
-        widget.url.isEmpty) {
+    if (widget.localPath.isEmpty && widget.url.isEmpty) {
       return;
     }
 
@@ -1937,11 +1516,8 @@ class _VoicePlayerState
         return;
       }
 
-      if (_player.processingState ==
-          ProcessingState.completed) {
-        await _player.seek(
-          Duration.zero,
-        );
+      if (_player.processingState == ProcessingState.completed) {
+        await _player.seek(Duration.zero);
       }
 
       if (!_loaded) {
@@ -1950,15 +1526,10 @@ class _VoicePlayerState
         });
 
         if (widget.localPath.isNotEmpty &&
-            File(widget.localPath)
-                .existsSync()) {
-          await _player.setFilePath(
-            widget.localPath,
-          );
+            File(widget.localPath).existsSync()) {
+          await _player.setFilePath(widget.localPath);
         } else if (widget.url.isNotEmpty) {
-          await _player.setUrl(
-            widget.url,
-          );
+          await _player.setUrl(widget.url);
         } else {
           if (mounted) {
             setState(() {
@@ -1991,11 +1562,8 @@ class _VoicePlayerState
         ..showSnackBar(
           SnackBar(
             content: Text(
-              'Audio could not be played.',
-              style:
-                  GoogleFonts.inter(
-                fontSize: 12,
-              ),
+              widget.audioErrorText,
+              style: GoogleFonts.inter(fontSize: 12),
             ),
           ),
         );
@@ -2004,10 +1572,7 @@ class _VoicePlayerState
 
   @override
   Widget build(BuildContext context) {
-    final foreground =
-        widget.mine
-            ? Colors.white
-            : AppColors.textColor;
+    final foreground = widget.mine ? Colors.white : AppColors.textColor;
 
     return Row(
       children: [
@@ -2016,53 +1581,29 @@ class _VoicePlayerState
           child: Container(
             width: 44,
             height: 44,
-            decoration:
-                BoxDecoration(
+            decoration: BoxDecoration(
               color: widget.mine
-                  ? Colors.white
-                      .withValues(
-                      alpha: .15,
-                    )
-                  : AppColors
-                      .primaryFillColor
-                      .withValues(
-                      alpha: .10,
-                    ),
+                  ? Colors.white.withValues(alpha: .15)
+                  : AppColors.primaryFillColor.withValues(alpha: .10),
               shape: BoxShape.circle,
             ),
-            child:
-                StreamBuilder<
-                    PlayerState>(
-              stream:
-                  _player
-                      .playerStateStream,
-              builder:
-                  (context, snapshot) {
+            child: StreamBuilder<PlayerState>(
+              stream: _player.playerStateStream,
+              builder: (context, snapshot) {
                 if (_loading) {
                   return Padding(
-                    padding:
-                        const EdgeInsets
-                            .all(12),
-                    child:
-                        CircularProgressIndicator(
+                    padding: const EdgeInsets.all(12),
+                    child: CircularProgressIndicator(
                       strokeWidth: 1.8,
-                      color:
-                          foreground,
+                      color: foreground,
                     ),
                   );
                 }
 
-                final playing =
-                    snapshot.data
-                            ?.playing ==
-                        true;
+                final playing = snapshot.data?.playing == true;
 
                 return Icon(
-                  playing
-                      ? Icons
-                          .pause_rounded
-                      : Icons
-                          .play_arrow_rounded,
+                  playing ? Icons.pause_rounded : Icons.play_arrow_rounded,
                   size: 25,
                   color: foreground,
                 );
@@ -2075,150 +1616,79 @@ class _VoicePlayerState
 
         Expanded(
           child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment
-                    .start,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              StreamBuilder<
-                  Duration?>(
-                stream:
-                    _player
-                        .durationStream,
-                builder:
-                    (context, durationSnapshot) {
-                  final duration =
-                      durationSnapshot
-                              .data ??
-                          Duration.zero;
+              StreamBuilder<Duration?>(
+                stream: _player.durationStream,
+                builder: (context, durationSnapshot) {
+                  final duration = durationSnapshot.data ?? Duration.zero;
 
-                  return StreamBuilder<
-                      Duration>(
-                    stream: _player
-                        .positionStream,
-                    builder:
-                        (
-                      context,
-                      positionSnapshot,
-                    ) {
-                      final position =
-                          positionSnapshot
-                                  .data ??
-                              Duration.zero;
+                  return StreamBuilder<Duration>(
+                    stream: _player.positionStream,
+                    builder: (context, positionSnapshot) {
+                      final position = positionSnapshot.data ?? Duration.zero;
 
-                      final total =
-                          duration
-                              .inMilliseconds
-                              .toDouble();
+                      final total = duration.inMilliseconds.toDouble();
 
-                      final current =
-                          position
-                              .inMilliseconds
-                              .toDouble();
+                      final current = position.inMilliseconds.toDouble();
 
-                      final progress =
-                          total <= 0
-                              ? 0.0
-                              : (current /
-                                      total)
-                                  .clamp(
-                                  0.0,
-                                  1.0,
-                                );
+                      final progress = total <= 0
+                          ? 0.0
+                          : (current / total).clamp(0.0, 1.0);
 
                       return Column(
                         children: [
                           ClipRRect(
-                            borderRadius:
-                                BorderRadius
-                                    .circular(
-                              5,
-                            ),
-                            child:
-                                LinearProgressIndicator(
-                              value:
-                                  progress,
+                            borderRadius: BorderRadius.circular(5),
+                            child: LinearProgressIndicator(
+                              value: progress,
                               minHeight: 4,
-                              backgroundColor:
-                                  foreground
-                                      .withValues(
+                              backgroundColor: foreground.withValues(
                                 alpha: .20,
                               ),
-                              color:
-                                  foreground
-                                      .withValues(
-                                alpha: .75,
-                              ),
+                              color: foreground.withValues(alpha: .75),
                             ),
                           ),
-                          const SizedBox(
-                            height: 5,
-                          ),
+                          const SizedBox(height: 5),
                           Row(
                             children: [
                               Text(
-                                _durationText(
-                                  position,
-                                ),
-                                style:
-                                    GoogleFonts.inter(
-                                  fontSize:
-                                      9,
-                                  color:
-                                      foreground.withValues(
-                                    alpha:
-                                        .70,
-                                  ),
+                                _durationText(position),
+                                style: GoogleFonts.inter(
+                                  fontSize: 9,
+                                  color: foreground.withValues(alpha: .70),
                                 ),
                               ),
                               const Spacer(),
                               Text(
                                 widget.time,
-                                style:
-                                    GoogleFonts.inter(
-                                  fontSize:
-                                      9,
-                                  color:
-                                      foreground.withValues(
-                                    alpha:
-                                        .70,
-                                  ),
+                                style: GoogleFonts.inter(
+                                  fontSize: 9,
+                                  color: foreground.withValues(alpha: .70),
                                 ),
                               ),
                               if (widget.mine) ...[
-                                const SizedBox(
-                                  width: 4,
-                                ),
+                                const SizedBox(width: 4),
                                 if (widget.failed)
                                   const Icon(
-                                    Icons
-                                        .error_outline_rounded,
-                                    size:
-                                        13,
-                                    color:
-                                        Colors.redAccent,
+                                    Icons.error_outline_rounded,
+                                    size: 13,
+                                    color: Colors.redAccent,
                                   )
                                 else if (widget.pending)
                                   SizedBox(
-                                    width:
-                                        10,
-                                    height:
-                                        10,
-                                    child:
-                                        CircularProgressIndicator(
-                                      strokeWidth:
-                                          1.4,
-                                      color:
-                                          foreground,
+                                    width: 10,
+                                    height: 10,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 1.4,
+                                      color: foreground,
                                     ),
                                   )
                                 else
                                   Icon(
-                                    Icons
-                                        .done_all_rounded,
-                                    size:
-                                        13,
-                                    color:
-                                        foreground,
+                                    Icons.done_all_rounded,
+                                    size: 13,
+                                    color: foreground,
                                   ),
                               ],
                             ],
@@ -2236,18 +1706,10 @@ class _VoicePlayerState
     );
   }
 
-  String _durationText(
-    Duration duration,
-  ) {
-    final minutes =
-        duration.inMinutes
-            .toString()
-            .padLeft(2, '0');
+  String _durationText(Duration duration) {
+    final minutes = duration.inMinutes.toString().padLeft(2, '0');
 
-    final seconds =
-        (duration.inSeconds % 60)
-            .toString()
-            .padLeft(2, '0');
+    final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
 
     return '$minutes:$seconds';
   }

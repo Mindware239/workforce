@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio/just_audio.dart';
 
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/features/task/providers/task_provider.dart';
 
 class TasksScreen extends ConsumerStatefulWidget {
@@ -147,7 +148,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'My Tasks',
+          ref.tr('tasks.title'),
           style: GoogleFonts.inter(
             fontSize: 30,
             fontWeight: FontWeight.bold,
@@ -195,7 +196,12 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                       ),
                     ),
                     child: Text(
-                      filters[index],
+                      {
+                        'All': ref.tr('tasks.all'),
+                        'To Do': ref.tr('tasks.toDo'),
+                        'In progress': ref.tr('tasks.inProgress'),
+                        'Completed': ref.tr('tasks.completed'),
+                      }[filters[index]] ?? filters[index],
                       style: GoogleFonts.inter(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
@@ -225,16 +231,16 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
             borderRadius: BorderRadius.circular(12),
           ),
           itemBuilder: (context) {
-            return const [
+            return  [
               PopupMenuItem(
                 value: 'Assigned to me',
-                child: Text('Assigned to me'),
+                child: Text(ref.tr('tasks.assignedToMe')),
               ),
               PopupMenuItem(
                 value: 'Assigned by me',
-                child: Text('Assigned by me'),
+                child: Text(ref.tr('tasks.assignedByMe')),
               ),
-              PopupMenuItem(value: 'All tasks', child: Text('All tasks')),
+              PopupMenuItem(value: 'All tasks', child: Text(ref.tr('tasks.allTasks'))),
             ];
           },
           child: Container(
@@ -249,7 +255,11 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  selectedAssignee,
+                  {
+                    'Assigned to me': ref.tr('tasks.assignedToMe'),
+                    'Assigned by me': ref.tr('tasks.assignedByMe'),
+                    'All tasks': ref.tr('tasks.allTasks'),
+                  }[selectedAssignee] ?? selectedAssignee,
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
@@ -294,8 +304,8 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
     SnackBar(
       content: Text(
         success
-            ? 'Task started successfully'
-            : message ?? 'Unable to start task.',
+            ? ref.tr('tasks.startedSuccessfully')
+            : message ?? ref.tr('tasks.unableToStart'),
       ),
     ),
   );
@@ -317,7 +327,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            ref.read(taskProvider).message ?? 'Unable to load task.',
+            ref.read(taskProvider).message ?? ref.tr('tasks.unableToLoad'),
           ),
         ),
       );
@@ -362,7 +372,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
           ),
           const SizedBox(height: 10),
           Text(
-            'No tasks found',
+            ref.tr('tasks.noTasks'),
             style: GoogleFonts.inter(
               fontSize: 14,
               fontWeight: FontWeight.w600,
@@ -384,7 +394,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
           const Icon(Icons.error_outline, size: 42, color: Color(0xFFB7AFC0)),
           const SizedBox(height: 10),
           Text(
-            message ?? 'Unable to load tasks.',
+            message ?? ref.tr('tasks.unableToLoadTasks'),
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 14,
@@ -393,14 +403,14 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          OutlinedButton(onPressed: _loadTasks, child: const Text('Retry')),
+          OutlinedButton(onPressed: _loadTasks, child:  Text(ref.tr('common.retry'))),
         ],
       ),
     );
   }
 }
 
-class _TaskCard extends StatelessWidget {
+class _TaskCard extends ConsumerWidget {
   final Map<String, dynamic> task;
 
   final VoidCallback onStart;
@@ -413,7 +423,7 @@ class _TaskCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final title = task['title']?.toString() ?? '';
 
     final description = task['description']?.toString() ?? '';
@@ -487,7 +497,10 @@ class _TaskCard extends StatelessWidget {
 
                     if (priority.isNotEmpty) ...[
                       const SizedBox(width: 5),
-                      _PriorityBadge(text: _formatPriority(priority)),
+                      _PriorityBadge(
+                         text: _formatPriority(priority, ref),
+                         priorityKey: priority,
+                       ),
                     ],
                   ],
                 ),
@@ -495,7 +508,7 @@ class _TaskCard extends StatelessWidget {
                 const SizedBox(height: 8),
 
                 _StatusBadge(
-                  text: _formatStatus(status),
+                  text: _formatStatus(status, ref),
                   completed: isCompleted,
                 ),
 
@@ -524,7 +537,7 @@ class _TaskCard extends StatelessWidget {
                   'Assigned to '
                   '${assignedToName.isNotEmpty ? assignedToName : 'you'}'
                   '${assignedByName.isNotEmpty ? ' • by $assignedByName' : ''}'
-                  '${dueDate.isNotEmpty ? ' • due ${_formatDate(dueDate)}' : ''}',
+                  '${dueDate.isNotEmpty ? ' • due ${_formatDate(dueDate, ref)}' : ''}',
                   style: GoogleFonts.inter(
                     fontSize: 11,
                     fontWeight: FontWeight.w400,
@@ -554,7 +567,7 @@ class _TaskCard extends StatelessWidget {
                       ),
                     ),
                     child: Text(
-                      'Start',
+                      ref.tr('tasks.start'),
                       style: GoogleFonts.inter(
                         fontSize: 11,
                         fontWeight: FontWeight.w500,
@@ -576,15 +589,19 @@ class _TaskCard extends StatelessWidget {
 
 class _PriorityBadge extends StatelessWidget {
   final String text;
+  final String priorityKey;
 
-  const _PriorityBadge({required this.text});
+  const _PriorityBadge({
+    required this.text,
+    this.priorityKey = '',
+  });
 
   @override
   Widget build(BuildContext context) {
     Color background;
     Color textColor;
 
-    switch (text.toLowerCase()) {
+    switch (priorityKey.toLowerCase()) {
       case 'high':
         background = const Color(0xFFFFE9C8);
         textColor = const Color(0xFFB96900);
@@ -630,9 +647,14 @@ class _PriorityBadge extends StatelessWidget {
 
 class _StatusBadge extends StatelessWidget {
   final String text;
+  final String statusKey;
   final bool completed;
 
-  const _StatusBadge({required this.text, required this.completed});
+  const _StatusBadge({
+    required this.text,
+    required this.completed,
+    this.statusKey = '',
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -642,10 +664,10 @@ class _StatusBadge extends StatelessWidget {
     if (completed) {
       background = const Color(0xFFD9F5E9);
       textColor = const Color(0xFF15915C);
-    } else if (text.toLowerCase() == 'in progress') {
+    } else if (statusKey.toLowerCase() == 'in_progress') {
       background = const Color(0xFFE8D8FF);
       textColor = AppColors.primaryFillColor;
-    } else if (text.toLowerCase() == 'cancelled') {
+    } else if (statusKey.toLowerCase() == 'cancelled') {
       background = const Color(0xFFFFE1E1);
       textColor = const Color(0xFFC62828);
     } else {
@@ -671,13 +693,13 @@ class _StatusBadge extends StatelessWidget {
   }
 }
 
-class _DetailsButton extends StatelessWidget {
+class _DetailsButton extends ConsumerWidget {
   final VoidCallback onTap;
 
   const _DetailsButton({required this.onTap});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -690,7 +712,7 @@ class _DetailsButton extends StatelessWidget {
           border: Border.all(color: AppColors.borderColor),
         ),
         child: Text(
-          'Details',
+          ref.tr('tasks.details'),
           style: GoogleFonts.inter(
             fontSize: 11,
             fontWeight: FontWeight.w500,
@@ -970,7 +992,7 @@ class _TaskDetailsSheetState extends ConsumerState<_TaskDetailsSheet> {
       return const SizedBox.shrink();
     }
 
-    final title = task['title']?.toString() ?? 'Task';
+    final title = task['title']?.toString() ?? ref.tr('tasks.task');
     final description = task['description']?.toString() ?? '';
     final priority = task['priority']?.toString() ?? '';
     final status = task['status']?.toString() ?? '';
@@ -1047,12 +1069,15 @@ class _TaskDetailsSheetState extends ConsumerState<_TaskDetailsSheet> {
 
                     Row(
                       children: [
-                        _PriorityBadge(text: _formatPriority(priority)),
+                        _PriorityBadge(
+                         text: _formatPriority(priority, ref),
+                         priorityKey: priority,
+                       ),
 
                         const SizedBox(width: 8),
 
                         _StatusBadge(
-                          text: _formatStatus(status),
+                          text: _formatStatus(status,ref),
                           completed: status == 'completed',
                         ),
 
@@ -1069,7 +1094,7 @@ class _TaskDetailsSheetState extends ConsumerState<_TaskDetailsSheet> {
                               borderRadius: BorderRadius.circular(12),
                             ),
                             child: Text(
-                              'Due ${_formatDate(dueDate)}',
+                              ref.tr('tasks.due').replaceFirst('{date}', _formatDate(dueDate, ref)),
                               style: GoogleFonts.inter(
                                 fontSize: 10,
                                 fontWeight: FontWeight.w500,
@@ -1118,7 +1143,7 @@ class _TaskDetailsSheetState extends ConsumerState<_TaskDetailsSheet> {
                     // STATUS
                     // =================================================
                     Text(
-                      'Status',
+                      ref.tr('tasks.status'),
                       style: GoogleFonts.inter(
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
@@ -1152,22 +1177,22 @@ class _TaskDetailsSheetState extends ConsumerState<_TaskDetailsSheet> {
                             fontSize: 12,
                             color: AppColors.textColor,
                           ),
-                          items: const [
+                          items:  [
                             DropdownMenuItem(
                               value: 'pending',
-                              child: Text('To Do'),
+                              child: Text(ref.tr('tasks.toDo')),
                             ),
                             DropdownMenuItem(
                               value: 'in_progress',
-                              child: Text('In progress'),
+                              child: Text(ref.tr('tasks.inProgress')),
                             ),
                             DropdownMenuItem(
                               value: 'completed',
-                              child: Text('Completed'),
+                              child: Text(ref.tr('tasks.completed')),
                             ),
                             DropdownMenuItem(
                               value: 'cancelled',
-                              child: Text('Cancelled'),
+                              child: Text(ref.tr('tasks.cancelled')),
                             ),
                           ],
                           onChanged: taskId == null
@@ -1197,7 +1222,7 @@ class _TaskDetailsSheetState extends ConsumerState<_TaskDetailsSheet> {
                     Row(
                       children: [
                         Text(
-                          'Notes',
+                          ref.tr('tasks.notes'),
                           style: GoogleFonts.inter(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
@@ -1231,7 +1256,7 @@ class _TaskDetailsSheetState extends ConsumerState<_TaskDetailsSheet> {
                       )
                     else if (state.comments.isEmpty)
                       Text(
-                        'No notes yet.',
+                        ref.tr('tasks.noNotes'),
                         style: GoogleFonts.inter(
                           fontSize: 11,
                           color: AppColors.mutedColor,
@@ -1240,7 +1265,7 @@ class _TaskDetailsSheetState extends ConsumerState<_TaskDetailsSheet> {
                     else
                       ...state.comments.map((comment) {
                         final userName =
-                            comment['userName']?.toString() ?? 'User';
+                            comment['userName']?.toString() ?? ref.tr('tasks.user');
 
                         final body = comment['body']?.toString() ?? '';
 
@@ -1281,7 +1306,7 @@ class _TaskDetailsSheetState extends ConsumerState<_TaskDetailsSheet> {
                               if (createdAt.isNotEmpty) ...[
                                 const SizedBox(height: 4),
                                 Text(
-                                  _formatDateTime(createdAt),
+                                  _formatDateTime(createdAt, ref),
                                   style: GoogleFonts.inter(
                                     fontSize: 9,
                                     color: const Color(0xFF8B838F),
@@ -1358,7 +1383,7 @@ class _AddTaskCommentState extends ConsumerState<_AddTaskComment> {
       final message = ref.read(taskProvider).message;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(SnackBar(content: Text(message ?? 'Unable to add note.')));
+      ).showSnackBar(SnackBar(content: Text(message ?? ref.tr('tasks.unableToAddNote'))));
     }
   }
 
@@ -1378,7 +1403,7 @@ class _AddTaskCommentState extends ConsumerState<_AddTaskComment> {
                 color: AppColors.textColor,
               ),
               decoration: InputDecoration(
-                hintText: 'Add a note...',
+                hintText: ref.tr('tasks.addNote'),
                 hintStyle: GoogleFonts.inter(
                   fontSize: 14,
                   color: const Color(0xFF9A929D),
@@ -1426,7 +1451,7 @@ class _AddTaskCommentState extends ConsumerState<_AddTaskComment> {
                     child: CircularProgressIndicator(strokeWidth: 1.5),
                   )
                 : Text(
-                    'Post',
+                    ref.tr('tasks.post'),
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
@@ -1444,46 +1469,54 @@ class _AddTaskCommentState extends ConsumerState<_AddTaskComment> {
 // HELPERS
 // ================================================================
 
-String _formatPriority(String value) {
-  if (value.isEmpty) return '';
-
-  return value[0].toUpperCase() + value.substring(1);
-}
-
-String _formatStatus(String value) {
-  switch (value) {
-    case 'in_progress':
-      return 'In progress';
-
-    case 'completed':
-      return 'Completed';
-
-    case 'cancelled':
-      return 'Cancelled';
-
-    case 'pending':
+String _formatPriority(String value, WidgetRef ref) {
+  switch (value.toLowerCase()) {
+    case 'high':
+      return ref.tr('tasks.priorityHigh');
+    case 'medium':
+      return ref.tr('tasks.priorityMedium');
+    case 'urgent':
+      return ref.tr('tasks.priorityUrgent');
+    case 'low':
+      return ref.tr('tasks.priorityLow');
     default:
-      return 'To Do';
+      return value.isEmpty
+          ? ''
+          : value[0].toUpperCase() + value.substring(1);
   }
 }
 
-String _formatDate(String value) {
+String _formatStatus(String value, WidgetRef ref) {
+  switch (value) {
+    case 'in_progress':
+      return ref.tr('tasks.inProgress');
+    case 'completed':
+      return ref.tr('tasks.completed');
+    case 'cancelled':
+      return ref.tr('tasks.cancelled');
+    case 'pending':
+    default:
+      return ref.tr('tasks.toDo');
+  }
+}
+
+String _formatDate(String value, WidgetRef ref) {
   try {
     final date = DateTime.parse(value);
 
-    const months = [
-      'Jan',
-      'Feb',
-      'Mar',
-      'Apr',
-      'May',
-      'Jun',
-      'Jul',
-      'Aug',
-      'Sep',
-      'Oct',
-      'Nov',
-      'Dec',
+    final months = [
+      ref.tr('tasks.jan'),
+      ref.tr('tasks.feb'),
+      ref.tr('tasks.mar'),
+      ref.tr('tasks.apr'),
+      ref.tr('tasks.may'),
+      ref.tr('tasks.jun'),
+      ref.tr('tasks.jul'),
+      ref.tr('tasks.aug'),
+      ref.tr('tasks.sep'),
+      ref.tr('tasks.oct'),
+      ref.tr('tasks.nov'),
+      ref.tr('tasks.dec'),
     ];
 
     return '${date.day} ${months[date.month - 1]}';
@@ -1492,7 +1525,7 @@ String _formatDate(String value) {
   }
 }
 
-String _formatDateTime(String value) {
+String _formatDateTime(String value, WidgetRef ref) {
   try {
     final date = DateTime.parse(value).toLocal();
     final hour = date.hour == 0
@@ -1501,9 +1534,12 @@ String _formatDateTime(String value) {
         ? date.hour - 12
         : date.hour;
     final minute = date.minute.toString().padLeft(2, '0');
-    final period = date.hour >= 12 ? 'PM' : 'AM';
+    final period = date.hour >= 12
+        ? ref.tr('common.pm')
+        : ref.tr('common.am');
 
-    return '${_formatDate(value)} at $hour:$minute $period';
+    return '${_formatDate(value, ref)} '
+        '${ref.tr('tasks.at')} $hour:$minute $period';
   } catch (_) {
     return value;
   }

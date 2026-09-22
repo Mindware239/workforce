@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/features/attendence/presentation/attendence_record.dart';
 
 import '../providers/attendance_provider.dart';
@@ -105,7 +106,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       children: [
         Expanded(
           child: Text(
-            "Today's Attendance",
+            ref.tr('attendance.todayTitle'),
             style: GoogleFonts.inter(
               fontSize: 30,
               fontWeight: FontWeight.bold,
@@ -204,17 +205,17 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           children: [
             _InfoRow(
               icon: Icons.login_rounded,
-              label: 'Check-in',
+              label: ref.tr('attendance.checkIn'),
               value: hasAttendance && entryTime != null
                   ? _formatTime(entryTime)
-                  : 'Not checked in',
+                  : ref.tr('attendance.notCheckedIn'),
             ),
 
             const SizedBox(height: 16),
 
             _InfoRow(
               icon: Icons.access_time_rounded,
-              label: 'Shift',
+              label: ref.tr('attendance.shift'),
               value: shiftText,
             ),
 
@@ -223,7 +224,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
               _InfoRow(
                 icon: Icons.logout_rounded,
-                label: 'Check-out',
+                label: ref.tr('attendance.checkOut'),
                 value: _formatTime(today!['exitTime'].toString()),
               ),
             ],
@@ -258,7 +259,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     return Column(
       children: [
         _StatCard(
-          title: 'Hours Worked',
+          title: ref.tr('attendance.hoursWorked'),
           value: hasAttendance ? _formatDuration(workingMinutes) : '--',
           valueColor: AppColors.primaryFillColor,
         ),
@@ -266,7 +267,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         const SizedBox(height: 12),
 
         _StatCard(
-          title: 'Break Duration',
+          title: ref.tr('attendance.breakDuration'),
           value: hasAttendance ? _formatDuration(breakMinutes) : '--',
           valueColor: const Color(0xFF5D606A),
         ),
@@ -274,7 +275,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         const SizedBox(height: 12),
 
         _StatCard(
-          title: 'Remaining',
+          title: ref.tr('attendance.remaining'),
           value: hasAttendance ? _formatDuration(remainingMinutes) : '--',
           valueColor: AppColors.textColor,
         ),
@@ -416,7 +417,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Activity Timeline',
+            ref.tr('attendance.activityTimeline'),
             style: GoogleFonts.inter(
               fontSize: 20,
               fontWeight: FontWeight.w700,
@@ -519,7 +520,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
             onPressed: () {
               ref.read(attendanceProvider.notifier).getTodayAttendance();
             },
-            child: const Text('Retry'),
+            child:  Text(ref.tr('common.retry')),
           ),
         ],
       ),
@@ -535,7 +536,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       padding: const EdgeInsets.symmetric(vertical: 20),
       child: Center(
         child: Text(
-          'No attendance activity yet',
+          ref.tr('attendance.noActivity'),
           style: GoogleFonts.inter(fontSize: 13, color: AppColors.mutedColor),
         ),
       ),
@@ -548,23 +549,23 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
   String _getStatusText(String? status) {
     if (status == null || status.isEmpty) {
-      return 'Not Started';
+      return ref.tr('attendance.statusNotStarted');
     }
 
     switch (status.toLowerCase()) {
       case 'late':
-        return 'Late';
+        return ref.tr('attendance.statusLate');
 
       case 'on_time':
       case 'on-time':
       case 'ontime':
-        return 'On Time';
+        return ref.tr('attendance.statusOnTime');
 
       case 'present':
-        return 'Present';
+        return ref.tr('attendance.statusPresent');
 
       case 'absent':
-        return 'Absent';
+        return ref.tr('attendance.statusAbsent');
 
       default:
         return _capitalizeStatus(status);
@@ -610,6 +611,24 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   }
 
   String _capitalizeStatus(String value) {
+    final normalized = value
+        .replaceAll('_', ' ')
+        .replaceAll('-', ' ')
+        .toLowerCase();
+
+    final statusKey = {
+      'late': 'attendance.statusLate',
+      'on time': 'attendance.statusOnTime',
+      'ontime': 'attendance.statusOnTime',
+      'present': 'attendance.statusPresent',
+      'absent': 'attendance.statusAbsent',
+      'not started': 'attendance.statusNotStarted',
+    }[normalized];
+
+    if (statusKey != null) {
+      return ref.tr(statusKey);
+    }
+
     return value
         .replaceAll('_', ' ')
         .replaceAll('-', ' ')
@@ -681,21 +700,22 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
   String _formatDuration(int minutes) {
     if (minutes <= 0) {
-      return '0m';
+      return '0${ref.tr('attendance.minutesShort')}';
     }
 
     final hours = minutes ~/ 60;
     final remainingMinutes = minutes % 60;
 
     if (hours == 0) {
-      return '${remainingMinutes}m';
+      return '$remainingMinutes${ref.tr('attendance.minutesShort')}';
     }
 
     if (remainingMinutes == 0) {
-      return '${hours}h';
+      return '$hours${ref.tr('attendance.hoursShort')}';
     }
 
-    return '${hours}h ${remainingMinutes}m';
+    return '$hours${ref.tr('attendance.hoursShort')} '
+        '$remainingMinutes${ref.tr('attendance.minutesShort')}';
   }
 }
 

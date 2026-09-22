@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 import 'package:workforce/features/profile/providers/document_provider.dart';
 
@@ -46,7 +47,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       final file = result.first;
 
       if (file.path == null || file.path!.isEmpty) {
-        _showMessage('Unable to access selected file.');
+        _showMessage(ref.tr('documents.unableAccessFile'));
         return;
       }
 
@@ -59,20 +60,20 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     } catch (e) {
       debugPrint('❌ File picker error: $e');
 
-      _showMessage('Unable to select file.');
+      _showMessage(ref.tr('documents.unableSelectFile'));
     }
   }
 
   Future<void> _uploadDocument() async {
     if (_selectedFile == null) {
-      _showMessage('Please choose a document first.');
+      _showMessage(ref.tr('documents.chooseDocumentFirst'));
       return;
     }
 
     final filePath = _selectedFile!.path;
 
     if (filePath == null || filePath.isEmpty) {
-      _showMessage('Invalid file selected.');
+      _showMessage(ref.tr('documents.invalidFileSelected'));
       return;
     }
 
@@ -99,11 +100,45 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         _selectedFile = null;
       });
 
-      _showMessage('Document uploaded successfully.');
+      _showMessage(ref.tr('documents.uploadSuccess'));
     } else {
       final message = ref.read(documentProvider).errorMessage;
 
-      _showMessage(message ?? 'Unable to upload document.');
+      _showMessage(message ?? ref.tr('documents.unableUpload'));
+    }
+  }
+
+  String _documentLabel(String document) {
+    switch (document) {
+      case 'Identity proof':
+        return ref.tr('documents.identityProof');
+      case 'Address proof':
+        return ref.tr('documents.addressProof');
+      case 'PAN card':
+        return ref.tr('documents.panCard');
+      case 'Bank passbook':
+        return ref.tr('documents.bankPassbook');
+      case 'Other':
+        return ref.tr('documents.other');
+      default:
+        return document;
+    }
+  }
+
+  String _categoryLabel(String category) {
+    switch (category.toLowerCase()) {
+      case 'identity':
+        return ref.tr('documents.identityProof');
+      case 'address':
+        return ref.tr('documents.addressProof');
+      case 'pan':
+        return ref.tr('documents.panCard');
+      case 'bank_passbook':
+        return ref.tr('documents.bankPassbook');
+      case 'other':
+        return ref.tr('documents.other');
+      default:
+        return category;
     }
   }
 
@@ -157,7 +192,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Documents',
+                ref.tr('documents.title'),
                 style: GoogleFonts.inter(
                   fontSize: 30,
                   fontWeight: FontWeight.bold,
@@ -168,7 +203,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
               const SizedBox(height: 8),
 
               Text(
-                'Upload your personal documents and signe the organization\'s sNDA.',
+                ref.tr('documents.subtitle'),
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   height: 1.35,
@@ -189,7 +224,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
               const SizedBox(height: 24),
 
               Text(
-                'Your documents',
+                ref.tr('documents.yourDocuments'),
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
@@ -222,7 +257,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
             children: [
               Expanded(
                 child: Text(
-                  'NDA Agreement',
+                  ref.tr('documents.ndaAgreement'),
                   style: GoogleFonts.inter(
                     fontSize: 16,
                     fontWeight: FontWeight.w700,
@@ -241,7 +276,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                   borderRadius: BorderRadius.circular(50),
                 ),
                 child: Text(
-                  'Not available',
+                  ref.tr('documents.notAvailable'),
                   style: GoogleFonts.inter(
                     fontSize: 11,
                     color: AppColors.mutedColor,
@@ -254,7 +289,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
           const SizedBox(height: 9),
 
           Text(
-            'Your organization has not uploaded an NDA yet.',
+            ref.tr('documents.ndaNotUploaded'),
             style: GoogleFonts.inter(fontSize: 12, color: AppColors.mutedColor),
           ),
         ],
@@ -275,7 +310,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Upload a document',
+            ref.tr('documents.uploadDocument'),
             style: GoogleFonts.inter(
               fontSize: 16,
               fontWeight: FontWeight.w700,
@@ -298,7 +333,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
             child: Opacity(
               opacity: isUploading ? 0.6 : 1,
               child: WorkforcePrimaryButton(
-                title: isUploading ? 'Uploading...' : 'Upload',
+                title: isUploading ? ref.tr('documents.uploading') : ref.tr('documents.upload'),
                 onPressed: _uploadDocument,
               ),
             ),
@@ -331,7 +366,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
             color: const Color(0xFF29252A),
           ),
           items: _documentTypes.map((type) {
-            return DropdownMenuItem<String>(value: type, child: Text(type));
+            return DropdownMenuItem<String>(
+  value: type,
+  child: Text(_documentLabel(type)),
+);
           }).toList(),
           onChanged: (value) {
             if (value == null) return;
@@ -365,7 +403,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                'Choose file',
+                ref.tr('documents.chooseFile'),
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   color: AppColors.mutedColor,
@@ -377,7 +415,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
 
             Expanded(
               child: Text(
-                _selectedFile?.name ?? 'No file chosen',
+                _selectedFile?.name ?? ref.tr('documents.noFileChosen'),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: GoogleFonts.inter(
@@ -404,7 +442,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: Text(
-          state.errorMessage ?? 'Unable to load documents.',
+          state.errorMessage ?? ref.tr('documents.unableLoad'),
           style: GoogleFonts.inter(fontSize: 11, color: Colors.red),
         ),
       );
@@ -412,7 +450,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
 
     if (state.documents.isEmpty) {
       return Text(
-        'You haven\'t uploaded any documents yet.',
+        ref.tr('documents.noDocuments'),
         style: GoogleFonts.inter(fontSize: 11, color: AppColors.mutedColor),
       );
     }
@@ -425,7 +463,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
   }
 
   Widget _buildDocumentItem(Map<String, dynamic> document) {
-    final fileName = document['fileName']?.toString() ?? 'Document';
+    final fileName = document['fileName']?.toString() ?? ref.tr('documents.document');
 
     final category = document['category']?.toString() ?? '';
 
@@ -516,14 +554,16 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
 
               if (filePath != null) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('$fileName saved to Downloads.')),
+                  SnackBar(content: Text(
+  ref.tr('documents.savedToDownloads').replaceFirst('{fileName}', fileName),
+)),
                 );
               } else {
                 final error = ref.read(documentProvider).errorMessage;
 
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text(error ?? 'Unable to download document.'),
+                    content: Text(error ?? ref.tr('documents.unableDownload')),
                   ),
                 );
               }

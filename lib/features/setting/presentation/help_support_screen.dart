@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/localization/app_localization.dart';
 
-class HelpSupportScreen extends StatelessWidget {
+class HelpSupportScreen extends ConsumerWidget {
   const HelpSupportScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
       appBar: AppBar(
@@ -14,7 +16,7 @@ class HelpSupportScreen extends StatelessWidget {
         backgroundColor: AppColors.whiteBackgroundColor,
         surfaceTintColor: AppColors.whiteBackgroundColor,
         title: Text(
-          'Help & Support',
+          ref.tr('helpSupport.title'),
           style: GoogleFonts.inter(
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -30,23 +32,23 @@ class HelpSupportScreen extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHero(),
+              _buildHero(ref),
         
               const SizedBox(height: 12),
         
-              _buildPopularTopics(),
+              _buildPopularTopics(ref),
         
               const SizedBox(height: 16),
         
-              _buildDirectAssistance(),
+              _buildDirectAssistance(ref),
         
               const SizedBox(height: 16),
         
-              _buildBugReport(),
+              _buildBugReport(ref),
         
               const SizedBox(height: 24),
         
-              _buildEnterpriseSupport(),
+              _buildEnterpriseSupport(ref),
             ],
           ),
         ),
@@ -54,7 +56,7 @@ class HelpSupportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHero() {
+  Widget _buildHero(WidgetRef ref) {
     return Container(
       width: double.infinity,
       height: 160,
@@ -67,7 +69,7 @@ class HelpSupportScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Help & Support',
+            ref.tr('helpSupport.title'),
             style: GoogleFonts.inter(
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -78,7 +80,7 @@ class HelpSupportScreen extends StatelessWidget {
           const SizedBox(height: 8),
 
           Text(
-            'Find answers and get help with your account.',
+            ref.tr('helpSupport.heroDescription'),
             style: GoogleFonts.inter(
               fontSize: 12,
               color: Colors.white.withValues(alpha: .78),
@@ -104,7 +106,7 @@ class HelpSupportScreen extends StatelessWidget {
 
                 Expanded(
                   child: Text(
-                    'How can we help?',
+                    ref.tr('helpSupport.searchHint'),
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       color: AppColors.mutedColor,
@@ -119,12 +121,12 @@ class HelpSupportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildPopularTopics() {
+  Widget _buildPopularTopics(WidgetRef ref) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Popular Topics',
+          ref.tr('helpSupport.popularTopics'),
           style: GoogleFonts.inter(
             fontSize: 16,
             fontWeight: FontWeight.w600,
@@ -139,7 +141,7 @@ class HelpSupportScreen extends StatelessWidget {
             Expanded(
               child: _TopicCard(
                 icon: Icons.fact_check_outlined,
-                title: 'Attendance',
+                title: ref.tr('helpSupport.attendance'),
                 onTap: () {},
               ),
             ),
@@ -149,7 +151,7 @@ class HelpSupportScreen extends StatelessWidget {
             Expanded(
               child: _TopicCard(
                 icon: Icons.calendar_month_outlined,
-                title: 'Shift & Schedule',
+                title: ref.tr('helpSupport.shiftSchedule'),
                 onTap: () {},
               ),
             ),
@@ -163,7 +165,7 @@ class HelpSupportScreen extends StatelessWidget {
             Expanded(
               child: _TopicCard(
                 icon: Icons.payments_outlined,
-                title: 'Salary & Payslip',
+                title: ref.tr('helpSupport.salaryPayslip'),
                 onTap: () {},
               ),
             ),
@@ -173,7 +175,7 @@ class HelpSupportScreen extends StatelessWidget {
             Expanded(
               child: _TopicCard(
                 icon: Icons.flight_takeoff_outlined,
-                title: 'Leave & Time Off',
+                title: ref.tr('helpSupport.leaveTimeOff'),
                 onTap: () {},
               ),
             ),
@@ -183,7 +185,7 @@ class HelpSupportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildDirectAssistance() {
+  Widget _buildDirectAssistance(WidgetRef ref) {
     return _SupportCard(
       height: 144,
       child: Padding(
@@ -192,7 +194,7 @@ class HelpSupportScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Need direct assistance?',
+              ref.tr('helpSupport.directAssistanceTitle'),
               style: GoogleFonts.inter(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -203,7 +205,7 @@ class HelpSupportScreen extends StatelessWidget {
             const SizedBox(height: 4),
 
             Text(
-              'Get in touch with your HR representative.',
+              ref.tr('helpSupport.directAssistanceDescription'),
               style: GoogleFonts.inter(
                 fontSize: 12,
                 color: AppColors.mutedColor,
@@ -228,7 +230,7 @@ class HelpSupportScreen extends StatelessWidget {
                 ),
                 icon: const Icon(Icons.support_agent_outlined, size: 16),
                 label: Text(
-                  'Contact HR',
+                  ref.tr('helpSupport.contactHr'),
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w600,
@@ -242,7 +244,7 @@ class HelpSupportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBugReport() {
+  Widget _buildBugReport(WidgetRef ref) {
     return _SupportCard(
       height: 144,
       child: Padding(
@@ -251,7 +253,7 @@ class HelpSupportScreen extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Found a bug?',
+              ref.tr('helpSupport.foundBug'),
               style: GoogleFonts.inter(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -262,7 +264,7 @@ class HelpSupportScreen extends StatelessWidget {
             const SizedBox(height: 4),
 
             Text(
-              'Help us improve by reporting technical issues.',
+              ref.tr('helpSupport.bugDescription'),
               style: GoogleFonts.inter(
                 fontSize: 12,
                 color: AppColors.mutedColor,
@@ -286,7 +288,7 @@ class HelpSupportScreen extends StatelessWidget {
                 ),
                 icon: const Icon(Icons.bug_report_outlined, size: 16),
                 label: Text(
-                  'Report Issue',
+                  ref.tr('helpSupport.reportIssue'),
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -300,7 +302,7 @@ class HelpSupportScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildEnterpriseSupport() {
+  Widget _buildEnterpriseSupport(WidgetRef ref) {
     return Column(
       children: [
         Container(
@@ -312,7 +314,7 @@ class HelpSupportScreen extends StatelessWidget {
         const SizedBox(height: 16),
 
         Text(
-          'ENTERPRISE SUPPORT CONTACT',
+          ref.tr('helpSupport.enterpriseSupportContact'),
           textAlign: TextAlign.center,
           style: GoogleFonts.inter(
             fontSize: 11,
@@ -336,7 +338,7 @@ class HelpSupportScreen extends StatelessWidget {
         const SizedBox(height: 12),
 
         Text(
-          'Available Monday - Friday, 9AM - 5PM EST',
+          ref.tr('helpSupport.availability'),
           textAlign: TextAlign.center,
           style: GoogleFonts.inter(fontSize: 12, color: AppColors.mutedColor),
         ),
@@ -345,7 +347,7 @@ class HelpSupportScreen extends StatelessWidget {
   }
 }
 
-class _TopicCard extends StatelessWidget {
+class _TopicCard extends ConsumerWidget {
   final IconData icon;
   final String title;
   final VoidCallback onTap;
@@ -357,7 +359,7 @@ class _TopicCard extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -450,3 +452,4 @@ class _ContactRow extends StatelessWidget {
     );
   }
 }
+

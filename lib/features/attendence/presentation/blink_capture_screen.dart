@@ -5,20 +5,22 @@ import 'dart:typed_data';
 import 'package:camera/camera.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:workforce/core/localization/app_localization.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
-class BlinkCameraScreen extends StatefulWidget {
+class BlinkCameraScreen extends ConsumerStatefulWidget {
   const BlinkCameraScreen({
     super.key,
   });
 
   @override
-  State<BlinkCameraScreen> createState() =>
+  ConsumerState<BlinkCameraScreen> createState() =>
       _BlinkCameraScreenState();
 }
 
 class _BlinkCameraScreenState
-    extends State<BlinkCameraScreen> {
+    extends ConsumerState<BlinkCameraScreen> {
   CameraController? _controller;
 
   late final FaceDetector _faceDetector;
@@ -37,6 +39,8 @@ class _BlinkCameraScreenState
   @override
   void initState() {
     super.initState();
+
+    _message = ref.tr('faceCapture.positionFaceInsideFrame');
 
     _faceDetector = FaceDetector(
       options: FaceDetectorOptions(
@@ -101,7 +105,7 @@ class _BlinkCameraScreenState
 
       setState(() {
         _message =
-            'Position your face inside the frame';
+            ref.tr('faceCapture.positionFaceInsideFrame');
       });
 
       await controller.startImageStream(
@@ -121,7 +125,7 @@ class _BlinkCameraScreenState
 
       setState(() {
         _message =
-            'Unable to start camera';
+            ref.tr('faceCapture.unableStartCamera');
       });
     }
   }
@@ -175,12 +179,12 @@ class _BlinkCameraScreenState
         if (_faceDetected ||
             _faceCentered ||
             _message !=
-                'Position your face inside the frame') {
+                ref.tr('faceCapture.positionFaceInsideFrame')) {
           setState(() {
             _faceDetected = false;
             _faceCentered = false;
             _message =
-                'Position your face inside the frame';
+                ref.tr('faceCapture.positionFaceInsideFrame');
           });
         }
 
@@ -198,7 +202,7 @@ class _BlinkCameraScreenState
           _faceDetected = true;
           _faceCentered = false;
           _message =
-              'Only one face should be visible';
+              ref.tr('faceCapture.onlyOneFace');
         });
 
         return;
@@ -292,13 +296,13 @@ class _BlinkCameraScreenState
 
         if (!properSize) {
           _message =
-              'Move a little closer to the camera';
+              ref.tr('faceCapture.moveCloser');
         } else if (!isCentered) {
           _message =
-              'Move your face to the center';
+              ref.tr('faceCapture.moveToCenter');
         } else {
           _message =
-              'Blink once to capture';
+              ref.tr('faceCapture.blinkOnceToCapture');
         }
       });
 
@@ -422,7 +426,7 @@ class _BlinkCameraScreenState
     try {
       if (mounted) {
         setState(() {
-          _message = 'Capturing...';
+          _message = ref.tr('faceCapture.capturing');
         });
       }
 
@@ -469,7 +473,7 @@ class _BlinkCameraScreenState
         _capturing = false;
         _eyesWereClosed = false;
         _message =
-            'Unable to capture. Please blink again.';
+            ref.tr('faceCapture.unableCaptureBlinkAgain');
       });
 
       try {
@@ -774,11 +778,11 @@ class _BlinkCameraScreenState
                         ),
                       ),
 
-                      const Expanded(
+                      Expanded(
                         child: Column(
                           children: [
                             Text(
-                              'Face Verification',
+                              ref.tr('faceCapture.faceVerification'),
                               textAlign:
                                   TextAlign
                                       .center,
@@ -797,7 +801,7 @@ class _BlinkCameraScreenState
                               height: 5,
                             ),
                             Text(
-                              'Look at the camera and blink once',
+                              ref.tr('faceCapture.lookAtCameraBlinkOnce'),
                               textAlign:
                                   TextAlign
                                       .center,

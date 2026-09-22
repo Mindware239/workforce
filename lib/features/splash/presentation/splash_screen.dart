@@ -93,7 +93,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Image.asset(
-              'assets/images/WorkForce_logo.png',
+              'assets/images/logo.png',
               width: 96,
               height: 96,
             ),
@@ -103,7 +103,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
               style: GoogleFonts.inter(
                 fontSize: 30,
                 fontWeight: FontWeight.bold,
-                color: Color(0xFF1B1B24),
+                color: AppColors.primaryFillColor,
               ),
             ),
             const SizedBox(height: 16),

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/features/attendence/providers/attendance_provider.dart';
 import 'package:workforce/features/schedule/presentation/monthly_summary.dart';
 
@@ -71,7 +72,22 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
   }
 
   String _monthName() {
-    return DateFormat('MMMM\nyyyy').format(_selectedMonth);
+    final monthKey = <int, String>{
+      1: 'salary.january',
+      2: 'salary.february',
+      3: 'salary.march',
+      4: 'salary.april',
+      5: 'salary.may',
+      6: 'salary.june',
+      7: 'salary.july',
+      8: 'salary.august',
+      9: 'salary.september',
+      10: 'salary.october',
+      11: 'salary.november',
+      12: 'salary.december',
+    }[_selectedMonth.month]!;
+
+    return '${ref.tr(monthKey)}\n${_selectedMonth.year}';
   }
 
   @override
@@ -94,9 +110,9 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(),
-      
+
               const SizedBox(height: 16),
-        
+
               if (state.isLoadingSalary && salary == null)
                 const Center(
                   child: Padding(
@@ -108,31 +124,31 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                 _buildError(state.message!)
               else if (salary != null) ...[
                 _buildNetSalary(salary),
-        
+
                 const SizedBox(height: 24),
-        
+
                 _buildEarnings(salary),
-        
+
                 const SizedBox(height: 24),
-        
+
                 _buildDeductions(salary),
-        
+
                 const SizedBox(height: 24),
-        
+
                 _buildAttendance(salary),
-        
+
                 const SizedBox(height: 24),
-        
+
                 _buildLiveProgress(salary),
-        
+
                 const SizedBox(height: 24),
-        
+
                 _buildDownloadButton(),
               ] else
                 _buildEmpty(),
-        
+
               const SizedBox(height: 16),
-        
+
               _buildPreviousMonths(),
             ],
           ),
@@ -147,7 +163,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Salary\nSummary',
+          ref.tr('salary.title'),
           style: GoogleFonts.inter(
             fontSize: 30,
             height: .95,
@@ -206,7 +222,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Projected Net Salary',
+            ref.tr('salary.projectedNetSalary'),
             style: GoogleFonts.inter(fontSize: 14, color: AppColors.mutedColor),
           ),
 
@@ -242,7 +258,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                 const SizedBox(width: 6),
 
                 Text(
-                  'Live salary estimate',
+                  ref.tr('salary.liveSalaryEstimate'),
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
@@ -270,18 +286,24 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         children: [
           _SectionHeader(
             icon: Icons.add_circle_outline,
-            title: 'Earnings',
+            title: ref.tr('salary.earnings'),
             color: AppColors.primaryFillColor,
           ),
 
-          _SalaryRow(title: 'Gross Salary', amount: _formatMoney(grossSalary)),
+          _SalaryRow(
+            title: ref.tr('salary.grossSalary'),
+            amount: _formatMoney(grossSalary),
+          ),
 
           _SalaryRow(
-            title: 'Accrued To Date',
+            title: ref.tr('salary.accruedToDate'),
             amount: _formatMoney(accruedGross),
           ),
 
-          _SalaryRow(title: 'Overtime', amount: _formatMoney(overtimePay)),
+          _SalaryRow(
+            title: ref.tr('salary.overtime'),
+            amount: _formatMoney(overtimePay),
+          ),
         ],
       ),
     );
@@ -298,18 +320,18 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         children: [
           _SectionHeader(
             icon: Icons.remove_circle_outline,
-            title: 'Deductions',
+            title: ref.tr('salary.deductions'),
             color: const Color(0xFFBA1A1A),
           ),
 
           _SalaryRow(
-            title: 'Deductions To Date',
+            title: ref.tr('salary.deductionsToDate'),
             amount: '-${_formatMoney(deductions)}',
             amountColor: const Color(0xFFBA1A1A),
           ),
 
           _SalaryRow(
-            title: 'Projected Deductions',
+            title: ref.tr('salary.projectedDeductions'),
             amount: '-${_formatMoney(projectedDeductions)}',
             amountColor: const Color(0xFFBA1A1A),
             isTotal: true,
@@ -330,9 +352,9 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       padding: EdgeInsets.zero,
       child: Column(
         children: [
-          const _SectionHeader(
+          _SectionHeader(
             icon: Icons.badge_outlined,
-            title: 'Attendance Summary',
+            title: ref.tr('salary.attendanceSummary'),
             color: AppColors.mutedColor,
           ),
 
@@ -343,7 +365,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                 Expanded(
                   child: _AttendanceValue(
                     value: '$workingDays',
-                    label: 'WORKING DAYS',
+                    label: ref.tr('salary.workingDays'),
                   ),
                 ),
 
@@ -352,7 +374,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                 Expanded(
                   child: _AttendanceValue(
                     value: '$worked',
-                    label: 'DAYS WORKED',
+                    label: ref.tr('salary.daysWorked'),
                     valueColor: AppColors.primaryFillColor,
                   ),
                 ),
@@ -362,7 +384,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                 Expanded(
                   child: _AttendanceValue(
                     value: '$remaining',
-                    label: 'DAYS REMAINING',
+                    label: ref.tr('salary.daysRemaining'),
                     valueColor: AppColors.mutedColor,
                   ),
                 ),
@@ -399,7 +421,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
           Row(
             children: [
               Text(
-                'Live Salary Progress',
+                ref.tr('salary.liveSalaryProgress'),
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -440,7 +462,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
             children: [
               Expanded(
                 child: Text(
-                  '$elapsed working days elapsed',
+                  '$elapsed ${ref.tr('salary.workingDaysElapsed')}',
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: AppColors.mutedColor,
@@ -449,7 +471,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
               ),
 
               Text(
-                '$remaining remaining',
+                '$remaining ${ref.tr('salary.remaining')}',
                 style: GoogleFonts.inter(
                   fontSize: 12,
                   color: AppColors.mutedColor,
@@ -461,7 +483,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
           if (asOfDate != null) ...[
             const SizedBox(height: 8),
             Text(
-              'Calculated as of $asOfDate',
+              '${ref.tr('salary.calculatedAsOf')} $asOfDate',
               style: GoogleFonts.inter(
                 fontSize: 11,
                 color: AppColors.mutedColor,
@@ -480,8 +502,8 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       child: ElevatedButton.icon(
         onPressed: () {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Payslip download is not available yet.'),
+            SnackBar(
+              content: Text(ref.tr('salary.payslipDownloadUnavailable')),
             ),
           );
         },
@@ -494,7 +516,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
         ),
         icon: const Icon(Icons.download_outlined, size: 18),
         label: Text(
-          'Download Payslip',
+          ref.tr('salary.downloadPayslip'),
           style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w500),
         ),
       ),
@@ -510,7 +532,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
           );
         },
         child: Text(
-          'View Previous Months →',
+          ref.tr('salary.viewPreviousMonths'),
           style: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w400,
@@ -542,7 +564,10 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
 
           const SizedBox(height: 16),
 
-          ElevatedButton(onPressed: _loadSalary, child: const Text('Retry')),
+          ElevatedButton(
+            onPressed: _loadSalary,
+            child: Text(ref.tr('common.retry')),
+          ),
         ],
       ),
     );
@@ -553,7 +578,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
       padding: const EdgeInsets.all(20),
       child: Center(
         child: Text(
-          'No salary information available.',
+          ref.tr('salary.noSalaryInformation'),
           style: GoogleFonts.inter(fontSize: 14, color: AppColors.mutedColor),
         ),
       ),

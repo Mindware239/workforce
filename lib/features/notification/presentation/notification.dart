@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/localization/app_localization.dart';
 
 import '../providers/notification_provider.dart';
 
@@ -62,7 +63,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
         backgroundColor: AppColors.whiteBackgroundColor,
         surfaceTintColor: AppColors.whiteBackgroundColor,
         title: Text(
-          'Notification',
+          ref.tr('notification.title'),
           style: GoogleFonts.inter(
             fontSize: 20,
             fontWeight: FontWeight.w700,
@@ -119,7 +120,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
                     child: CircularProgressIndicator(strokeWidth: 2),
                   )
                 : Text(
-                    'Mark all\nas read',
+                    ref.tr('notification.markAllAsRead'),
                     textAlign: TextAlign.center,
                     style: GoogleFonts.inter(
                       fontSize: 12,
@@ -162,7 +163,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
 
           Center(
             child: Text(
-              "You're all caught up",
+              ref.tr('notification.allCaughtUp'),
               style: GoogleFonts.inter(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
@@ -210,7 +211,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
     final widgets = <Widget>[];
 
     if (today.isNotEmpty) {
-      widgets.add(_buildSectionTitle('TODAY'));
+      widgets.add(_buildSectionTitle(ref.tr('notification.today')));
 
       widgets.add(const SizedBox(height: 8));
 
@@ -223,7 +224,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
           _NotificationItem(
             notificationId: notificationId ?? 0,
             icon: _getNotificationIcon(notification['category']),
-            title: notification['title']?.toString() ?? 'Notification',
+            title: notification['title']?.toString() ?? ref.tr('notification.notification'),
             body: notification['body']?.toString(),
             time: _formatTime(notification['createdAt']),
             unread: notification['readAt'] == null,
@@ -246,7 +247,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
     if (earlier.isNotEmpty) {
       widgets.add(const SizedBox(height: 20));
 
-      widgets.add(_buildSectionTitle('EARLIER'));
+      widgets.add(_buildSectionTitle(ref.tr('notification.earlier')));
 
       widgets.add(const SizedBox(height: 5));
 
@@ -259,7 +260,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
           _NotificationItem(
             notificationId: notificationId ?? 0,
             icon: _getNotificationIcon(notification['category']),
-            title: notification['title']?.toString() ?? 'Notification',
+            title: notification['title']?.toString() ?? ref.tr('notification.notification'),
             body: notification['body']?.toString(),
             time: _formatDateTime(notification['createdAt']),
             unread: notification['readAt'] == null,
@@ -320,7 +321,33 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
 
     if (date == null) return '';
 
-    return DateFormat('MMM dd, hh:mm a').format(date.toLocal());
+    final localDate = date.toLocal();
+    final month = _localizedMonth(localDate.month);
+
+    return '$month ${localDate.day}, ${DateFormat('hh:mm a').format(localDate)}';
+  }
+
+  String _localizedMonth(int month) {
+    const monthKeys = <String>[
+      'notification.jan',
+      'notification.feb',
+      'notification.mar',
+      'notification.apr',
+      'notification.may',
+      'notification.jun',
+      'notification.jul',
+      'notification.aug',
+      'notification.sep',
+      'notification.oct',
+      'notification.nov',
+      'notification.dec',
+    ];
+
+    if (month < 1 || month > monthKeys.length) {
+      return '';
+    }
+
+    return ref.tr(monthKeys[month - 1]);
   }
 
   Widget _buildError(String? message) {
@@ -333,7 +360,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
             const Icon(Icons.error_outline, size: 40, color: Colors.red),
             const SizedBox(height: 12),
             Text(
-              message ?? 'Unable to load notifications.',
+              message ?? ref.tr('notification.loadError'),
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(
                 fontSize: 14,
@@ -345,7 +372,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
               onPressed: () {
                 ref.read(notificationProvider.notifier).fetchNotifications();
               },
-              child: const Text('Try Again'),
+              child: Text(ref.tr('notification.tryAgain')),
             ),
           ],
         ),
@@ -356,7 +383,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
   Widget _buildEmptyState() {
     return Center(
       child: Text(
-        'No notifications yet',
+        ref.tr('notification.noNotifications'),
         style: GoogleFonts.inter(fontSize: 14, color: AppColors.mutedColor),
       ),
     );

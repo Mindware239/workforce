@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/features/attendence/data/attendance_repository.dart';
 import 'package:workforce/features/attendence/presentation/blink_capture_screen.dart';
 import 'package:workforce/features/attendence/providers/attendance_provider.dart';
@@ -54,7 +55,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
       debugPrint('📍 Location service enabled: $serviceEnabled');
 
       if (!serviceEnabled) {
-        _showMessage('Please turn on location services and try again.');
+        _showMessage(ref.tr('faceCapture.locationServicesRequired'));
         return;
       }
 
@@ -76,15 +77,12 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
       }
 
       if (permission == LocationPermission.denied) {
-        _showMessage('Location permission is required for attendance.');
+        _showMessage(ref.tr('faceCapture.locationPermissionRequired'));
         return;
       }
 
       if (permission == LocationPermission.deniedForever) {
-        _showMessage(
-          'Location permission is permanently denied. '
-          'Please enable it from Settings.',
-        );
+        _showMessage(ref.tr('faceCapture.locationPermissionDenied'));
         return;
       }
 
@@ -128,7 +126,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
         return;
       }
 
-      _showMessage('Invalid attendance method selected.');
+      _showMessage(ref.tr('faceCapture.invalidAttendanceMethod'));
     } catch (e, stackTrace) {
       debugPrint('========================================');
 
@@ -202,7 +200,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
         'longitude': position.longitude,
         'accuracy': position.accuracy,
         'attendance_type': 'face',
-        'isStart': widget.isStart
+        'isStart': widget.isStart,
       },
     );
   }
@@ -250,10 +248,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
       if (!isAvailable) {
         if (!mounted) return;
 
-        _showMessage(
-          'Fingerprint authentication is not available '
-          'on this device.',
-        );
+        _showMessage(ref.tr('faceCapture.fingerprintUnavailable'));
 
         return;
       }
@@ -301,7 +296,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
       if (publicKey == null || publicKey.isEmpty) {
         if (!mounted) return;
 
-        _showMessage('Unable to obtain biometric public key.');
+        _showMessage(ref.tr('faceCapture.unableBiometricKey'));
 
         return;
       }
@@ -331,7 +326,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
 
           _showMessage(
             registerResponse['message']?.toString() ??
-                'Unable to register fingerprint device.',
+                ref.tr('faceCapture.unableRegisterFingerprint'),
           );
 
           return;
@@ -368,7 +363,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
 
         _showMessage(
           challengeResponse['message']?.toString() ??
-              'Unable to create fingerprint challenge.',
+              ref.tr('faceCapture.unableCreateChallenge'),
         );
 
         return;
@@ -387,7 +382,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
           challenge.toString().isEmpty) {
         if (!mounted) return;
 
-        _showMessage('Invalid fingerprint challenge received.');
+        _showMessage(ref.tr('faceCapture.invalidChallenge'));
 
         return;
       }
@@ -412,7 +407,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
       if (signature == null || signature.isEmpty) {
         if (!mounted) return;
 
-        _showMessage('Biometric signature was not generated.');
+        _showMessage(ref.tr('faceCapture.signatureNotGenerated'));
 
         return;
       }
@@ -479,8 +474,8 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
 
         _showMessage(
           widget.isStart == true
-              ? 'Check-in successful'
-              : 'Session ended successfully',
+              ? ref.tr('faceCapture.checkInSuccessful')
+              : ref.tr('faceCapture.sessionEndedSuccessful'),
         );
 
         context.pop(true);
@@ -497,8 +492,8 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
       _showMessage(
         attendanceMessage ??
             (widget.isStart == true
-                ? 'Unable to check in.'
-                : 'Unable to end session.'),
+                ? ref.tr('faceCapture.unableCheckIn')
+                : ref.tr('faceCapture.unableEndSession')),
       );
     } catch (e, stackTrace) {
       debugPrint('========================================');
@@ -562,7 +557,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
                 const SizedBox(height: 20),
 
                 Text(
-                  'Choose Attendance Method',
+                  ref.tr('faceCapture.chooseAttendanceMethod'),
                   style: GoogleFonts.inter(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -573,8 +568,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
                 const SizedBox(height: 6),
 
                 Text(
-                  'Select how you want to mark '
-                  'your attendance.',
+                  ref.tr('faceCapture.selectAttendanceMethod'),
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: AppColors.mutedColor,
@@ -586,8 +580,8 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
                 // FACE
                 _buildAttendanceMethodTile(
                   icon: Icons.face_outlined,
-                  title: 'Face Verification',
-                  subtitle: 'Use camera to verify your face',
+                  title: ref.tr('faceCapture.faceVerification'),
+                  subtitle: ref.tr('faceCapture.useCameraVerifyFace'),
                   value: 'face',
                   onTap: () {
                     Navigator.pop(context, 'face');
@@ -599,8 +593,8 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
                 // FINGERPRINT
                 // _buildAttendanceMethodTile(
                 //   icon: Icons.fingerprint,
-                //   title: 'Fingerprint',
-                //   subtitle: 'Use your device fingerprint',
+                //   title: ref.tr('faceCapture.fingerprint'),
+                //   subtitle: ref.tr('faceCapture.useDeviceFingerprint'),
                 //   value: 'fingerprint',
                 //   onTap: () {
                 //     Navigator.pop(context, 'fingerprint');
@@ -720,7 +714,9 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
 
               WorkforcePrimaryButton(
                 icon: Icons.camera_alt,
-                title: _isLoading ? 'Please wait...' : 'Take Photo',
+                title: _isLoading
+                    ? ref.tr('faceCapture.pleaseWait')
+                    : ref.tr('faceCapture.takePhoto'),
                 onPressed: () {
                   if (!_isLoading) {
                     _takePhoto();
@@ -774,7 +770,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
             const SizedBox(width: 4),
 
             Text(
-              'HQ – Factory Floor',
+              ref.tr('faceCapture.locationLabel'),
               style: GoogleFonts.inter(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
@@ -803,21 +799,21 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
         children: [
           _InstructionRow(
             icon: Icons.face_outlined,
-            text: 'Position your face inside the frame',
+            text: ref.tr('faceCapture.positionFace'),
           ),
 
           const SizedBox(height: 8),
 
           _InstructionRow(
             icon: Icons.light_mode_outlined,
-            text: 'Make sure your face is clearly visible',
+            text: ref.tr('faceCapture.faceClearlyVisible'),
           ),
 
           const SizedBox(height: 8),
 
           _InstructionRow(
             icon: Icons.no_photography_outlined,
-            text: 'Remove helmet or face covering if required',
+            text: ref.tr('faceCapture.removeFaceCovering'),
           ),
         ],
       ),
@@ -844,7 +840,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
           ),
         ),
         child: Text(
-          'Cancel',
+          ref.tr('faceCapture.cancel'),
           style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500),
         ),
       ),
