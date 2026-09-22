@@ -1,10 +1,10 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:workforce/app/routes/app_routes.dart';
+import 'package:workforce/core/localization/app_language.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/services/auth_service.dart';
 import 'package:workforce/core/services/secure_storage.dart';
@@ -66,9 +66,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               // GENERAL
-              _buildSectionTitle(
-                ref.tr('settings.general'),
-              ),
+              _buildSectionTitle(ref.tr('settings.general')),
 
               const SizedBox(height: 8),
 
@@ -89,12 +87,12 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   _SettingsRow(
                     icon: Icons.language_rounded,
                     title: ref.tr('settings.language'),
-                    trailingText: selectedLanguage.name,
+                    trailingText: selectedLanguage == AppLanguage.english? 
+                    selectedLanguage.englishName: selectedLanguage.hindiName,
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (context) =>
-                              const LanguageSelectionScreen(),
+                          builder: (context) => const LanguageSelectionScreen(),
                         ),
                       );
                     },
@@ -106,9 +104,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const SizedBox(height: 16),
 
               // SECURITY & PRIVACY
-              _buildSectionTitle(
-                ref.tr('settings.security_privacy'),
-              ),
+              _buildSectionTitle(ref.tr('settings.security_privacy')),
 
               const SizedBox(height: 16),
 
@@ -132,13 +128,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
               const SizedBox(height: 16),
 
               // PREFERENCES
-              _buildSectionTitle(
-                ref.tr('settings.preferences'),
-              ),
+              _buildSectionTitle(ref.tr('settings.preferences')),
 
               const SizedBox(height: 16),
-
-              
 
               _buildSettingsCard(
                 children: [
@@ -148,8 +140,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
-                          builder: (context) =>
-                              const HelpSupportScreen(),
+                          builder: (context) => const HelpSupportScreen(),
                         ),
                       );
                     },
@@ -196,21 +187,14 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     );
   }
 
-  Widget _buildSettingsCard({
-    required List<Widget> children,
-  }) {
+  Widget _buildSettingsCard({required List<Widget> children}) {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(9),
-        border: Border.all(
-          color: AppColors.borderColor,
-          width: 1,
-        ),
+        border: Border.all(color: AppColors.borderColor, width: 1),
       ),
-      child: Column(
-        children: children,
-      ),
+      child: Column(children: children),
     );
   }
 
@@ -222,10 +206,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
         height: 56,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: const Color(0xFFFFDAD6),
-            width: 1,
-          ),
+          border: Border.all(color: const Color(0xFFFFDAD6), width: 1),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -284,19 +265,12 @@ class _SettingsRow extends StatelessWidget {
             border: isLast
                 ? null
                 : const Border(
-                    bottom: BorderSide(
-                      color: AppColors.borderColor,
-                      width: 1,
-                    ),
+                    bottom: BorderSide(color: AppColors.borderColor, width: 1),
                   ),
           ),
           child: Row(
             children: [
-              Icon(
-                icon,
-                size: 18,
-                color: AppColors.mutedColor,
-              ),
+              Icon(icon, size: 18, color: AppColors.mutedColor),
 
               const SizedBox(width: 8),
 
@@ -320,8 +294,7 @@ class _SettingsRow extends StatelessWidget {
                   ),
                 ),
 
-              if (trailingText != null)
-                const SizedBox(width: 4),
+              if (trailingText != null) const SizedBox(width: 4),
 
               if (trailing != null)
                 trailing!
@@ -338,5 +311,3 @@ class _SettingsRow extends StatelessWidget {
     );
   }
 }
-
-

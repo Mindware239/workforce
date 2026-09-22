@@ -33,6 +33,15 @@ extension AppLanguageExtension on AppLanguage {
     }
   }
 
+
+String get hindiName {
+    switch (this) {
+      case AppLanguage.english:
+        return 'अंग्रेज़ी';
+      case AppLanguage.hindi:
+        return 'हिन्दी';
+    }
+  }
   static AppLanguage fromCode(String? code) {
     switch (code) {
       case 'hi':

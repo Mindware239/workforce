@@ -59,9 +59,9 @@ class LanguageSelectionScreen extends ConsumerWidget {
 
               const SizedBox(height: 16),
 
-              _LanguageOption(
-                title: 'English',
-                subtitle: 'English',
+             _LanguageOption(
+                title: AppLanguage.english.name,
+                subtitle: AppLanguage.english.name,
                 selected: selectedLanguage == AppLanguage.english,
                 onTap: () {
                   ref
@@ -73,8 +73,8 @@ class LanguageSelectionScreen extends ConsumerWidget {
               const SizedBox(height: 12),
 
               _LanguageOption(
-                title: 'हिन्दी',
-                subtitle: 'Hindi',
+                title: AppLanguage.hindi.name,
+                subtitle: AppLanguage.hindi.name,
                 selected: selectedLanguage == AppLanguage.hindi,
                 onTap: () {
                   ref
@@ -82,8 +82,7 @@ class LanguageSelectionScreen extends ConsumerWidget {
                       .setLanguage(AppLanguage.hindi);
                 },
               ),
-
-              const Spacer(),
+                            const Spacer(),
 
               Divider(
                 color: AppColors.borderColor,
