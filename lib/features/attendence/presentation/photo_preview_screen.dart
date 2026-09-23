@@ -13,6 +13,7 @@ import 'package:workforce/features/attendence/providers/attendance_provider.dart
 import 'package:workforce/features/attendence/services/employee_location_service.dart';
 
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
+import 'package:workforce/features/profile/providers/profile_provider.dart';
 
 class PhotoPreviewScreen extends ConsumerStatefulWidget {
   final bool? isStart;
@@ -195,7 +196,46 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
     );
   }
 
+  String _getValue(dynamic value) {
+    if (value == null) {
+      return ref.tr('common.notAvailable');
+    }
+
+    if (value is String) {
+      return value.isEmpty ? ref.tr('common.notAvailable') : value;
+    }
+
+    if (value is num || value is bool) {
+      return value.toString();
+    }
+
+    if (value is Map) {
+      final possibleKeys = [
+        'name',
+        'fullName',
+        'title',
+        'label',
+        'value',
+        'id',
+      ];
+
+      for (final key in possibleKeys) {
+        final nestedValue = value[key];
+
+        if (nestedValue != null && nestedValue.toString().isNotEmpty) {
+          return nestedValue.toString();
+        }
+      }
+    }
+
+    return value.toString();
+  }
+
   Widget _buildPhotoInfo() {
+    final profileState = ref.watch(profileProvider);
+    final profile = profileState.profile ?? {};
+
+    final organizationName = _getValue(profile['organizationName']);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
@@ -215,7 +255,9 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  ref.tr('photoPreview.locationLabel'),
+                  organizationName.isNotEmpty
+                      ? organizationName
+                      : ref.tr('photoPreview.locationLabel'),
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     color: AppColors.textColor,
@@ -227,28 +269,30 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
 
           const SizedBox(height: 8),
 
-          Row(
-            children: [
-              const Icon(
-                Icons.location_searching_outlined,
-                size: 16,
-                color: AppColors.mutedColor,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  _locationText(),
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    height: 1.5,
-                    color: AppColors.mutedColor,
-                  ),
-                ),
-              ),
-            ],
-          ),
+          // Row(
+          //   children: [
+          //     const Icon(
+          //       Icons.location_on_outlined,
+          //       size: 16,
+          //       color: AppColors.mutedColor,
+          //     ),
+          //     const SizedBox(width: 8),
+          //     Expanded(
+          //       child: Text(
+          //         organizationName.isNotEmpty
+          //             ? organizationName
+          //             : _locationText(),
+          //         style: GoogleFonts.inter(
+          //           fontSize: 12,
+          //           height: 1.5,
+          //           color: AppColors.mutedColor,
+          //         ),
+          //       ),
+          //     ),
+          //   ],
+          // ),
 
-          const SizedBox(height: 8),
+          // const SizedBox(height: 8),
 
           Row(
             children: [
@@ -294,18 +338,18 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
     final localization = ref.read(appLocalizationProvider);
 
     final months = [
-      localization.tr('months.january'),
-      localization.tr('months.february'),
-      localization.tr('months.march'),
-      localization.tr('months.april'),
-      localization.tr('months.may'),
-      localization.tr('months.june'),
-      localization.tr('months.july'),
-      localization.tr('months.august'),
-      localization.tr('months.september'),
-      localization.tr('months.october'),
-      localization.tr('months.november'),
-      localization.tr('months.december'),
+      localization.tr('monthlySummary.january'),
+      localization.tr('monthlySummary.february'),
+      localization.tr('monthlySummary.march'),
+      localization.tr('monthlySummary.april'),
+      localization.tr('monthlySummary.may'),
+      localization.tr('monthlySummary.june'),
+      localization.tr('monthlySummary.july'),
+      localization.tr('monthlySummary.august'),
+      localization.tr('monthlySummary.september'),
+      localization.tr('monthlySummary.october'),
+      localization.tr('monthlySummary.november'),
+      localization.tr('monthlySummary.december'),
     ];
 
     final hour = now.hour > 12

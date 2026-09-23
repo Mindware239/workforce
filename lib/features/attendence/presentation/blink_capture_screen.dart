@@ -10,17 +10,13 @@ import 'package:workforce/core/localization/app_localization.dart';
 import 'package:google_mlkit_face_detection/google_mlkit_face_detection.dart';
 
 class BlinkCameraScreen extends ConsumerStatefulWidget {
-  const BlinkCameraScreen({
-    super.key,
-  });
+  const BlinkCameraScreen({super.key});
 
   @override
-  ConsumerState<BlinkCameraScreen> createState() =>
-      _BlinkCameraScreenState();
+  ConsumerState<BlinkCameraScreen> createState() => _BlinkCameraScreenState();
 }
 
-class _BlinkCameraScreenState
-    extends ConsumerState<BlinkCameraScreen> {
+class _BlinkCameraScreenState extends ConsumerState<BlinkCameraScreen> {
   CameraController? _controller;
 
   late final FaceDetector _faceDetector;
@@ -33,14 +29,11 @@ class _BlinkCameraScreenState
 
   bool _eyesWereClosed = false;
 
-  String _message =
-      'Position your face inside the frame';
+  String _message = '';
 
   @override
   void initState() {
     super.initState();
-
-    _message = ref.tr('faceCapture.positionFaceInsideFrame');
 
     _faceDetector = FaceDetector(
       options: FaceDetectorOptions(
@@ -54,6 +47,15 @@ class _BlinkCameraScreenState
     _initializeCamera();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+
+    if (_message.isEmpty) {
+      _message = ref.tr('faceCapture.positionFaceInsideFrame');
+    }
+  }
+
   // ============================================================
   // CAMERA INITIALIZATION
   // ============================================================
@@ -63,35 +65,28 @@ class _BlinkCameraScreenState
       final cameras = await availableCameras();
 
       if (cameras.isEmpty) {
-        throw Exception(
-          'No camera found on this device.',
-        );
+        throw Exception('No camera found on this device.');
       }
 
       CameraDescription camera;
 
       try {
         camera = cameras.firstWhere(
-          (item) =>
-              item.lensDirection ==
-              CameraLensDirection.front,
+          (item) => item.lensDirection == CameraLensDirection.front,
         );
       } catch (_) {
         camera = cameras.first;
       }
 
-      debugPrint(
-        '📷 Selected camera: ${camera.name}',
-      );
+      debugPrint('📷 Selected camera: ${camera.name}');
 
       final controller = CameraController(
         camera,
         ResolutionPreset.medium,
         enableAudio: false,
-        imageFormatGroup:
-            Platform.isAndroid
-                ? ImageFormatGroup.nv21
-                : ImageFormatGroup.bgra8888,
+        imageFormatGroup: Platform.isAndroid
+            ? ImageFormatGroup.nv21
+            : ImageFormatGroup.bgra8888,
       );
 
       await controller.initialize();
@@ -104,28 +99,20 @@ class _BlinkCameraScreenState
       _controller = controller;
 
       setState(() {
-        _message =
-            ref.tr('faceCapture.positionFaceInsideFrame');
+        _message = ref.tr('faceCapture.positionFaceInsideFrame');
       });
 
-      await controller.startImageStream(
-        _processCameraImage,
-      );
+      await controller.startImageStream(_processCameraImage);
 
-      debugPrint(
-        '✅ Camera ready',
-      );
+      debugPrint('✅ Camera ready');
     } catch (e, stackTrace) {
-      debugPrint(
-        '❌ Camera initialization error: $e',
-      );
+      debugPrint('❌ Camera initialization error: $e');
       debugPrint('$stackTrace');
 
       if (!mounted) return;
 
       setState(() {
-        _message =
-            ref.tr('faceCapture.unableStartCamera');
+        _message = ref.tr('faceCapture.unableStartCamera');
       });
     }
   }
@@ -134,36 +121,27 @@ class _BlinkCameraScreenState
   // PROCESS CAMERA FRAME
   // ============================================================
 
-  Future<void> _processCameraImage(
-    CameraImage image,
-  ) async {
+  Future<void> _processCameraImage(CameraImage image) async {
     if (_processing || _capturing) {
       return;
     }
 
     final controller = _controller;
 
-    if (controller == null ||
-        !controller.value.isInitialized) {
+    if (controller == null || !controller.value.isInitialized) {
       return;
     }
 
     _processing = true;
 
     try {
-      final inputImage = _convertImage(
-        image,
-        controller.description,
-      );
+      final inputImage = _convertImage(image, controller.description);
 
       if (inputImage == null) {
         return;
       }
 
-      final faces =
-          await _faceDetector.processImage(
-        inputImage,
-      );
+      final faces = await _faceDetector.processImage(inputImage);
 
       if (!mounted || _capturing) {
         return;
@@ -178,13 +156,11 @@ class _BlinkCameraScreenState
 
         if (_faceDetected ||
             _faceCentered ||
-            _message !=
-                ref.tr('faceCapture.positionFaceInsideFrame')) {
+            _message != ref.tr('faceCapture.positionFaceInsideFrame')) {
           setState(() {
             _faceDetected = false;
             _faceCentered = false;
-            _message =
-                ref.tr('faceCapture.positionFaceInsideFrame');
+            _message = ref.tr('faceCapture.positionFaceInsideFrame');
           });
         }
 
@@ -201,8 +177,7 @@ class _BlinkCameraScreenState
         setState(() {
           _faceDetected = true;
           _faceCentered = false;
-          _message =
-              ref.tr('faceCapture.onlyOneFace');
+          _message = ref.tr('faceCapture.onlyOneFace');
         });
 
         return;
@@ -214,30 +189,23 @@ class _BlinkCameraScreenState
 
       final face = faces.first;
 
-      final imageWidth =
-          image.width.toDouble();
+      final imageWidth = image.width.toDouble();
 
-      final imageHeight =
-          image.height.toDouble();
+      final imageHeight = image.height.toDouble();
 
-      final faceBox =
-          face.boundingBox;
+      final faceBox = face.boundingBox;
 
       // ========================================================
       // FACE SIZE
       // ========================================================
 
-      final faceWidth =
-          faceBox.width;
+      final faceWidth = faceBox.width;
 
-      final faceHeight =
-          faceBox.height;
+      final faceHeight = faceBox.height;
 
-      final faceWidthRatio =
-          faceWidth / imageWidth;
+      final faceWidthRatio = faceWidth / imageWidth;
 
-      final faceHeightRatio =
-          faceHeight / imageHeight;
+      final faceHeightRatio = faceHeight / imageHeight;
 
       /*
        * Don't make the size requirement too strict.
@@ -255,8 +223,7 @@ class _BlinkCameraScreenState
       // FACE CENTER
       // ========================================================
 
-      final faceCenter =
-          faceBox.center;
+      final faceCenter = faceBox.center;
 
       /*
        * ML Kit's bounding box may use a coordinate space
@@ -267,24 +234,16 @@ class _BlinkCameraScreenState
        * tolerance instead of requiring an exact center.
        */
 
-      final centerX =
-          faceCenter.dx / imageWidth;
+      final centerX = faceCenter.dx / imageWidth;
 
-      final centerY =
-          faceCenter.dy / imageHeight;
+      final centerY = faceCenter.dy / imageHeight;
 
-      final isHorizontallyCentered =
-          centerX > 0.25 &&
-          centerX < 0.75;
+      final isHorizontallyCentered = centerX > 0.25 && centerX < 0.75;
 
-      final isVerticallyCentered =
-          centerY > 0.20 &&
-          centerY < 0.80;
+      final isVerticallyCentered = centerY > 0.20 && centerY < 0.80;
 
       final isCentered =
-          properSize &&
-          isHorizontallyCentered &&
-          isVerticallyCentered;
+          properSize && isHorizontallyCentered && isVerticallyCentered;
 
       // ========================================================
       // UPDATE STATUS
@@ -295,14 +254,11 @@ class _BlinkCameraScreenState
         _faceCentered = isCentered;
 
         if (!properSize) {
-          _message =
-              ref.tr('faceCapture.moveCloser');
+          _message = ref.tr('faceCapture.moveCloser');
         } else if (!isCentered) {
-          _message =
-              ref.tr('faceCapture.moveToCenter');
+          _message = ref.tr('faceCapture.moveToCenter');
         } else {
-          _message =
-              ref.tr('faceCapture.blinkOnceToCapture');
+          _message = ref.tr('faceCapture.blinkOnceToCapture');
         }
       });
 
@@ -319,22 +275,17 @@ class _BlinkCameraScreenState
       // EYE DETECTION
       // ========================================================
 
-      final leftEye =
-          face.leftEyeOpenProbability;
+      final leftEye = face.leftEyeOpenProbability;
 
-      final rightEye =
-          face.rightEyeOpenProbability;
+      final rightEye = face.rightEyeOpenProbability;
 
       /*
        * If ML Kit cannot determine the eyes,
        * don't attempt a capture.
        */
 
-      if (leftEye == null ||
-          rightEye == null) {
-        debugPrint(
-          '⚠️ Eye probabilities unavailable',
-        );
+      if (leftEye == null || rightEye == null) {
+        debugPrint('⚠️ Eye probabilities unavailable');
 
         return;
       }
@@ -348,13 +299,9 @@ class _BlinkCameraScreenState
       // BLINK THRESHOLDS
       // ========================================================
 
-      final eyesClosed =
-          leftEye < 0.40 &&
-          rightEye < 0.40;
+      final eyesClosed = leftEye < 0.40 && rightEye < 0.40;
 
-      final eyesOpen =
-          leftEye > 0.60 &&
-          rightEye > 0.60;
+      final eyesOpen = leftEye > 0.60 && rightEye > 0.60;
 
       // ========================================================
       // EYES CLOSED
@@ -362,9 +309,7 @@ class _BlinkCameraScreenState
 
       if (eyesClosed) {
         if (!_eyesWereClosed) {
-          debugPrint(
-            '👁️ Eyes closed',
-          );
+          debugPrint('👁️ Eyes closed');
         }
 
         _eyesWereClosed = true;
@@ -374,32 +319,21 @@ class _BlinkCameraScreenState
       // CLOSED → OPEN
       // ========================================================
 
-      if (_eyesWereClosed &&
-          eyesOpen) {
-        debugPrint(
-          '========================================',
-        );
+      if (_eyesWereClosed && eyesOpen) {
+        debugPrint('========================================');
 
-        debugPrint(
-          '👁️ BLINK COMPLETED',
-        );
+        debugPrint('👁️ BLINK COMPLETED');
 
-        debugPrint(
-          '📸 AUTO CAPTURE',
-        );
+        debugPrint('📸 AUTO CAPTURE');
 
-        debugPrint(
-          '========================================',
-        );
+        debugPrint('========================================');
 
         _eyesWereClosed = false;
 
         await _capturePhoto();
       }
     } catch (e) {
-      debugPrint(
-        '❌ Face detection error: $e',
-      );
+      debugPrint('❌ Face detection error: $e');
     } finally {
       _processing = false;
     }
@@ -416,8 +350,7 @@ class _BlinkCameraScreenState
 
     final controller = _controller;
 
-    if (controller == null ||
-        !controller.value.isInitialized) {
+    if (controller == null || !controller.value.isInitialized) {
       return;
     }
 
@@ -436,34 +369,21 @@ class _BlinkCameraScreenState
       }
 
       // Give camera a tiny moment to settle.
-      await Future.delayed(
-        const Duration(
-          milliseconds: 200,
-        ),
-      );
+      await Future.delayed(const Duration(milliseconds: 200));
 
-      final XFile photo =
-          await controller.takePicture();
+      final XFile photo = await controller.takePicture();
 
-      debugPrint(
-        '📸 Captured: ${photo.path}',
-      );
+      debugPrint('📸 Captured: ${photo.path}');
 
       if (!mounted) {
         return;
       }
 
-      Navigator.of(context).pop(
-        photo.path,
-      );
+      Navigator.of(context).pop(photo.path);
     } catch (e, stackTrace) {
-      debugPrint(
-        '❌ Photo capture error: $e',
-      );
+      debugPrint('❌ Photo capture error: $e');
 
-      debugPrint(
-        '$stackTrace',
-      );
+      debugPrint('$stackTrace');
 
       if (!mounted) {
         return;
@@ -472,20 +392,15 @@ class _BlinkCameraScreenState
       setState(() {
         _capturing = false;
         _eyesWereClosed = false;
-        _message =
-            ref.tr('faceCapture.unableCaptureBlinkAgain');
+        _message = ref.tr('faceCapture.unableCaptureBlinkAgain');
       });
 
       try {
         if (!controller.value.isStreamingImages) {
-          await controller.startImageStream(
-            _processCameraImage,
-          );
+          await controller.startImageStream(_processCameraImage);
         }
       } catch (e) {
-        debugPrint(
-          '❌ Could not restart camera stream: $e',
-        );
+        debugPrint('❌ Could not restart camera stream: $e');
       }
     }
   }
@@ -494,12 +409,8 @@ class _BlinkCameraScreenState
   // CONVERT CAMERA IMAGE
   // ============================================================
 
-  InputImage? _convertImage(
-    CameraImage image,
-    CameraDescription camera,
-  ) {
-    final rotation =
-        InputImageRotationValue.fromRawValue(
+  InputImage? _convertImage(CameraImage image, CameraDescription camera) {
+    final rotation = InputImageRotationValue.fromRawValue(
       camera.sensorOrientation,
     );
 
@@ -507,10 +418,7 @@ class _BlinkCameraScreenState
       return null;
     }
 
-    final format =
-        InputImageFormatValue.fromRawValue(
-      image.format.raw,
-    );
+    final format = InputImageFormatValue.fromRawValue(image.format.raw);
 
     if (format == null) {
       debugPrint(
@@ -521,20 +429,15 @@ class _BlinkCameraScreenState
       return null;
     }
 
-    final bytes =
-        _concatenatePlanes(image);
+    final bytes = _concatenatePlanes(image);
 
     return InputImage.fromBytes(
       bytes: bytes,
       metadata: InputImageMetadata(
-        size: Size(
-          image.width.toDouble(),
-          image.height.toDouble(),
-        ),
+        size: Size(image.width.toDouble(), image.height.toDouble()),
         rotation: rotation,
         format: format,
-        bytesPerRow:
-            image.planes.first.bytesPerRow,
+        bytesPerRow: image.planes.first.bytesPerRow,
       ),
     );
   }
@@ -543,39 +446,25 @@ class _BlinkCameraScreenState
   // CONCATENATE PLANES
   // ============================================================
 
-  Uint8List _concatenatePlanes(
-    CameraImage image,
-  ) {
-    final buffer =
-        WriteBuffer();
+  Uint8List _concatenatePlanes(CameraImage image) {
+    final buffer = WriteBuffer();
 
-    for (final plane
-        in image.planes) {
-      buffer.putUint8List(
-        plane.bytes,
-      );
+    for (final plane in image.planes) {
+      buffer.putUint8List(plane.bytes);
     }
 
-    return buffer
-        .done()
-        .buffer
-        .asUint8List();
+    return buffer.done().buffer.asUint8List();
   }
 
   // ============================================================
   // CAMERA PREVIEW
   // ============================================================
 
-  Widget _buildCameraPreview(
-    CameraController controller,
-  ) {
-    final previewSize =
-        controller.value.previewSize;
+  Widget _buildCameraPreview(CameraController controller) {
+    final previewSize = controller.value.previewSize;
 
     if (previewSize == null) {
-      return CameraPreview(
-        controller,
-      );
+      return CameraPreview(controller);
     }
 
     /*
@@ -586,11 +475,9 @@ class _BlinkCameraScreenState
      * screen correctly without stretching.
      */
 
-    final previewWidth =
-        previewSize.height;
+    final previewWidth = previewSize.height;
 
-    final previewHeight =
-        previewSize.width;
+    final previewHeight = previewSize.width;
 
     return SizedBox.expand(
       child: ClipRect(
@@ -600,9 +487,7 @@ class _BlinkCameraScreenState
           child: SizedBox(
             width: previewWidth,
             height: previewHeight,
-            child: CameraPreview(
-              controller,
-            ),
+            child: CameraPreview(controller),
           ),
         ),
       ),
@@ -613,14 +498,10 @@ class _BlinkCameraScreenState
   // OVERLAY
   // ============================================================
 
-  Widget _buildFaceOverlay(
-    BuildContext context,
-  ) {
+  Widget _buildFaceOverlay(BuildContext context) {
     return IgnorePointer(
       child: CustomPaint(
-        painter: _FaceOverlayPainter(
-          isReady: _faceCentered,
-        ),
+        painter: _FaceOverlayPainter(isReady: _faceCentered),
         child: const SizedBox.expand(),
       ),
     );
@@ -637,54 +518,34 @@ class _BlinkCameraScreenState
       bottom: 64,
       child: Center(
         child: AnimatedContainer(
-          duration:
-              const Duration(
-            milliseconds: 200,
-          ),
-          padding:
-              const EdgeInsets.symmetric(
-            horizontal: 20,
-            vertical: 11,
-          ),
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
           decoration: BoxDecoration(
-            color: Colors.black.withValues(
-              alpha: 0.72,
-            ),
-            borderRadius:
-                BorderRadius.circular(
-              24,
-            ),
+            color: Colors.black.withValues(alpha: 0.72),
+            borderRadius: BorderRadius.circular(24),
           ),
           child: Row(
-            mainAxisSize:
-                MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min,
             children: [
               if (_capturing)
                 const SizedBox(
                   width: 15,
                   height: 15,
-                  child:
-                      CircularProgressIndicator(
+                  child: CircularProgressIndicator(
                     strokeWidth: 2,
                     color: Colors.white,
                   ),
                 ),
 
-              if (_capturing)
-                const SizedBox(
-                  width: 8,
-                ),
+              if (_capturing) const SizedBox(width: 8),
 
               Text(
                 _message,
-                textAlign:
-                    TextAlign.center,
-                style:
-                    const TextStyle(
+                textAlign: TextAlign.center,
+                style: const TextStyle(
                   color: Colors.white,
                   fontSize: 14,
-                  fontWeight:
-                      FontWeight.w600,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ],
@@ -699,25 +560,13 @@ class _BlinkCameraScreenState
   // ============================================================
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
-    final controller =
-        _controller;
+  Widget build(BuildContext context) {
+    final controller = _controller;
 
     return Scaffold(
-      backgroundColor:
-          Colors.black,
-      body: controller == null ||
-              !controller
-                  .value
-                  .isInitialized
-          ? const Center(
-              child:
-                  CircularProgressIndicator(
-                color: Colors.white,
-              ),
-            )
+      backgroundColor: Colors.black,
+      body: controller == null || !controller.value.isInitialized
+          ? const Center(child: CircularProgressIndicator(color: Colors.white))
           : Stack(
               fit: StackFit.expand,
               children: [
@@ -725,22 +574,16 @@ class _BlinkCameraScreenState
                 // CAMERA
                 // ==================================================
 
-                _buildCameraPreview(
-                  controller,
-                ),
+                _buildCameraPreview(controller),
 
                 // ==================================================
                 // FACE OVERLAY
                 // ==================================================
-
-                _buildFaceOverlay(
-                  context,
-                ),
+                _buildFaceOverlay(context),
 
                 // ==================================================
                 // HEADER
                 // ==================================================
-
                 Positioned(
                   top: 48,
                   left: 24,
@@ -748,31 +591,19 @@ class _BlinkCameraScreenState
                   child: Row(
                     children: [
                       Container(
-                        decoration:
-                            BoxDecoration(
-                          color: Colors.black
-                              .withValues(
-                            alpha: 0.45,
-                          ),
-                          shape:
-                              BoxShape.circle,
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.45),
+                          shape: BoxShape.circle,
                         ),
-                        child:
-                            IconButton(
-                          onPressed:
-                              _capturing
-                                  ? null
-                                  : () {
-                                      Navigator
-                                          .of(
-                                        context,
-                                      ).pop();
-                                    },
-                          icon:
-                              const Icon(
+                        child: IconButton(
+                          onPressed: _capturing
+                              ? null
+                              : () {
+                                  Navigator.of(context).pop();
+                                },
+                          icon: const Icon(
                             Icons.close,
-                            color:
-                                Colors.white,
+                            color: Colors.white,
                             size: 26,
                           ),
                         ),
@@ -783,43 +614,27 @@ class _BlinkCameraScreenState
                           children: [
                             Text(
                               ref.tr('faceCapture.faceVerification'),
-                              textAlign:
-                                  TextAlign
-                                      .center,
-                              style:
-                                  TextStyle(
-                                color:
-                                    Colors.white,
-                                fontSize:
-                                    21,
-                                fontWeight:
-                                    FontWeight
-                                        .w700,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 21,
+                                fontWeight: FontWeight.w700,
                               ),
                             ),
-                            SizedBox(
-                              height: 5,
-                            ),
+                            SizedBox(height: 5),
                             Text(
                               ref.tr('faceCapture.lookAtCameraBlinkOnce'),
-                              textAlign:
-                                  TextAlign
-                                      .center,
-                              style:
-                                  TextStyle(
-                                color:
-                                    Colors.white70,
-                                fontSize:
-                                    12,
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white70,
+                                fontSize: 12,
                               ),
                             ),
                           ],
                         ),
                       ),
 
-                      const SizedBox(
-                        width: 48,
-                      ),
+                      const SizedBox(width: 48),
                     ],
                   ),
                 ),
@@ -827,7 +642,6 @@ class _BlinkCameraScreenState
                 // ==================================================
                 // STATUS
                 // ==================================================
-
                 _buildStatus(),
               ],
             ),
@@ -840,18 +654,11 @@ class _BlinkCameraScreenState
 
   @override
   void dispose() {
-    final controller =
-        _controller;
+    final controller = _controller;
 
     if (controller != null) {
-      if (controller
-          .value
-          .isStreamingImages) {
-        controller
-            .stopImageStream()
-            .catchError(
-              (_) {},
-            );
+      if (controller.value.isStreamingImages) {
+        controller.stopImageStream().catchError((_) {});
       }
 
       controller.dispose();
@@ -867,83 +674,48 @@ class _BlinkCameraScreenState
 // FACE OVERLAY PAINTER
 // ================================================================
 
-class _FaceOverlayPainter
-    extends CustomPainter {
+class _FaceOverlayPainter extends CustomPainter {
   final bool isReady;
 
-  _FaceOverlayPainter({
-    required this.isReady,
-  });
+  _FaceOverlayPainter({required this.isReady});
 
   @override
-  void paint(
-    Canvas canvas,
-    Size size,
-  ) {
-    final center =
-        Offset(
-      size.width / 2,
-      size.height / 2,
-    );
+  void paint(Canvas canvas, Size size) {
+    final center = Offset(size.width / 2, size.height / 2);
 
-    final frameWidth =
-        size.width *
-            0.68;
+    final frameWidth = size.width * 0.68;
 
-    final frameHeight =
-        frameWidth *
-            1.28;
+    final frameHeight = frameWidth * 1.28;
 
-    final rect =
-        Rect.fromCenter(
+    final rect = Rect.fromCenter(
       center: center,
       width: frameWidth,
       height: frameHeight,
     );
 
-    final path =
-        Path.combine(
+    final path = Path.combine(
       PathOperation.difference,
-      Path()
-        ..addRect(
-          Offset.zero &
-              size,
-        ),
-      Path()
-        ..addOval(rect),
+      Path()..addRect(Offset.zero & size),
+      Path()..addOval(rect),
     );
 
     // Darken everything outside the face area.
     canvas.drawPath(
       path,
-      Paint()
-        ..color = Colors.black
-            .withValues(
-          alpha: 0.48,
-        ),
+      Paint()..color = Colors.black.withValues(alpha: 0.48),
     );
 
     // Face frame.
-    final borderPaint =
-        Paint()
-          ..color = isReady
-              ? Colors.greenAccent
-              : Colors.white
-          ..style =
-              PaintingStyle.stroke
-          ..strokeWidth = 3;
+    final borderPaint = Paint()
+      ..color = isReady ? Colors.greenAccent : Colors.white
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 3;
 
-    canvas.drawOval(
-      rect,
-      borderPaint,
-    );
+    canvas.drawOval(rect, borderPaint);
   }
 
   @override
-  bool shouldRepaint(
-    covariant _FaceOverlayPainter oldDelegate,
-  ) {
-    return oldDelegate.isReady !=
-        isReady;
+  bool shouldRepaint(covariant _FaceOverlayPainter oldDelegate) {
+    return oldDelegate.isReady != isReady;
   }
 }

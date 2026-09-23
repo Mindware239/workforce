@@ -13,6 +13,7 @@ import 'package:workforce/features/attendence/providers/attendance_provider.dart
 import 'package:workforce/features/attendence/providers/fingerprint_provider.dart';
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 import 'package:workforce/features/onboarding/presentation/widget/workforce_brand.dart';
+import 'package:workforce/features/profile/providers/profile_provider.dart';
 
 class FaceCaptureScreen extends ConsumerStatefulWidget {
   final bool? isStart;
@@ -749,8 +750,47 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
   // ============================================================
   // LOCATION CHIP
   // ============================================================
+  String _getValue(dynamic value) {
+    if (value == null) {
+      return ref.tr('common.notAvailable');
+    }
+
+    if (value is String) {
+      return value.isEmpty ? ref.tr('common.notAvailable') : value;
+    }
+
+    if (value is num || value is bool) {
+      return value.toString();
+    }
+
+    if (value is Map) {
+      final possibleKeys = [
+        'name',
+        'fullName',
+        'title',
+        'label',
+        'value',
+        'id',
+      ];
+
+      for (final key in possibleKeys) {
+        final nestedValue = value[key];
+
+        if (nestedValue != null && nestedValue.toString().isNotEmpty) {
+          return nestedValue.toString();
+        }
+      }
+    }
+
+    return value.toString();
+  }
 
   Widget _buildLocationChip() {
+    final profileState = ref.watch(profileProvider);
+    final profile = profileState.profile ?? {};
+
+    final organizationName = _getValue(profile['organizationName']);
+
     return Center(
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
@@ -770,7 +810,9 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
             const SizedBox(width: 4),
 
             Text(
-              ref.tr('faceCapture.locationLabel'),
+              organizationName.isNotEmpty
+                  ? organizationName
+                  : ref.tr('faceCapture.locationLabel'),
               style: GoogleFonts.inter(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
@@ -782,7 +824,6 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
       ),
     );
   }
-
   // ============================================================
   // INSTRUCTIONS
   // ============================================================

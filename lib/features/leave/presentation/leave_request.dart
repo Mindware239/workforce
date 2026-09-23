@@ -340,11 +340,11 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
           // ------------------------------------------------------
           // NUMBER OF DAYS
           // ------------------------------------------------------
-          _FieldLabel(ref.tr('leave.numberOfDays')),
-
-          _DaysField(value: numberOfDays),
-
-          const SizedBox(height: 8),
+          if (leaveDuration != 'Half Day') ...[
+            _FieldLabel(ref.tr('leave.numberOfDays')),
+            _DaysField(value: numberOfDays),
+            const SizedBox(height: 8),
+          ],
 
           // ------------------------------------------------------
           // START DATE
@@ -1104,9 +1104,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
 
     final int days = totalDays.round();
 
-    final dayLabel = days == 1
-        ? ref.tr('leave.day')
-        : ref.tr('leave.days');
+    final dayLabel = days == 1 ? ref.tr('leave.day') : ref.tr('leave.days');
 
     return '$categoryName ($days $dayLabel)';
   }
@@ -1443,7 +1441,10 @@ class _DropdownField extends StatelessWidget {
       ),
       items: items
           .map(
-            (item) => DropdownMenuItem<String>(value: item, child: Text(labels?[item] ?? item)),
+            (item) => DropdownMenuItem<String>(
+              value: item,
+              child: Text(labels?[item] ?? item),
+            ),
           )
           .toList(),
     );

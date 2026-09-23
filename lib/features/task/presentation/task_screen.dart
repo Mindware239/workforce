@@ -439,6 +439,7 @@ class _TaskCard extends ConsumerWidget {
     final dueDate = task['dueDate']?.toString() ?? '';
 
     final voiceNotePath = task['voiceNotePath']?.toString();
+    debugPrint('🎤 ASSIGN TASK AUDIO URL: $voiceNotePath');
 
     final isCompleted = status == 'completed';
 
@@ -734,6 +735,9 @@ class _AudioPlayer extends StatefulWidget {
 }
 
 class _AudioPlayerState extends State<_AudioPlayer> {
+  static const String _uploadBaseUrl =
+      'https://workforce.orkuts.com/uploads/';
+
   late final AudioPlayer _player;
 
   Duration _duration = Duration.zero;
@@ -743,23 +747,57 @@ class _AudioPlayerState extends State<_AudioPlayer> {
   bool _hasError = false;
   bool _isPlaying = false;
 
+  String _resolvedAudioUrl = '';
+  String _errorText = '';
+
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<Duration?>? _durationSubscription;
   StreamSubscription<PlayerState>? _playerStateSubscription;
+
+  String _resolveAudioUrl(String value) {
+    final trimmed = value.trim();
+
+    if (trimmed.isEmpty) return '';
+
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+      return trimmed;
+    }
+
+    if (trimmed.startsWith('//')) {
+      return 'https:${trimmed}';
+    }
+
+    final normalized = trimmed.replaceFirst(RegExp(r'^/+'), '');
+    return '$_uploadBaseUrl$normalized';
+  }
 
   @override
   void initState() {
     super.initState();
 
     _player = AudioPlayer();
+    _resolvedAudioUrl = _resolveAudioUrl(widget.audioUrl);
 
-    _positionSubscription = _player.positionStream.listen((position) {
-      if (!mounted) return;
+    debugPrint('🎵 ORIGINAL AUDIO PATH: ${widget.audioUrl}');
+    debugPrint('🎵 RESOLVED AUDIO URL: $_resolvedAudioUrl');
 
-      setState(() {
-        _position = position;
-      });
-    });
+    _positionSubscription = _player
+        .createPositionStream(
+          minPeriod: const Duration(milliseconds: 200),
+          maxPeriod: const Duration(milliseconds: 200),
+        )
+        .listen((position) {
+          if (!mounted) return;
+
+          final duration = _player.duration ?? _duration;
+          final safePosition = duration > Duration.zero && position > duration
+              ? duration
+              : position;
+
+          setState(() {
+            _position = safePosition;
+          });
+        });
 
     _durationSubscription = _player.durationStream.listen((duration) {
       if (!mounted) return;
@@ -777,83 +815,159 @@ class _AudioPlayerState extends State<_AudioPlayer> {
         'state=${playerState.processingState}',
       );
 
-      setState(() {
-        _isPlaying = playerState.playing;
-      });
+      if (playerState.processingState == ProcessingState.completed) {
+        setState(() {
+          _isPlaying = false;
+          _position = _duration;
+        });
+      } else {
+        setState(() {
+          _isPlaying = playerState.playing;
+        });
+      }
     });
 
     _initializeAudio();
   }
 
   Future<void> _initializeAudio() async {
-  try {
+    final url = _resolveAudioUrl(widget.audioUrl);
 
+    if (url.isEmpty) {
+      debugPrint('❌ AUDIO URL IS EMPTY');
 
-    final duration = await _player.setUrl(
-      widget.audioUrl,
-    );
+      if (!mounted) return;
 
-  
-
-    if (!mounted) return;
-
-    setState(() {
-      _isLoading = false;
-      _hasError = false;
-    });
-  } catch (e, stackTrace) {
-    
-
-    if (!mounted) return;
-
-    setState(() {
-      _isLoading = false;
-      _hasError = true;
-    });
-  }
-}
-  Future<void> _togglePlay() async {
-  
-
-    if (_isLoading || _hasError) {
-      debugPrint('⚠️ Player is not ready');
+      setState(() {
+        _isLoading = false;
+        _hasError = true;
+        _errorText = 'Audio URL is empty';
+      });
       return;
+    }
+
+    _resolvedAudioUrl = url;
+
+    if (mounted) {
+      setState(() {
+        _isLoading = true;
+        _hasError = false;
+        _errorText = '';
+      });
+    }
+
+    try {
+      debugPrint('🎵 INITIALIZING AUDIO');
+      debugPrint('🎵 Original path: ${widget.audioUrl}');
+      debugPrint('🎵 Resolved URL: $url');
+
+      await _player.stop();
+
+      final uri = Uri.parse(url);
+
+      if (!uri.hasScheme ||
+          (uri.scheme != 'http' && uri.scheme != 'https')) {
+        throw Exception('Invalid resolved audio URL: $url');
+      }
+
+      final duration = await _player.setAudioSource(
+        AudioSource.uri(uri),
+      );
+
+      final finalDuration = duration ?? _player.duration ?? Duration.zero;
+
+      debugPrint('✅ AUDIO LOADED SUCCESSFULLY');
+      debugPrint('🎵 Duration: $finalDuration');
+      debugPrint('🎵 Final URL: $url');
+
+      if (!mounted) return;
+
+      setState(() {
+        _duration = finalDuration;
+        _position = Duration.zero;
+        _isLoading = false;
+        _hasError = false;
+        _errorText = '';
+      });
+    } catch (e, stackTrace) {
+      debugPrint('❌ AUDIO INITIALIZATION FAILED');
+      debugPrint('❌ Original path: ${widget.audioUrl}');
+      debugPrint('❌ Resolved URL: $url');
+      debugPrint('❌ ERROR: $e');
+      debugPrint('❌ ERROR TYPE: ${e.runtimeType}');
+      debugPrint('❌ STACK TRACE: $stackTrace');
+
+      if (!mounted) return;
+
+      setState(() {
+        _isLoading = false;
+        _hasError = true;
+        _isPlaying = false;
+        _errorText = e.toString();
+      });
+    }
+  }
+
+  Future<void> _togglePlay() async {
+    if (_isLoading) {
+      debugPrint('⏳ Player is still loading...');
+      return;
+    }
+
+    if (_hasError) {
+      debugPrint('🔄 Player failed previously. Retrying...');
+      await _initializeAudio();
+
+      if (!mounted || _hasError) {
+        debugPrint('❌ Audio still could not be initialized');
+        return;
+      }
     }
 
     try {
       if (_player.playing) {
         debugPrint('⏸ Pausing audio');
-
         await _player.pause();
-      } else {
-        if (_player.processingState == ProcessingState.completed) {
-          await _player.seek(Duration.zero);
-        }
-
-        debugPrint('▶️ Starting audio');
-
-        await _player.play();
-
-        debugPrint('✅ Play command completed');
+        return;
       }
+
+      if (_player.processingState == ProcessingState.completed) {
+        debugPrint('🔁 Audio completed. Restarting from beginning');
+        await _player.seek(Duration.zero);
+
+        if (mounted) {
+          setState(() {
+            _position = Duration.zero;
+          });
+        }
+      }
+
+      debugPrint('▶️ Starting audio');
+      debugPrint('🎵 Playing URL: $_resolvedAudioUrl');
+
+      await _player.play();
+
+      debugPrint('✅ Play command completed');
     } catch (e, stackTrace) {
       debugPrint('❌ PLAYBACK ERROR');
-      debugPrint('$e');
-      debugPrint('$stackTrace');
+      debugPrint('❌ URL: $_resolvedAudioUrl');
+      debugPrint('❌ ERROR: $e');
+      debugPrint('❌ ERROR TYPE: ${e.runtimeType}');
+      debugPrint('❌ STACK TRACE: $stackTrace');
 
       if (!mounted) return;
 
       setState(() {
+        _isPlaying = false;
         _hasError = true;
+        _errorText = e.toString();
       });
     }
   }
 
   String _formatDuration(Duration duration) {
     final minutes = duration.inMinutes.remainder(60).toString();
-
     final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
-
     return '$minutes:$seconds';
   }
 
@@ -862,114 +976,130 @@ class _AudioPlayerState extends State<_AudioPlayer> {
     _positionSubscription?.cancel();
     _durationSubscription?.cancel();
     _playerStateSubscription?.cancel();
-
     _player.dispose();
-
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final maxSeconds = _duration.inMilliseconds > 0
+    final maxMilliseconds = _duration.inMilliseconds > 0
         ? _duration.inMilliseconds.toDouble()
         : 1.0;
 
-    final currentSeconds = _position.inMilliseconds
+    final currentMilliseconds = _position.inMilliseconds
         .clamp(0, _duration.inMilliseconds)
         .toDouble();
 
-    return Container(
-      width: 224,
-      height: 35,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF1F3F4),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
-        children: [
-          GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: _togglePlay,
-            child: SizedBox(
-              width: 24,
-              height: 30,
-              child: Center(
-                child: Icon(
-                  _isPlaying ? Icons.pause : Icons.play_arrow,
-                  size: 18,
-                  color: _isLoading || _hasError
-                      ? const Color(0xFFAAAAAA)
-                      : Colors.black,
+    return Tooltip(
+      message: _hasError && _errorText.isNotEmpty
+          ? _errorText
+          : _resolvedAudioUrl,
+      child: Container(
+        width: 224,
+        height: 35,
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF1F3F4),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _togglePlay,
+              child: SizedBox(
+                width: 24,
+                height: 30,
+                child: Center(
+                  child: _isLoading
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : Icon(
+                          _hasError
+                              ? Icons.refresh_rounded
+                              : (_isPlaying
+                                  ? Icons.pause
+                                  : Icons.play_arrow),
+                          size: 18,
+                          color: _hasError
+                              ? Colors.redAccent
+                              : Colors.black,
+                        ),
                 ),
               ),
             ),
-          ),
 
-          const SizedBox(width: 8),
+            const SizedBox(width: 8),
 
-          Text(
-            '${_formatDuration(_position)} / '
-            '${_formatDuration(_duration)}',
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              color: const Color(0xFF3E3A40),
+            Text(
+              '${_formatDuration(_position)} / ${_formatDuration(_duration)}',
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                color: const Color(0xFF3E3A40),
+              ),
             ),
-          ),
 
-          const SizedBox(width: 8),
+            const SizedBox(width: 8),
 
-          Expanded(
-            child: SizedBox(
-              height: 20,
-              child: SliderTheme(
-                data: SliderTheme.of(context).copyWith(
-                  trackHeight: 3,
-                  thumbShape: const RoundSliderThumbShape(
-                    enabledThumbRadius: 3,
+            Expanded(
+              child: SizedBox(
+                height: 20,
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 3,
+                    thumbShape: const RoundSliderThumbShape(
+                      enabledThumbRadius: 3,
+                    ),
+                    overlayShape: const RoundSliderOverlayShape(
+                      overlayRadius: 6,
+                    ),
+                    padding: EdgeInsets.zero,
                   ),
-                  overlayShape: const RoundSliderOverlayShape(overlayRadius: 6),
-                  padding: EdgeInsets.zero,
-                ),
-                child: Slider(
-                  min: 0,
-                  max: maxSeconds,
-                  value: currentSeconds.clamp(0, maxSeconds),
-                  onChanged: _duration.inMilliseconds == 0
-                      ? null
-                      : (value) {
-                          _player.seek(Duration(milliseconds: value.toInt()));
-                        },
+                  child: Slider(
+                    min: 0,
+                    max: maxMilliseconds,
+                    value: currentMilliseconds.clamp(0, maxMilliseconds),
+                    onChanged: _duration.inMilliseconds == 0 || _hasError
+                        ? null
+                        : (value) {
+                            _player.seek(
+                              Duration(milliseconds: value.toInt()),
+                            );
+                          },
+                  ),
                 ),
               ),
             ),
-          ),
 
-          const SizedBox(width: 6),
+            const SizedBox(width: 6),
 
-          GestureDetector(
-            onTap: () async {
-              try {
-                await _player.setVolume(_player.volume > 0 ? 0 : 1);
+            GestureDetector(
+              onTap: _isLoading
+                  ? null
+                  : () async {
+                      try {
+                        await _player.setVolume(_player.volume > 0 ? 0 : 1);
 
-                if (mounted) {
-                  setState(() {});
-                }
-              } catch (e) {
-                debugPrint('❌ Volume error: $e');
-              }
-            },
-            child: Icon(
-              _player.volume > 0
-                  ? Icons.volume_up_outlined
-                  : Icons.volume_off_outlined,
-              size: 16,
-              color: const Color(0xFF8A8A8A),
+                        if (mounted) {
+                          setState(() {});
+                        }
+                      } catch (e) {
+                        debugPrint('❌ Volume error: $e');
+                      }
+                    },
+              child: Icon(
+                _player.volume > 0
+                    ? Icons.volume_up_outlined
+                    : Icons.volume_off_outlined,
+                size: 16,
+                color: const Color(0xFF8A8A8A),
+              ),
             ),
-          ),
-
-          
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1002,15 +1132,21 @@ class _TaskDetailsSheetState extends ConsumerState<_TaskDetailsSheet> {
 
     final taskId = int.tryParse(task['id']?.toString() ?? '');
 
-    return Container(
-      constraints: BoxConstraints(
-        maxHeight: MediaQuery.of(context).size.height * 0.65,
-      ),
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-      ),
-      child: SafeArea(
+    final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
+
+    return AnimatedPadding(
+      duration: const Duration(milliseconds: 220),
+      curve: Curves.easeOut,
+      padding: EdgeInsets.only(bottom: keyboardInset),
+      child: Container(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.55,
+        ),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
+        ),
+        child: SafeArea(
         child: Column(
           children: [
             // =====================================================
@@ -1333,6 +1469,7 @@ class _TaskDetailsSheetState extends ConsumerState<_TaskDetailsSheet> {
           ],
         ),
       ),
+    ),
     );
   }
 }

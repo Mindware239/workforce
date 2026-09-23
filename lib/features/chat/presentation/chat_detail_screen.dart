@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -36,14 +37,54 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   final AudioRecorder _audioRecorder = AudioRecorder();
 
   bool _isRecording = false;
+  File? _recordedVoiceFile;
+  Duration _recordingDuration = Duration.zero;
+  Timer? _recordingTimer;
 
-  static const String _fileBaseUrl = 'https://workforce.orkuts.com/api/';
+  final AudioPlayer _voicePreviewPlayer = AudioPlayer();
+  bool _isVoicePreviewPlaying = false;
+  Duration _voicePreviewPosition = Duration.zero;
+  Duration _voicePreviewDuration = Duration.zero;
+
+  static const String _fileBaseUrl = 'https://workforce.orkuts.com/uploads/';
 
   @override
   void initState() {
     super.initState();
 
     _scrollController.addListener(_handleScroll);
+
+    _voicePreviewPlayer
+        .createPositionStream(
+          minPeriod: const Duration(milliseconds: 200),
+          maxPeriod: const Duration(milliseconds: 200),
+        )
+        .listen((position) {
+          if (!mounted) return;
+
+          setState(() {
+            _voicePreviewPosition = position;
+          });
+        });
+
+    _voicePreviewPlayer.durationStream.listen((duration) {
+      if (!mounted || duration == null) return;
+      setState(() {
+        _voicePreviewDuration = duration;
+      });
+    });
+
+    _voicePreviewPlayer.playerStateStream.listen((state) {
+      if (!mounted) return;
+
+      setState(() {
+        _isVoicePreviewPlaying = state.playing;
+      });
+
+      if (state.processingState == ProcessingState.completed) {
+        _voicePreviewPlayer.seek(Duration.zero);
+      }
+    });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
@@ -54,10 +95,22 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
 
   @override
   void dispose() {
+    _recordingTimer?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
     _audioRecorder.dispose();
+    _voicePreviewPlayer.dispose();
     super.dispose();
+  }
+
+  String _recordingDurationText() {
+    return _formatVoiceDuration(_recordingDuration);
+  }
+
+  String _formatVoiceDuration(Duration duration) {
+    final minutes = duration.inMinutes.toString().padLeft(2, '0');
+    final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+    return '$minutes:$seconds';
   }
 
   // ==============================================================
@@ -181,6 +234,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         return;
       }
 
+      // Remove any previous recording.
+      _recordedVoiceFile = null;
+
       final file = await _createRecordingFile();
 
       await _audioRecorder.start(
@@ -196,6 +252,17 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
 
       setState(() {
         _isRecording = true;
+        _recordingDuration = Duration.zero;
+      });
+
+      _recordingTimer?.cancel();
+
+      _recordingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!mounted || !_isRecording) return;
+
+        setState(() {
+          _recordingDuration += const Duration(seconds: 1);
+        });
       });
     } catch (e) {
       if (!mounted) return;
@@ -211,6 +278,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
 
     try {
       final path = await _audioRecorder.stop();
+
+      _recordingTimer?.cancel();
+      _recordingTimer = null;
 
       if (!mounted) return;
 
@@ -228,6 +298,138 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         return;
       }
 
+      await _voicePreviewPlayer.stop();
+      await _voicePreviewPlayer.setFilePath(file.path);
+
+      if (!mounted) return;
+
+      setState(() {
+        _recordedVoiceFile = file;
+        _voicePreviewPosition = Duration.zero;
+        _voicePreviewDuration = _recordingDuration;
+        _isVoicePreviewPlaying = false;
+      });
+
+      debugPrint('VOICE RECORDING READY');
+      debugPrint('Voice file: ${file.path}');
+      debugPrint('Duration: $_recordingDuration');
+    } catch (e) {
+      _recordingTimer?.cancel();
+      _recordingTimer = null;
+
+      if (!mounted) return;
+
+      setState(() {
+        _isRecording = false;
+        _recordedVoiceFile = null;
+      });
+
+      _showMessage(_cleanError(e));
+    }
+  }
+
+  Future<void> _discardVoiceRecording() async {
+    final file = _recordedVoiceFile;
+
+    try {
+      await _voicePreviewPlayer.stop();
+    } catch (_) {}
+
+    _recordingTimer?.cancel();
+    _recordingTimer = null;
+
+    if (mounted) {
+      setState(() {
+        _recordedVoiceFile = null;
+        _recordingDuration = Duration.zero;
+        _voicePreviewPosition = Duration.zero;
+        _voicePreviewDuration = Duration.zero;
+        _isVoicePreviewPlaying = false;
+      });
+    }
+
+    if (file != null) {
+      try {
+        if (file.existsSync()) {
+          await file.delete();
+        }
+      } catch (_) {}
+    }
+  }
+
+  Future<void> _toggleVoicePreview() async {
+    final file = _recordedVoiceFile;
+
+    if (file == null || !await file.exists()) {
+      if (!mounted) return;
+
+      setState(() {
+        _recordedVoiceFile = null;
+        _recordingDuration = Duration.zero;
+        _voicePreviewPosition = Duration.zero;
+        _voicePreviewDuration = Duration.zero;
+        _isVoicePreviewPlaying = false;
+      });
+
+      _showMessage(ref.tr('chat.audioCouldNotBePlayed'));
+      return;
+    }
+
+    try {
+      if (_voicePreviewPlayer.playing) {
+        await _voicePreviewPlayer.pause();
+        return;
+      }
+
+      if (_voicePreviewPlayer.processingState == ProcessingState.completed ||
+          (_voicePreviewDuration > Duration.zero &&
+              _voicePreviewPosition >= _voicePreviewDuration)) {
+        await _voicePreviewPlayer.seek(Duration.zero);
+      }
+
+      if (_voicePreviewPlayer.duration == null) {
+        await _voicePreviewPlayer.setFilePath(file.path);
+        _voicePreviewPosition = Duration.zero;
+      }
+
+      await _voicePreviewPlayer.play();
+    } catch (_) {
+      if (!mounted) return;
+      _showMessage(ref.tr('chat.audioCouldNotBePlayed'));
+    }
+  }
+
+  Future<void> _sendVoiceRecording() async {
+    final file = _recordedVoiceFile;
+
+    if (file == null) {
+      return;
+    }
+
+    if (!await file.exists()) {
+      if (!mounted) return;
+
+      setState(() {
+        _recordedVoiceFile = null;
+        _recordingDuration = Duration.zero;
+      });
+
+      _showMessage(ref.tr('chat.audioCouldNotBePlayed'));
+
+      return;
+    }
+
+    try {
+      await _voicePreviewPlayer.stop();
+
+      if (!mounted) return;
+
+      // Remove preview immediately so user cannot double tap.
+      setState(() {
+        _recordedVoiceFile = null;
+        _isVoicePreviewPlaying = false;
+      });
+
       await ref
           .read(chatProvider.notifier)
           .sendAttachment(
@@ -236,12 +438,27 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
             type: 'voice',
           );
 
+      if (!mounted) return;
+
+      setState(() {
+        _recordingDuration = Duration.zero;
+        _voicePreviewPosition = Duration.zero;
+        _voicePreviewDuration = Duration.zero;
+        _isVoicePreviewPlaying = false;
+      });
+
       _scrollToBottom();
     } catch (e) {
       if (!mounted) return;
 
+      try {
+        await _voicePreviewPlayer.setFilePath(file.path);
+      } catch (_) {}
+
       setState(() {
-        _isRecording = false;
+        _recordedVoiceFile = file;
+        _voicePreviewPosition = Duration.zero;
+        _isVoicePreviewPlaying = false;
       });
 
       _showMessage(_cleanError(e));
@@ -521,14 +738,14 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 9),
       decoration: BoxDecoration(
-        color: mine ? AppColors.primaryFillColor : Colors.white,
+        color: mine ? AppColors.primaryFillColor.withValues(alpha: .9 ) : Colors.grey.shade300,
         borderRadius: BorderRadius.only(
           topLeft: const Radius.circular(16),
           topRight: const Radius.circular(16),
           bottomLeft: Radius.circular(mine ? 16 : 4),
           bottomRight: Radius.circular(mine ? 4 : 16),
         ),
-        border: mine ? null : Border.all(color: AppColors.borderColor),
+        // border: mine ? null : Border.all(color: AppColors.borderColor),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -587,14 +804,14 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     return Container(
       padding: const EdgeInsets.all(5),
       decoration: BoxDecoration(
-        color: mine ? AppColors.primaryFillColor : Colors.white,
+       color: mine ? AppColors.primaryFillColor.withValues(alpha: .9 ) : Colors.grey.shade300,
         borderRadius: BorderRadius.only(
           topLeft: const Radius.circular(16),
           topRight: const Radius.circular(16),
           bottomLeft: Radius.circular(mine ? 16 : 4),
           bottomRight: Radius.circular(mine ? 4 : 16),
         ),
-        border: mine ? null : Border.all(color: AppColors.borderColor),
+        // border: mine ? null : Border.all(color: AppColors.borderColor),
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -725,14 +942,14 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 9),
       decoration: BoxDecoration(
-        color: mine ? AppColors.primaryFillColor : Colors.white,
+       color: mine ? AppColors.primaryFillColor.withValues(alpha: .9 ) : Colors.grey.shade300,
         borderRadius: BorderRadius.only(
           topLeft: const Radius.circular(16),
           topRight: const Radius.circular(16),
           bottomLeft: Radius.circular(mine ? 16 : 4),
           bottomRight: Radius.circular(mine ? 4 : 16),
         ),
-        border: mine ? null : Border.all(color: AppColors.borderColor),
+        // border: mine ? null : Border.all(color: AppColors.borderColor),
       ),
       child: _VoicePlayer(
         key: ValueKey(message['id']?.toString()),
@@ -750,7 +967,238 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   // COMPOSER
   // ==============================================================
 
+  Widget _buildRecordingComposer() {
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+        color: Colors.white,
+        child: Row(
+          children: [
+            // Stop recording
+            Container(
+              width: 42,
+              height: 42,
+              decoration: const BoxDecoration(
+                color: Colors.redAccent,
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: _stopRecording,
+                padding: EdgeInsets.zero,
+                icon: const Icon(
+                  Icons.stop_rounded,
+                  size: 21,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 10),
+
+            Expanded(
+              child: Container(
+                height: 44,
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8F4F6),
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.mic_rounded,
+                      size: 18,
+                      color: Colors.redAccent,
+                    ),
+
+                    const SizedBox(width: 8),
+
+                    Text(
+                      _recordingDurationText(),
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textColor,
+                      ),
+                    ),
+
+                    const SizedBox(width: 12),
+
+                    Expanded(child: _buildRecordingWaveform()),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildRecordingWaveform() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(24, (index) {
+        final height = 5.0 + ((index * 7) % 18);
+
+        return Container(
+          width: 3,
+          height: height,
+          margin: const EdgeInsets.symmetric(horizontal: 1.2),
+          decoration: BoxDecoration(
+            color: AppColors.primaryFillColor,
+            borderRadius: BorderRadius.circular(3),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _buildVoicePreviewComposer() {
+    final previewDuration = _voicePreviewPlayer.duration ??
+        (_voicePreviewDuration > Duration.zero
+            ? _voicePreviewDuration
+            : _recordingDuration);
+
+    final position = _voicePreviewPosition > previewDuration
+        ? previewDuration
+        : _voicePreviewPosition;
+
+    final progress = previewDuration.inMilliseconds <= 0
+        ? 0.0
+        : (position.inMilliseconds / previewDuration.inMilliseconds)
+            .clamp(0.0, 1.0);
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+        color: Colors.white,
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8F4F6),
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: _discardVoiceRecording,
+                padding: EdgeInsets.zero,
+                icon: const Icon(
+                  Icons.delete_outline_rounded,
+                  size: 21,
+                  color: Colors.redAccent,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              width: 42,
+              height: 42,
+              decoration: const BoxDecoration(
+                color: AppColors.primaryFillColor,
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: _toggleVoicePreview,
+                padding: EdgeInsets.zero,
+                icon: Icon(
+                  _isVoicePreviewPlaying
+                      ? Icons.pause_rounded
+                      : Icons.play_arrow_rounded,
+                  size: 23,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Container(
+                height: 44,
+                padding: const EdgeInsets.symmetric(horizontal: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF8F4F6),
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      _isVoicePreviewPlaying
+                          ? Icons.graphic_eq_rounded
+                          : Icons.mic_rounded,
+                      size: 18,
+                      color: AppColors.primaryFillColor,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _formatVoiceDuration(position),
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textColor,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(5),
+                        child: LinearProgressIndicator(
+                          value: progress,
+                          minHeight: 4,
+                          backgroundColor:
+                              AppColors.primaryFillColor.withValues(alpha: .12),
+                          color: AppColors.primaryFillColor,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      _formatVoiceDuration(previewDuration),
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.mutedColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              width: 42,
+              height: 42,
+              decoration: const BoxDecoration(
+                color: AppColors.primaryFillColor,
+                shape: BoxShape.circle,
+              ),
+              child: IconButton(
+                onPressed: _sendVoiceRecording,
+                padding: EdgeInsets.zero,
+                icon: const Icon(
+                  Icons.arrow_upward_rounded,
+                  size: 21,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildComposer() {
+    if (_isRecording) {
+      return _buildRecordingComposer();
+    }
+
+    if (_recordedVoiceFile != null) {
+      return _buildVoicePreviewComposer();
+    }
     return SafeArea(
       top: false,
       child: Container(
@@ -819,20 +1267,16 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
               width: 42,
               height: 42,
               decoration: BoxDecoration(
-                color: _isRecording
-                    ? Colors.redAccent
-                    : const Color(0xFFF8F4F6),
+                color: const Color(0xFFF8F4F6),
                 shape: BoxShape.circle,
               ),
               child: IconButton(
                 onPressed: _toggleRecording,
                 padding: EdgeInsets.zero,
                 icon: Icon(
-                  _isRecording ? Icons.stop_rounded : Icons.mic_none_rounded,
+                  Icons.mic_none_rounded,
                   size: 21,
-                  color: _isRecording
-                      ? Colors.white
-                      : AppColors.primaryFillColor,
+                  color: AppColors.primaryFillColor,
                 ),
               ),
             ),
@@ -1178,11 +1622,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       return 'https:$value';
     }
 
-    if (value.startsWith('/')) {
-      return '$_fileBaseUrl$value';
-    }
-
-    return '$_fileBaseUrl/$value';
+    final normalized = value.replaceFirst(RegExp(r'^/+'), '');
+    return '$_fileBaseUrl$normalized';
   }
 
   bool _looksLikeAttachment(String value) {
@@ -1624,7 +2065,10 @@ class _VoicePlayerState extends State<_VoicePlayer> {
                   final duration = durationSnapshot.data ?? Duration.zero;
 
                   return StreamBuilder<Duration>(
-                    stream: _player.positionStream,
+                    stream: _player.createPositionStream(
+                      minPeriod: const Duration(milliseconds: 200),
+                      maxPeriod: const Duration(milliseconds: 200),
+                    ),
                     builder: (context, positionSnapshot) {
                       final position = positionSnapshot.data ?? Duration.zero;
 
@@ -1657,6 +2101,14 @@ class _VoicePlayerState extends State<_VoicePlayer> {
                                 style: GoogleFonts.inter(
                                   fontSize: 9,
                                   color: foreground.withValues(alpha: .70),
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                '/ ${_durationText(duration)}',
+                                style: GoogleFonts.inter(
+                                  fontSize: 9,
+                                  color: foreground.withValues(alpha: .55),
                                 ),
                               ),
                               const Spacer(),
