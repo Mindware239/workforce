@@ -197,11 +197,12 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                     ),
                     child: Text(
                       {
-                        'All': ref.tr('tasks.all'),
-                        'To Do': ref.tr('tasks.toDo'),
-                        'In progress': ref.tr('tasks.inProgress'),
-                        'Completed': ref.tr('tasks.completed'),
-                      }[filters[index]] ?? filters[index],
+                            'All': ref.tr('tasks.all'),
+                            'To Do': ref.tr('tasks.toDo'),
+                            'In progress': ref.tr('tasks.inProgress'),
+                            'Completed': ref.tr('tasks.completed'),
+                          }[filters[index]] ??
+                          filters[index],
                       style: GoogleFonts.inter(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
@@ -231,7 +232,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
             borderRadius: BorderRadius.circular(12),
           ),
           itemBuilder: (context) {
-            return  [
+            return [
               PopupMenuItem(
                 value: 'Assigned to me',
                 child: Text(ref.tr('tasks.assignedToMe')),
@@ -240,7 +241,10 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                 value: 'Assigned by me',
                 child: Text(ref.tr('tasks.assignedByMe')),
               ),
-              PopupMenuItem(value: 'All tasks', child: Text(ref.tr('tasks.allTasks'))),
+              PopupMenuItem(
+                value: 'All tasks',
+                child: Text(ref.tr('tasks.allTasks')),
+              ),
             ];
           },
           child: Container(
@@ -256,10 +260,11 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
               children: [
                 Text(
                   {
-                    'Assigned to me': ref.tr('tasks.assignedToMe'),
-                    'Assigned by me': ref.tr('tasks.assignedByMe'),
-                    'All tasks': ref.tr('tasks.allTasks'),
-                  }[selectedAssignee] ?? selectedAssignee,
+                        'Assigned to me': ref.tr('tasks.assignedToMe'),
+                        'Assigned by me': ref.tr('tasks.assignedByMe'),
+                        'All tasks': ref.tr('tasks.allTasks'),
+                      }[selectedAssignee] ??
+                      selectedAssignee,
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: FontWeight.w400,
@@ -280,36 +285,30 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
     );
   }
 
-  Future<void> _startTask(
-  Map<String, dynamic> task,
-) async {
-  final taskId =
-      int.tryParse(task['id']?.toString() ?? '');
+  Future<void> _startTask(Map<String, dynamic> task) async {
+    final taskId = int.tryParse(task['id']?.toString() ?? '');
 
-  if (taskId == null) return;
+    if (taskId == null) return;
 
-  final success = await ref
-      .read(taskProvider.notifier)
-      .updateTaskStatus(
-        taskId: taskId,
-        status: 'in_progress',
-      );
+    final success = await ref
+        .read(taskProvider.notifier)
+        .updateTaskStatus(taskId: taskId, status: 'in_progress');
 
-  if (!mounted) return;
+    if (!mounted) return;
 
-  final message =
-      ref.read(taskProvider).message;
+    final message = ref.read(taskProvider).message;
 
-  ScaffoldMessenger.of(context).showSnackBar(
-    SnackBar(
-      content: Text(
-        success
-            ? ref.tr('tasks.startedSuccessfully')
-            : message ?? ref.tr('tasks.unableToStart'),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          success
+              ? ref.tr('tasks.startedSuccessfully')
+              : message ?? ref.tr('tasks.unableToStart'),
+        ),
       ),
-    ),
-  );
-}
+    );
+  }
+
   Future<void> _openTaskDetails(Map<String, dynamic> task) async {
     final taskId = int.tryParse(task['id']?.toString() ?? '');
 
@@ -403,7 +402,10 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
             ),
           ),
           const SizedBox(height: 12),
-          OutlinedButton(onPressed: _loadTasks, child:  Text(ref.tr('common.retry'))),
+          OutlinedButton(
+            onPressed: _loadTasks,
+            child: Text(ref.tr('common.retry')),
+          ),
         ],
       ),
     );
@@ -499,9 +501,9 @@ class _TaskCard extends ConsumerWidget {
                     if (priority.isNotEmpty) ...[
                       const SizedBox(width: 5),
                       _PriorityBadge(
-                         text: _formatPriority(priority, ref),
-                         priorityKey: priority,
-                       ),
+                        text: _formatPriority(priority, ref),
+                        priorityKey: priority,
+                      ),
                     ],
                   ],
                 ),
@@ -592,10 +594,7 @@ class _PriorityBadge extends StatelessWidget {
   final String text;
   final String priorityKey;
 
-  const _PriorityBadge({
-    required this.text,
-    this.priorityKey = '',
-  });
+  const _PriorityBadge({required this.text, this.priorityKey = ''});
 
   @override
   Widget build(BuildContext context) {
@@ -735,8 +734,7 @@ class _AudioPlayer extends StatefulWidget {
 }
 
 class _AudioPlayerState extends State<_AudioPlayer> {
-  static const String _uploadBaseUrl =
-      'https://workforce.orkuts.com/uploads/';
+  static const String _uploadBaseUrl = 'https://workforce.orkuts.com/uploads/';
 
   late final AudioPlayer _player;
 
@@ -865,14 +863,11 @@ class _AudioPlayerState extends State<_AudioPlayer> {
 
       final uri = Uri.parse(url);
 
-      if (!uri.hasScheme ||
-          (uri.scheme != 'http' && uri.scheme != 'https')) {
+      if (!uri.hasScheme || (uri.scheme != 'http' && uri.scheme != 'https')) {
         throw Exception('Invalid resolved audio URL: $url');
       }
 
-      final duration = await _player.setAudioSource(
-        AudioSource.uri(uri),
-      );
+      final duration = await _player.setAudioSource(AudioSource.uri(uri));
 
       final finalDuration = duration ?? _player.duration ?? Duration.zero;
 
@@ -1020,13 +1015,9 @@ class _AudioPlayerState extends State<_AudioPlayer> {
                       : Icon(
                           _hasError
                               ? Icons.refresh_rounded
-                              : (_isPlaying
-                                  ? Icons.pause
-                                  : Icons.play_arrow),
+                              : (_isPlaying ? Icons.pause : Icons.play_arrow),
                           size: 18,
-                          color: _hasError
-                              ? Colors.redAccent
-                              : Colors.black,
+                          color: _hasError ? Colors.redAccent : Colors.black,
                         ),
                 ),
               ),
@@ -1065,9 +1056,7 @@ class _AudioPlayerState extends State<_AudioPlayer> {
                     onChanged: _duration.inMilliseconds == 0 || _hasError
                         ? null
                         : (value) {
-                            _player.seek(
-                              Duration(milliseconds: value.toInt()),
-                            );
+                            _player.seek(Duration(milliseconds: value.toInt()));
                           },
                   ),
                 ),
@@ -1147,329 +1136,338 @@ class _TaskDetailsSheetState extends ConsumerState<_TaskDetailsSheet> {
           borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
         ),
         child: SafeArea(
-        child: Column(
-          children: [
-            // =====================================================
-            // HEADER
-            // =====================================================
+          child: Column(
+            children: [
+              // =====================================================
+              // HEADER
+              // =====================================================
 
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
-                        fontSize: 30,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textColor,
-                      ),
-                    ),
-                  ),
-
-                  InkWell(
-                    borderRadius: BorderRadius.circular(20),
-                    onTap: () {
-                      Navigator.of(context).pop();
-                    },
-                    child: const Padding(
-                      padding: EdgeInsets.all(6),
-                      child: Icon(
-                        Icons.close,
-                        size: 20,
-                        color: Color(0xFF77707A),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            const Divider(height: 1, color: Color(0xFFE9E5EA)),
-
-            // =====================================================
-            // CONTENT
-            // =====================================================
-            Expanded(
-              child: SingleChildScrollView(
+              Padding(
                 padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
                   children: [
-                    // =================================================
-                    // BADGES
-                    // =================================================
-
-                    Row(
-                      children: [
-                        _PriorityBadge(
-                         text: _formatPriority(priority, ref),
-                         priorityKey: priority,
-                       ),
-
-                        const SizedBox(width: 8),
-
-                        _StatusBadge(
-                          text: _formatStatus(status,ref),
-                          completed: status == 'completed',
+                    Expanded(
+                      child: Text(
+                        title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          fontSize: 30,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textColor,
                         ),
+                      ),
+                    ),
 
-                        const SizedBox(width: 8),
+                    InkWell(
+                      borderRadius: BorderRadius.circular(20),
+                      onTap: () {
+                        Navigator.of(context).pop();
+                      },
+                      child: const Padding(
+                        padding: EdgeInsets.all(6),
+                        child: Icon(
+                          Icons.close,
+                          size: 20,
+                          color: Color(0xFF77707A),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
-                        if (dueDate.isNotEmpty)
-                          Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 9,
-                              vertical: 5,
-                            ),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF1EDF2),
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Text(
-                              ref.tr('tasks.due').replaceFirst('{date}', _formatDate(dueDate, ref)),
-                              style: GoogleFonts.inter(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w500,
-                                color: const Color(0xFF5E5662),
+              const Divider(height: 1, color: Color(0xFFE9E5EA)),
+
+              // =====================================================
+              // CONTENT
+              // =====================================================
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // =================================================
+                      // BADGES
+                      // =================================================
+
+                      Row(
+                        children: [
+                          _PriorityBadge(
+                            text: _formatPriority(priority, ref),
+                            priorityKey: priority,
+                          ),
+
+                          const SizedBox(width: 8),
+
+                          _StatusBadge(
+                            text: _formatStatus(status, ref),
+                            completed: status == 'completed',
+                          ),
+
+                          const SizedBox(width: 8),
+
+                          if (dueDate.isNotEmpty)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 9,
+                                vertical: 5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF1EDF2),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                ref
+                                    .tr('tasks.due')
+                                    .replaceFirst(
+                                      '{date}',
+                                      _formatDate(dueDate, ref),
+                                    ),
+                                style: GoogleFonts.inter(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w500,
+                                  color: const Color(0xFF5E5662),
+                                ),
                               ),
                             ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 14),
+
+                      // =================================================
+                      // DESCRIPTION
+                      // =================================================
+                      if (description.isNotEmpty) ...[
+                        Text(
+                          description,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            height: 1.5,
+                            color: AppColors.mutedColor,
                           ),
+                        ),
+
+                        const SizedBox(height: 16),
                       ],
-                    ),
 
-                    const SizedBox(height: 14),
-
-                    // =================================================
-                    // DESCRIPTION
-                    // =================================================
-                    if (description.isNotEmpty) ...[
-                      Text(
-                        description,
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          height: 1.5,
-                          color: AppColors.mutedColor,
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-                    ],
-
-                    // =================================================
-                    // ASSIGNMENT
-                    // =================================================
-                    if (assignedTo.isNotEmpty || assignedBy.isNotEmpty) ...[
-                      Text(
-                        'For ${assignedTo.isEmpty ? '-' : assignedTo}'
-                        '${assignedBy.isNotEmpty ? ' · assigned by $assignedBy' : ''}',
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: AppColors.mutedColor,
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-                    ],
-
-                    // =================================================
-                    // STATUS
-                    // =================================================
-                    Text(
-                      ref.tr('tasks.status'),
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textColor,
-                      ),
-                    ),
-
-                    const SizedBox(height: 8),
-
-                    Container(
-                      height: 45,
-                      decoration: BoxDecoration(
-                        border: Border.all(color: AppColors.borderColor),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      padding: const EdgeInsets.symmetric(horizontal: 10),
-                      child: DropdownButtonHideUnderline(
-                        child: DropdownButton<String>(
-                          value:
-                              [
-                                'pending',
-                                'in_progress',
-                                'completed',
-                                'cancelled',
-                              ].contains(status)
-                              ? status
-                              : null,
-                          isExpanded: true,
-                          icon: const Icon(Icons.keyboard_arrow_down, size: 18),
+                      // =================================================
+                      // ASSIGNMENT
+                      // =================================================
+                      if (assignedTo.isNotEmpty || assignedBy.isNotEmpty) ...[
+                        Text(
+                          'For ${assignedTo.isEmpty ? '-' : assignedTo}'
+                          '${assignedBy.isNotEmpty ? ' · assigned by $assignedBy' : ''}',
                           style: GoogleFonts.inter(
                             fontSize: 12,
-                            color: AppColors.textColor,
+                            color: AppColors.mutedColor,
                           ),
-                          items:  [
-                            DropdownMenuItem(
-                              value: 'pending',
-                              child: Text(ref.tr('tasks.toDo')),
-                            ),
-                            DropdownMenuItem(
-                              value: 'in_progress',
-                              child: Text(ref.tr('tasks.inProgress')),
-                            ),
-                            DropdownMenuItem(
-                              value: 'completed',
-                              child: Text(ref.tr('tasks.completed')),
-                            ),
-                            DropdownMenuItem(
-                              value: 'cancelled',
-                              child: Text(ref.tr('tasks.cancelled')),
-                            ),
-                          ],
-                          onChanged: taskId == null
-                              ? null
-                              : (newStatus) async {
-                                  if (newStatus == null ||
-                                      newStatus == status) {
-                                    return;
-                                  }
+                        ),
 
-                                  await ref
-                                      .read(taskProvider.notifier)
-                                      .updateTaskStatus(
-                                        taskId: taskId,
-                                        status: newStatus,
-                                      );
-                                },
+                        const SizedBox(height: 16),
+                      ],
+
+                      // =================================================
+                      // STATUS
+                      // =================================================
+                      Text(
+                        ref.tr('tasks.status'),
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textColor,
                         ),
                       ),
-                    ),
 
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 8),
 
-                    // =================================================
-                    // NOTES
-                    // =================================================
-                    Row(
-                      children: [
-                        Text(
-                          ref.tr('tasks.notes'),
-                          style: GoogleFonts.inter(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.textColor,
+                      Container(
+                        height: 45,
+                        decoration: BoxDecoration(
+                          border: Border.all(color: AppColors.borderColor),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 10),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value:
+                                [
+                                  'pending',
+                                  'in_progress',
+                                  'completed',
+                                  'cancelled',
+                                ].contains(status)
+                                ? status
+                                : null,
+                            isExpanded: true,
+                            icon: const Icon(
+                              Icons.keyboard_arrow_down,
+                              size: 18,
+                            ),
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: AppColors.textColor,
+                            ),
+                            items: [
+                              DropdownMenuItem(
+                                value: 'pending',
+                                child: Text(ref.tr('tasks.toDo')),
+                              ),
+                              DropdownMenuItem(
+                                value: 'in_progress',
+                                child: Text(ref.tr('tasks.inProgress')),
+                              ),
+                              DropdownMenuItem(
+                                value: 'completed',
+                                child: Text(ref.tr('tasks.completed')),
+                              ),
+                              DropdownMenuItem(
+                                value: 'cancelled',
+                                child: Text(ref.tr('tasks.cancelled')),
+                              ),
+                            ],
+                            onChanged: taskId == null
+                                ? null
+                                : (newStatus) async {
+                                    if (newStatus == null ||
+                                        newStatus == status) {
+                                      return;
+                                    }
+
+                                    await ref
+                                        .read(taskProvider.notifier)
+                                        .updateTaskStatus(
+                                          taskId: taskId,
+                                          status: newStatus,
+                                        );
+                                  },
                           ),
                         ),
+                      ),
 
-                        const Spacer(),
+                      const SizedBox(height: 16),
 
+                      // =================================================
+                      // NOTES
+                      // =================================================
+                      Row(
+                        children: [
+                          Text(
+                            ref.tr('tasks.notes'),
+                            style: GoogleFonts.inter(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: AppColors.textColor,
+                            ),
+                          ),
+
+                          const Spacer(),
+
+                          Text(
+                            '${state.comments.length}',
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              color: AppColors.mutedColor,
+                            ),
+                          ),
+                        ],
+                      ),
+
+                      const SizedBox(height: 8),
+
+                      // =================================================
+                      // COMMENTS - REAL TIME
+                      // =================================================
+                      if (state.isLoadingComments)
+                        const Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Center(
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        )
+                      else if (state.comments.isEmpty)
                         Text(
-                          '${state.comments.length}',
+                          ref.tr('tasks.noNotes'),
                           style: GoogleFonts.inter(
                             fontSize: 11,
                             color: AppColors.mutedColor,
                           ),
-                        ),
-                      ],
-                    ),
+                        )
+                      else
+                        ...state.comments.map((comment) {
+                          final userName =
+                              comment['userName']?.toString() ??
+                              ref.tr('tasks.user');
 
-                    const SizedBox(height: 8),
+                          final body = comment['body']?.toString() ?? '';
 
-                    // =================================================
-                    // COMMENTS - REAL TIME
-                    // =================================================
-                    if (state.isLoadingComments)
-                      const Padding(
-                        padding: EdgeInsets.all(16),
-                        child: Center(
-                          child: CircularProgressIndicator(strokeWidth: 2),
-                        ),
-                      )
-                    else if (state.comments.isEmpty)
-                      Text(
-                        ref.tr('tasks.noNotes'),
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          color: AppColors.mutedColor,
-                        ),
-                      )
-                    else
-                      ...state.comments.map((comment) {
-                        final userName =
-                            comment['userName']?.toString() ?? ref.tr('tasks.user');
+                          final createdAt =
+                              comment['createdAt']?.toString() ?? '';
 
-                        final body = comment['body']?.toString() ?? '';
-
-                        final createdAt =
-                            comment['createdAt']?.toString() ?? '';
-
-                        return Container(
-                          width: double.infinity,
-                          margin: const EdgeInsets.only(bottom: 8),
-                          padding: const EdgeInsets.all(12),
-                          decoration: BoxDecoration(
-                            color: AppColors.backgroundColor,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                userName,
-                                style: GoogleFonts.inter(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.textColor,
-                                ),
-                              ),
-
-                              const SizedBox(height: 3),
-
-                              Text(
-                                body,
-                                style: GoogleFonts.inter(
-                                  fontSize: 11,
-                                  height: 1.4,
-                                  color: AppColors.mutedColor,
-                                ),
-                              ),
-
-                              if (createdAt.isNotEmpty) ...[
-                                const SizedBox(height: 4),
+                          return Container(
+                            width: double.infinity,
+                            margin: const EdgeInsets.only(bottom: 8),
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: AppColors.backgroundColor,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
                                 Text(
-                                  _formatDateTime(createdAt, ref),
+                                  userName,
                                   style: GoogleFonts.inter(
-                                    fontSize: 9,
-                                    color: const Color(0xFF8B838F),
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.textColor,
                                   ),
                                 ),
+
+                                const SizedBox(height: 3),
+
+                                Text(
+                                  body,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    height: 1.4,
+                                    color: AppColors.mutedColor,
+                                  ),
+                                ),
+
+                                if (createdAt.isNotEmpty) ...[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    _formatDateTime(createdAt, ref),
+                                    style: GoogleFonts.inter(
+                                      fontSize: 9,
+                                      color: const Color(0xFF8B838F),
+                                    ),
+                                  ),
+                                ],
                               ],
-                            ],
-                          ),
-                        );
-                      }),
+                            ),
+                          );
+                        }),
 
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                    // =================================================
-                    // ADD NOTE
-                    // =================================================
-                    if (taskId != null) _AddTaskComment(taskId: taskId),
+                      // =================================================
+                      // ADD NOTE
+                      // =================================================
+                      if (taskId != null) _AddTaskComment(taskId: taskId),
 
-                    const SizedBox(height: 10),
-                  ],
+                      const SizedBox(height: 10),
+                    ],
+                  ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ),
     );
   }
 }
@@ -1518,9 +1516,9 @@ class _AddTaskCommentState extends ConsumerState<_AddTaskComment> {
       _controller.clear();
     } else {
       final message = ref.read(taskProvider).message;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(message ?? ref.tr('tasks.unableToAddNote'))));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message ?? ref.tr('tasks.unableToAddNote'))),
+      );
     }
   }
 
@@ -1617,9 +1615,7 @@ String _formatPriority(String value, WidgetRef ref) {
     case 'low':
       return ref.tr('tasks.priorityLow');
     default:
-      return value.isEmpty
-          ? ''
-          : value[0].toUpperCase() + value.substring(1);
+      return value.isEmpty ? '' : value[0].toUpperCase() + value.substring(1);
   }
 }
 
@@ -1671,9 +1667,7 @@ String _formatDateTime(String value, WidgetRef ref) {
         ? date.hour - 12
         : date.hour;
     final minute = date.minute.toString().padLeft(2, '0');
-    final period = date.hour >= 12
-        ? ref.tr('common.pm')
-        : ref.tr('common.am');
+    final period = date.hour >= 12 ? ref.tr('common.pm') : ref.tr('common.am');
 
     return '${_formatDate(value, ref)} '
         '${ref.tr('tasks.at')} $hour:$minute $period';
