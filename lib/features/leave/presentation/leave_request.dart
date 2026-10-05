@@ -1319,10 +1319,9 @@ class _TextField extends StatelessWidget {
     this.hint,
     this.suffixIcon,
     this.maxLines = 1,
-    this.keyboardType,
     this.onTap,
     this.readOnly = false,
-  });
+  }) : keyboardType = null;
 
   @override
   Widget build(BuildContext context) {

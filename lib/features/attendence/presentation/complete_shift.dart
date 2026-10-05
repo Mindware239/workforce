@@ -110,7 +110,7 @@ class _CompleteShiftScreenState extends State<CompleteShiftScreen> {
           children: [
             // Replace this with your actual camera preview.
             Image.asset(
-              'assets/images/face_capture.png',
+              'assets/images/face_capture.jpg',
               fit: BoxFit.cover,
             ),
 

@@ -247,9 +247,8 @@ class _SettingsRow extends StatelessWidget {
     required this.title,
     this.onTap,
     this.trailingText,
-    this.trailing,
     this.isLast = false,
-  });
+  }) : trailing = null;
 
   @override
   Widget build(BuildContext context) {

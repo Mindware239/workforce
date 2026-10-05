@@ -84,7 +84,7 @@ class ConfirmCheckoutPhotoScreen extends StatelessWidget {
               fit: BoxFit.cover,
             )
           : Image.asset(
-              'assets/images/check-out.png',
+              'assets/images/check-out.jpg',
               fit: BoxFit.cover,
             ),
     ),

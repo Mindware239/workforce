@@ -206,8 +206,8 @@ class ChatRepository {
       final response = await apiClient.get(
         '/chat/conversations/$conversationId/messages',
         queryParameters: {
-          if (before != null) 'before': before,
-          if (after != null) 'after': after,
+          'before': ?before,
+          'after': ?after,
           'limit': limit,
         },
       );

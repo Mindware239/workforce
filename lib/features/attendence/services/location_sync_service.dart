@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 
 import 'package:workforce/core/network/api_client.dart';
 import 'package:workforce/core/services/secure_storage.dart';
@@ -15,11 +16,11 @@ class LocationSyncService {
 
   static Future<void> scheduleSync() async {
     if (_syncTimer != null && _syncTimer!.isActive) {
-      print('⏳ Batch sync already scheduled.');
+      debugPrint('⏳ Batch sync already scheduled.');
       return;
     }
 
-    print('⏳ Scheduling batch sync in ${syncDelay.inSeconds}s.');
+    debugPrint('⏳ Scheduling batch sync in ${syncDelay.inSeconds}s.');
 
     _syncTimer = Timer(syncDelay, () async {
       _syncTimer = null;
@@ -29,7 +30,7 @@ class LocationSyncService {
 
   static Future<bool> sync() async {
     if (_isSyncing) {
-      print('⏳ Location sync already running.');
+      debugPrint('⏳ Location sync already running.');
       return false;
     }
 
@@ -42,11 +43,11 @@ class LocationSyncService {
       final locations = await queue.getAll();
 
       if (locations.isEmpty) {
-        print('📦 Location queue is empty.');
+        debugPrint('📦 Location queue is empty.');
         return true;
       }
 
-      print('📦 Syncing ${locations.length} tracking point(s).');
+      debugPrint('📦 Syncing ${locations.length} tracking point(s).');
 
       final apiClient = ApiClient(
         secureStorage: storage,
@@ -63,14 +64,14 @@ class LocationSyncService {
         final responseData = response.data;
 
         if (responseData is! Map) {
-          print('❌ Invalid batch response.');
+          debugPrint('❌ Invalid batch response.');
           return false;
         }
 
         final data = responseData['data'];
 
         if (data is! Map) {
-          print('❌ Invalid batch response data.');
+          debugPrint('❌ Invalid batch response data.');
           return false;
         }
 
@@ -82,12 +83,12 @@ class LocationSyncService {
         final throttled =
             data['throttled'] == true;
 
-        print('📦 Accepted: $accepted');
-        print(
+        debugPrint('📦 Accepted: $accepted');
+        debugPrint(
           '📦 Rejected: '
           '${rejected is List ? rejected.length : 0}',
         );
-        print('📦 Throttled: $throttled');
+        debugPrint('📦 Throttled: $throttled');
 
         // Backend returned rejected indexes.
         if (rejected is List && rejected.isNotEmpty) {
@@ -112,7 +113,7 @@ class LocationSyncService {
 
           await queue.replace(remaining);
 
-          print(
+          debugPrint(
             '📦 Kept ${remaining.length} rejected '
             'point(s) for retry.',
           );
@@ -124,7 +125,7 @@ class LocationSyncService {
         if (accepted == locations.length) {
           await queue.clear();
 
-          print(
+          debugPrint(
             '✅ All ${locations.length} tracking '
             'point(s) synchronized.',
           );
@@ -134,15 +135,15 @@ class LocationSyncService {
 
         // Backend accepted something but didn't tell us
         // which points were accepted.
-        print(
+        debugPrint(
           '⚠️ Partial batch response without indexes. '
           'Keeping queue to avoid losing tracking data.',
         );
 
         return false;
       } catch (e) {
-        print('❌ Batch sync failed: $e');
-        print('📦 Keeping queue for retry.');
+        debugPrint('❌ Batch sync failed: $e');
+        debugPrint('📦 Keeping queue for retry.');
         return false;
       }
     } finally {

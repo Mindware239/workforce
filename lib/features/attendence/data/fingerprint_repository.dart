@@ -83,7 +83,7 @@ class FingerprintRepository {
           'signature': signature,
           'lat': lat,
           'lng': lng,
-          if (accuracy != null) 'accuracy': accuracy,
+          'accuracy': ?accuracy,
         },
       );
 

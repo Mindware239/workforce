@@ -498,7 +498,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
         const SizedBox(height: 6),
 
         DropdownButtonFormField<String>(
-          value: relation,
+          initialValue: relation,
           isExpanded: true,
           icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 19),
           style: GoogleFonts.inter(
@@ -792,7 +792,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
         color: AppColors.backgroundColor,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 8,
             offset: const Offset(0, -2),
           ),
@@ -805,8 +805,8 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
           onPressed: _isSubmitting ? null : _submit,
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primaryFillColor,
-            disabledBackgroundColor: AppColors.primaryFillColor.withOpacity(
-              0.5,
+            disabledBackgroundColor: AppColors.primaryFillColor.withValues(
+              alpha: 0.5,
             ),
             foregroundColor: Colors.white,
             elevation: 0,
@@ -972,7 +972,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
         border: Border.all(color: AppColors.borderColor, width: 1),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.025),
+            color: Colors.black.withValues(alpha: 0.025),
             blurRadius: 5,
             offset: const Offset(0, 2),
           ),

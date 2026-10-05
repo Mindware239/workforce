@@ -1,17 +1,22 @@
 package com.example.workforce
 
 import android.Manifest
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.app.Service
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.pm.ServiceInfo
+import android.location.Location
 import android.os.Build
 import android.os.IBinder
 import android.os.Looper
-import androidx.core.app.ActivityCompat
+import android.util.Log
 import androidx.core.app.NotificationCompat
+import androidx.core.app.ServiceCompat
+import androidx.core.content.ContextCompat
 
 import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationCallback
@@ -20,11 +25,16 @@ import com.google.android.gms.location.LocationResult
 import com.google.android.gms.location.LocationServices
 import com.google.android.gms.location.Priority
 
+import io.flutter.FlutterInjector
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.embedding.engine.dart.DartExecutor
-import io.flutter.embedding.engine.loader.FlutterLoader
 import io.flutter.plugin.common.MethodChannel
 
+/**
+ * Foreground service that keeps location tracking alive while the
+ * employee is checked in, including after the app is swiped away,
+ * the process is killed by the system, or the device reboots.
+ */
 class LocationTrackingService : Service() {
 
     companion object {
@@ -38,11 +48,83 @@ class LocationTrackingService : Service() {
             "com.example.workforce.STOP_LOCATION_TRACKING"
 
         private const val TAG = "WorkforceLocation"
+
+        private const val PREFS = "workforce_location_tracking"
+        private const val KEY_ACTIVE = "tracking_active"
+
+        private const val INTERVAL_MS = 30_000L
+        private const val MIN_INTERVAL_MS = 15_000L
+        private const val MIN_DISTANCE_M = 25f
+
+        fun hasLocationPermission(context: Context): Boolean =
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.ACCESS_FINE_LOCATION
+            ) == PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.ACCESS_COARSE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+
+        fun hasBackgroundLocationPermission(context: Context): Boolean =
+            Build.VERSION.SDK_INT < Build.VERSION_CODES.Q ||
+                ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.ACCESS_BACKGROUND_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+
+        /** Whether the employee is checked in and tracking should run. */
+        fun isTrackingActive(context: Context): Boolean =
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .getBoolean(KEY_ACTIVE, false)
+
+        private fun setTrackingActive(context: Context, active: Boolean) {
+            context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .putBoolean(KEY_ACTIVE, active)
+                .apply()
+        }
+
+        /** Returns false when location permission is missing. */
+        fun start(context: Context): Boolean {
+            if (!hasLocationPermission(context)) {
+                Log.w(TAG, "Not starting: location permission missing.")
+                return false
+            }
+
+            setTrackingActive(context, true)
+
+            val intent = Intent(context, LocationTrackingService::class.java)
+                .setAction(ACTION_START)
+
+            return try {
+                ContextCompat.startForegroundService(context, intent)
+                true
+            } catch (e: Exception) {
+                // e.g. ForegroundServiceStartNotAllowedException when
+                // started from the background without permission.
+                Log.e(TAG, "Failed to start tracking service.", e)
+                false
+            }
+        }
+
+        fun stop(context: Context) {
+            setTrackingActive(context, false)
+
+            context.stopService(
+                Intent(context, LocationTrackingService::class.java)
+            )
+        }
     }
 
     private lateinit var fusedLocationClient: FusedLocationProviderClient
 
-    private lateinit var locationCallback: LocationCallback
+    private val locationCallback =
+        object : LocationCallback() {
+            override fun onLocationResult(result: LocationResult) {
+                result.locations.forEach(::sendLocationToBackgroundIsolate)
+            }
+        }
 
     private var flutterEngine: FlutterEngine? = null
 
@@ -53,78 +135,108 @@ class LocationTrackingService : Service() {
     override fun onCreate() {
         super.onCreate()
 
-        android.util.Log.d(TAG, "========================================")
-        android.util.Log.d(TAG, "📍 LocationTrackingService CREATED")
-        android.util.Log.d(TAG, "========================================")
-
         createNotificationChannel()
 
         fusedLocationClient =
             LocationServices.getFusedLocationProviderClient(this)
+    }
 
-        locationCallback =
-            object : LocationCallback() {
+    override fun onStartCommand(
+        intent: Intent?,
+        flags: Int,
+        startId: Int
+    ): Int {
+        if (intent?.action == ACTION_STOP) {
+            stop(this)
+            return START_NOT_STICKY
+        }
 
-                override fun onLocationResult(
-                    result: LocationResult
-                ) {
-                    android.util.Log.d(
-                        TAG,
-                        "📍 Location callback received: ${result.locations.size} location(s)"
-                    )
+        // A null intent means Android restarted the sticky service
+        // after killing the process. Only resume if still checked in.
+        if (!isTrackingActive(this) || !hasLocationPermission(this)) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
 
-                    for (location in result.locations) {
-                        sendLocationToBackgroundIsolate(location)
-                    }
-                }
-            }
+        if (!startAsForeground()) {
+            stopSelf()
+            return START_NOT_STICKY
+        }
+
+        createBackgroundFlutterEngine()
+
+        startLocationUpdates()
+
+        return START_STICKY
     }
 
     /**
-     * Creates a second FlutterEngine dedicated to the
-     * background location Dart isolate.
-     *
-     * IMPORTANT:
-     * Do NOT call GeneratedPluginRegistrant.registerWith(engine)
-     * here. Flutter plugins are already registered by the embedding
-     * and manually registering them causes duplicate registration.
+     * Promotes the service to the foreground with the "location" type,
+     * which Android 14+ requires.
+     */
+    private fun startAsForeground(): Boolean {
+        val launchIntent =
+            packageManager.getLaunchIntentForPackage(packageName)
+
+        val contentIntent =
+            launchIntent?.let {
+                PendingIntent.getActivity(
+                    this,
+                    0,
+                    it,
+                    PendingIntent.FLAG_IMMUTABLE or
+                        PendingIntent.FLAG_UPDATE_CURRENT
+                )
+            }
+
+        val notification =
+            NotificationCompat.Builder(this, CHANNEL_ID)
+                .setContentTitle("Workforce location tracking")
+                .setContentText("Your work location is being tracked.")
+                .setSmallIcon(android.R.drawable.ic_menu_mylocation)
+                .setContentIntent(contentIntent)
+                .setOngoing(true)
+                .setPriority(NotificationCompat.PRIORITY_LOW)
+                .setCategory(NotificationCompat.CATEGORY_SERVICE)
+                .setForegroundServiceBehavior(
+                    NotificationCompat.FOREGROUND_SERVICE_IMMEDIATE
+                )
+                .build()
+
+        return try {
+            ServiceCompat.startForeground(
+                this,
+                NOTIFICATION_ID,
+                notification,
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    ServiceInfo.FOREGROUND_SERVICE_TYPE_LOCATION
+                } else {
+                    0
+                }
+            )
+            true
+        } catch (e: Exception) {
+            // SecurityException if location permission was revoked,
+            // or the start was not allowed from the background.
+            Log.e(TAG, "Unable to enter foreground.", e)
+            false
+        }
+    }
+
+    /**
+     * Starts a second FlutterEngine that runs the Dart entrypoint
+     * `locationBackgroundEntryPoint`, so location uploads work even
+     * when the UI is not running. Plugins are registered automatically.
      */
     private fun createBackgroundFlutterEngine() {
+        if (flutterEngine != null) return
 
-        if (flutterEngine != null) {
-            android.util.Log.d(
-                TAG,
-                "⚠️ Background FlutterEngine already exists."
-            )
-            return
-        }
+        val loader = FlutterInjector.instance().flutterLoader()
 
-        android.util.Log.d(
-            TAG,
-            "🚀 Creating background FlutterEngine..."
-        )
+        loader.startInitialization(applicationContext)
+        loader.ensureInitializationComplete(applicationContext, null)
 
-        val flutterLoader = FlutterLoader()
-
-        flutterLoader.startInitialization(this)
-
-        flutterLoader.ensureInitializationComplete(
-            this,
-            null
-        )
-
-        val engine = FlutterEngine(this)
-
-        val dartEntrypoint =
-            DartExecutor.DartEntrypoint(
-                flutterLoader.findAppBundlePath(),
-                "locationBackgroundEntryPoint"
-            )
-
-        android.util.Log.d(
-            TAG,
-            "🚀 Starting Dart entrypoint: locationBackgroundEntryPoint"
-        )
+        val engine = FlutterEngine(applicationContext)
 
         backgroundChannel =
             MethodChannel(
@@ -133,186 +245,28 @@ class LocationTrackingService : Service() {
             )
 
         engine.dartExecutor.executeDartEntrypoint(
-            dartEntrypoint
+            DartExecutor.DartEntrypoint(
+                loader.findAppBundlePath(),
+                "locationBackgroundEntryPoint"
+            )
         )
 
         flutterEngine = engine
-
-        android.util.Log.d(
-            TAG,
-            "✅ Background FlutterEngine created."
-        )
     }
 
-    override fun onStartCommand(
-        intent: Intent?,
-        flags: Int,
-        startId: Int
-    ): Int {
-
-        android.util.Log.d(
-            TAG,
-            "📡 onStartCommand action=${intent?.action}"
-        )
-
-        when (intent?.action) {
-
-            ACTION_START -> {
-
-                android.util.Log.d(
-                    TAG,
-                    "▶️ START_LOCATION_TRACKING received"
-                )
-
-                startForegroundService()
-
-                if (flutterEngine == null) {
-                    createBackgroundFlutterEngine()
-                }
-
-                startLocationUpdates()
-            }
-
-            ACTION_STOP -> {
-
-                android.util.Log.d(
-                    TAG,
-                    "⏹ STOP_LOCATION_TRACKING received"
-                )
-
-                stopLocationUpdates()
-
-                destroyBackgroundFlutterEngine()
-
-                if (Build.VERSION.SDK_INT >=
-                    Build.VERSION_CODES.N
-                ) {
-                    stopForeground(
-                        STOP_FOREGROUND_REMOVE
-                    )
-                } else {
-                    @Suppress("DEPRECATION")
-                    stopForeground(true)
-                }
-
-                stopSelf()
-            }
-        }
-
-        /*
-         * START_STICKY tells Android that this is a long-running
-         * foreground service and it may recreate the service after
-         * the process is killed.
-         */
-        return START_STICKY
-    }
-
-    /**
-     * Starts the Android foreground notification.
-     */
-    private fun startForegroundService() {
-
-        val notification: Notification =
-            NotificationCompat.Builder(
-                this,
-                CHANNEL_ID
-            )
-                .setContentTitle(
-                    "Workforce location tracking"
-                )
-                .setContentText(
-                    "Your work location is being tracked."
-                )
-                .setSmallIcon(
-                    android.R.drawable.ic_menu_mylocation
-                )
-                .setOngoing(true)
-                .setPriority(
-                    NotificationCompat.PRIORITY_LOW
-                )
-                .setCategory(
-                    NotificationCompat.CATEGORY_SERVICE
-                )
-                .build()
-
-        if (Build.VERSION.SDK_INT >=
-            Build.VERSION_CODES.Q
-        ) {
-
-            startForeground(
-                NOTIFICATION_ID,
-                notification
-            )
-
-        } else {
-
-            startForeground(
-                NOTIFICATION_ID,
-                notification
-            )
-        }
-
-        android.util.Log.d(
-            TAG,
-            "🔔 Foreground notification started."
-        )
-    }
-
-    /**
-     * Starts GPS updates.
-     */
     private fun startLocationUpdates() {
-
-        if (isTracking) {
-            android.util.Log.d(
-                TAG,
-                "⚠️ Location tracking already running."
-            )
-            return
-        }
-
-        val fineLocationGranted =
-            ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-
-        val coarseLocationGranted =
-            ActivityCompat.checkSelfPermission(
-                this,
-                Manifest.permission.ACCESS_COARSE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-
-        if (!fineLocationGranted &&
-            !coarseLocationGranted
-        ) {
-
-            android.util.Log.e(
-                TAG,
-                "❌ Location permission not granted."
-            )
-
-            return
-        }
+        if (isTracking) return
 
         val request =
             LocationRequest.Builder(
                 Priority.PRIORITY_HIGH_ACCURACY,
-                30_000L
+                INTERVAL_MS
             )
-                .setMinUpdateIntervalMillis(
-                    15_000L
-                )
-                .setMinUpdateDistanceMeters(
-                    25f
-                )
-                .setWaitForAccurateLocation(
-                    true
-                )
+                .setMinUpdateIntervalMillis(MIN_INTERVAL_MS)
+                .setMinUpdateDistanceMeters(MIN_DISTANCE_M)
                 .build()
 
         try {
-
             fusedLocationClient.requestLocationUpdates(
                 request,
                 locationCallback,
@@ -320,82 +274,27 @@ class LocationTrackingService : Service() {
             )
 
             isTracking = true
-
-            android.util.Log.d(
-                TAG,
-                "✅ GPS location updates started."
-            )
-            android.util.Log.d(
-                TAG,
-                "⏱ Interval: 30 seconds"
-            )
-            android.util.Log.d(
-                TAG,
-                "📏 Minimum distance: 25 meters"
-            )
-
-        } catch (e: Exception) {
-
-            android.util.Log.e(
-                TAG,
-                "❌ Failed to start location updates.",
-                e
-            )
+        } catch (e: SecurityException) {
+            Log.e(TAG, "Location permission revoked.", e)
+            stopSelf()
         }
     }
 
-    /**
-     * Stops GPS updates.
-     */
     private fun stopLocationUpdates() {
+        if (!isTracking) return
 
-        if (!::fusedLocationClient.isInitialized ||
-            !::locationCallback.isInitialized
-        ) {
-            return
-        }
+        fusedLocationClient.removeLocationUpdates(locationCallback)
 
-        try {
-
-            fusedLocationClient.removeLocationUpdates(
-                locationCallback
-            )
-
-            isTracking = false
-
-            android.util.Log.d(
-                TAG,
-                "⏹ GPS location updates stopped."
-            )
-
-        } catch (e: Exception) {
-
-            android.util.Log.e(
-                TAG,
-                "❌ Failed to stop location updates.",
-                e
-            )
-        }
+        isTracking = false
     }
 
-    /**
-     * Sends native Android GPS location to the
-     * background Dart isolate.
-     */
-    private fun sendLocationToBackgroundIsolate(
-        location: android.location.Location
-    ) {
-
+    /** Sends a GPS fix to the background Dart isolate. */
+    private fun sendLocationToBackgroundIsolate(location: Location) {
         val recordedAt =
-            if (location.time > 0) {
-                java.time.Instant
-                    .ofEpochMilli(location.time)
-                    .toString()
-            } else {
-                java.time.Instant
-                    .now()
-                    .toString()
-            }
+            java.time.Instant.ofEpochMilli(
+                if (location.time > 0) location.time
+                else System.currentTimeMillis()
+            ).toString()
 
         val data =
             mapOf(
@@ -407,134 +306,43 @@ class LocationTrackingService : Service() {
                 "recordedAt" to recordedAt
             )
 
-        android.util.Log.d(
-            TAG,
-            "📍 Native location:"
-        )
-
-        android.util.Log.d(
-            TAG,
-            "   lat=${location.latitude}"
-        )
-
-        android.util.Log.d(
-            TAG,
-            "   lng=${location.longitude}"
-        )
-
-        android.util.Log.d(
-            TAG,
-            "   accuracy=${location.accuracy}"
-        )
-
-        android.util.Log.d(
-            TAG,
-            "   recordedAt=$recordedAt"
-        )
-
-        val channel = backgroundChannel
-
-        if (channel == null) {
-
-            android.util.Log.e(
-                TAG,
-                "❌ Background MethodChannel is null."
-            )
-
-            return
-        }
-
         try {
-
-            channel.invokeMethod(
-                "locationUpdate",
-                data
-            )
-
-            android.util.Log.d(
-                TAG,
-                "📡 Location sent to Dart background isolate."
-            )
-
+            backgroundChannel?.invokeMethod("locationUpdate", data)
         } catch (e: Exception) {
-
-            android.util.Log.e(
-                TAG,
-                "❌ Failed to send location to Dart isolate.",
-                e
-            )
+            Log.e(TAG, "Failed to send location to Dart isolate.", e)
         }
     }
 
-    /**
-     * Creates notification channel for Android 8+.
-     */
     private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return
 
-        if (
-            Build.VERSION.SDK_INT >=
-            Build.VERSION_CODES.O
-        ) {
+        val channel =
+            NotificationChannel(
+                CHANNEL_ID,
+                "Workforce Location",
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description =
+                    "Keeps Workforce live location tracking active."
+            }
 
-            val channel =
-                NotificationChannel(
-                    CHANNEL_ID,
-                    "Workforce Location",
-                    NotificationManager.IMPORTANCE_LOW
-                )
-
-            channel.description =
-                "Keeps Workforce live location tracking active."
-
-            val manager =
-                getSystemService(
-                    NotificationManager::class.java
-                )
-
-            manager.createNotificationChannel(
-                channel
-            )
-        }
+        getSystemService(NotificationManager::class.java)
+            .createNotificationChannel(channel)
     }
 
-    /**
-     * Completely destroys the background FlutterEngine.
-     */
     private fun destroyBackgroundFlutterEngine() {
+        backgroundChannel = null
 
         try {
-
-            backgroundChannel = null
-
             flutterEngine?.destroy()
-
-            flutterEngine = null
-
-            android.util.Log.d(
-                TAG,
-                "🗑️ Background FlutterEngine destroyed."
-            )
-
         } catch (e: Exception) {
-
-            android.util.Log.e(
-                TAG,
-                "❌ Error destroying background FlutterEngine.",
-                e
-            )
-
-            flutterEngine = null
-            backgroundChannel = null
+            Log.e(TAG, "Error destroying background FlutterEngine.", e)
         }
+
+        flutterEngine = null
     }
 
     override fun onDestroy() {
-
-        android.util.Log.d(
-            TAG,
-            "💀 LocationTrackingService DESTROYED"
-        )
-
         stopLocationUpdates()
 
         destroyBackgroundFlutterEngine()
@@ -542,7 +350,5 @@ class LocationTrackingService : Service() {
         super.onDestroy()
     }
 
-    override fun onBind(
-        intent: Intent?
-    ): IBinder? = null
+    override fun onBind(intent: Intent?): IBinder? = null
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 
 import 'package:workforce/core/services/secure_storage.dart';
 
@@ -34,7 +35,7 @@ class LocationQueue {
           )
           .toList();
     } catch (e) {
-      print(
+      debugPrint(
         '❌ Failed to read location queue: $e',
       );
 
@@ -69,7 +70,7 @@ class LocationQueue {
       key: _key,
     );
 
-    print(
+    debugPrint(
       '🗑️ Location queue cleared.',
     );
   }

@@ -611,7 +611,7 @@ class _Card extends StatelessWidget {
   final double? height;
   final EdgeInsetsGeometry? padding;
 
-  const _Card({required this.child, this.height, this.padding});
+  const _Card({required this.child, this.padding}) : height = null;
 
   @override
   Widget build(BuildContext context) {

@@ -7,7 +7,6 @@ import 'package:workforce/core/localization/app_localization.dart';
 
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/features/language/providers/language_provider.dart';
-import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 import 'package:workforce/features/onboarding/presentation/widget/radio_circle.dart';
 import 'package:workforce/features/onboarding/presentation/widget/workforce_brand.dart';
 

@@ -743,7 +743,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
     return SizedBox(
       width: double.infinity,
       height: 310,
-      child: Center(child: Image.asset('assets/images/face_capture.png')),
+      child: Center(child: Image.asset('assets/images/face_capture.jpg')),
     );
   }
 

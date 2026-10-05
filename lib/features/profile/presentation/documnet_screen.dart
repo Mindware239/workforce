@@ -125,23 +125,6 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     }
   }
 
-  String _categoryLabel(String category) {
-    switch (category.toLowerCase()) {
-      case 'identity':
-        return ref.tr('documents.identityProof');
-      case 'address':
-        return ref.tr('documents.addressProof');
-      case 'pan':
-        return ref.tr('documents.panCard');
-      case 'bank_passbook':
-        return ref.tr('documents.bankPassbook');
-      case 'other':
-        return ref.tr('documents.other');
-      default:
-        return category;
-    }
-  }
-
   String _getCategoryValue(String document) {
     switch (document) {
       case 'Identity proof':

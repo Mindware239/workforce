@@ -13,9 +13,9 @@ bool _isHandlingLocation = false;
 void startLocationBackground() {
   WidgetsFlutterBinding.ensureInitialized();
 
-  print('========================================');
-  print('🚀 BACKGROUND FLUTTER ISOLATE STARTED');
-  print('========================================');
+  debugPrint('========================================');
+  debugPrint('🚀 BACKGROUND FLUTTER ISOLATE STARTED');
+  debugPrint('========================================');
 
   const channel = MethodChannel(
     'workforce/location_background',
@@ -23,7 +23,7 @@ void startLocationBackground() {
 
   channel.setMethodCallHandler(
     (call) async {
-      print(
+      debugPrint(
         '📡 Background isolate received: ${call.method}',
       );
 
@@ -32,7 +32,7 @@ void startLocationBackground() {
       }
 
       if (_isHandlingLocation) {
-        print(
+        debugPrint(
           '⏳ Previous location update still processing.',
         );
         return;
@@ -44,7 +44,7 @@ void startLocationBackground() {
         final arguments = call.arguments;
 
         if (arguments is! Map) {
-          print(
+          debugPrint(
             '❌ Invalid background location arguments.',
           );
           return;
@@ -54,17 +54,17 @@ void startLocationBackground() {
           arguments,
         );
 
-        print(
+        debugPrint(
           '📍 Background location: $data',
         );
 
         await BackgroundLocationHandler.handle(data);
       } catch (e, stackTrace) {
-        print(
+        debugPrint(
           '❌ Background location error: $e',
         );
 
-        print(stackTrace);
+        debugPrint(stackTrace.toString());
       } finally {
         _isHandlingLocation = false;
       }
@@ -100,7 +100,7 @@ class BackgroundLocationHandler {
           location['recordedAt']?.toString();
 
       if (latitude == null || longitude == null) {
-        print(
+        debugPrint(
           '❌ Invalid latitude/longitude.',
         );
         return;
@@ -110,11 +110,11 @@ class BackgroundLocationHandler {
           recordedAt ??
           DateTime.now().toUtc().toIso8601String();
 
-      print('📍 Processing location:');
-      print('   lat=$latitude');
-      print('   lng=$longitude');
-      print('   accuracy=$accuracy');
-      print('   recordedAt=$timestamp');
+      debugPrint('📍 Processing location:');
+      debugPrint('   lat=$latitude');
+      debugPrint('   lng=$longitude');
+      debugPrint('   accuracy=$accuracy');
+      debugPrint('   recordedAt=$timestamp');
 
       // --------------------------------------------------
       // Authentication
@@ -125,11 +125,11 @@ class BackgroundLocationHandler {
       final token = await storage.getToken();
 
       if (token == null || token.isEmpty) {
-        print(
+        debugPrint(
           '⚠️ No authentication token.',
         );
 
-        print(
+        debugPrint(
           '🛑 Skipping location processing.',
         );
 
@@ -162,7 +162,7 @@ class BackgroundLocationHandler {
           accuracy: accuracy,
         );
 
-        print(
+        debugPrint(
           '📍 Geofence response: '
           '$geofenceResponse',
         );
@@ -180,23 +180,23 @@ class BackgroundLocationHandler {
           final allowedRadiusMeters =
               geofenceData['allowedRadiusMeters'];
 
-          print(
+          debugPrint(
             '📍 Employee inside geofence: '
             '$isWithinFence',
           );
 
-          print(
+          debugPrint(
             '📍 Distance from geofence: '
             '$distanceMeters m',
           );
 
-          print(
+          debugPrint(
             '📍 Allowed radius: '
             '$allowedRadiusMeters m',
           );
         }
       } catch (e) {
-        print(
+        debugPrint(
           '⚠️ Geofence check failed: $e',
         );
 
@@ -247,7 +247,7 @@ class BackgroundLocationHandler {
 
       await queue.add(point);
 
-      print(
+      debugPrint(
         '📦 Tracking point queued: $point',
       );
 
@@ -260,15 +260,15 @@ class BackgroundLocationHandler {
 
       await LocationSyncService.scheduleSync();
 
-      print(
+      debugPrint(
         '⏳ Batch tracking sync scheduled.',
       );
     } catch (e, stackTrace) {
-      print(
+      debugPrint(
         '❌ BackgroundLocationHandler error: $e',
       );
 
-      print(stackTrace);
+      debugPrint(stackTrace.toString());
     }
   }
 
@@ -298,18 +298,18 @@ class BackgroundLocationHandler {
         },
       );
 
-      print(
+      debugPrint(
         '📍 Location API response: '
         '${response.data}',
       );
 
-      print(
+      debugPrint(
         '✅ /v1/employee/location SUCCESS',
       );
 
       return true;
     } catch (e) {
-      print(
+      debugPrint(
         '❌ /v1/employee/location FAILED: $e',
       );
 

@@ -77,14 +77,23 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
       if (success) {
         if (widget.isStart == true) {
           // Check-in successful → start background location tracking
+          final localization = ref.read(appLocalizationProvider);
+
+          if (mounted) {
+            await LocationTrackingService.requestAlwaysPermission(
+              context,
+              localization.tr,
+            );
+          }
+
           await LocationTrackingService.start();
 
-          print('🚀 Location tracking started after check-in');
+          debugPrint('🚀 Location tracking started after check-in');
         } else {
           // Checkout successful → stop background location tracking
           await LocationTrackingService.stop();
 
-          print('🛑 Location tracking stopped after checkout');
+          debugPrint('🛑 Location tracking stopped after checkout');
         }
       }
 
@@ -317,19 +326,6 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
         ],
       ),
     );
-  }
-
-  String _locationText() {
-    final localization = ref.read(appLocalizationProvider);
-    final lat = widget.latitude.toStringAsFixed(6);
-    final lng = widget.longitude.toStringAsFixed(6);
-
-    if (widget.accuracy != null) {
-      return '$lat, $lng · ${localization.tr('photoPreview.accuracy')} '
-          '${widget.accuracy!.toStringAsFixed(0)}m';
-    }
-
-    return '$lat, $lng';
   }
 
   String _currentDateTime() {

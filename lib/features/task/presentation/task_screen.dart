@@ -653,8 +653,7 @@ class _StatusBadge extends StatelessWidget {
   const _StatusBadge({
     required this.text,
     required this.completed,
-    this.statusKey = '',
-  });
+  }) : statusKey = '';
 
   @override
   Widget build(BuildContext context) {
@@ -762,7 +761,7 @@ class _AudioPlayerState extends State<_AudioPlayer> {
     }
 
     if (trimmed.startsWith('//')) {
-      return 'https:${trimmed}';
+      return 'https:$trimmed';
     }
 
     final normalized = trimmed.replaceFirst(RegExp(r'^/+'), '');

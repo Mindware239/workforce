@@ -629,6 +629,8 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
             if (downloadEnabled)
               TextButton.icon(
                 onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+
                   try {
                     final result = await PayslipPdfService.generate(
                       year: year,
@@ -638,7 +640,7 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
 
                     if (!context.mounted) return;
 
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text(
                           ref
@@ -650,7 +652,7 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
                   } catch (e) {
                     if (!context.mounted) return;
 
-                    ScaffoldMessenger.of(context).showSnackBar(
+                    messenger.showSnackBar(
                       SnackBar(
                         content: Text(
                           e.toString().replaceFirst('Exception: ', ''),

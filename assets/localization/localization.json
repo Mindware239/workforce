@@ -637,7 +637,7 @@
     "tasks.priorityUrgent": "Urgent",
     "tasks.priorityLow": "Low",
     "common.pm": "PM",
-"common.am": "AM",
+    "common.am": "AM",
     "chat.chat": "Chat",
     "chat.messages": "Messages",
     "chat.subtitle": "Message your manager and the owner.",
@@ -796,7 +796,11 @@
     "language.hindi": "Hindi",
     "language.continue": "Continue",
     "common.notAvailable": "Not available",
-    "profile.employeeId": "ID"
+    "profile.employeeId": "ID",
+    "locationDisclosure.title": "Allow location all the time",
+    "locationDisclosure.message": "Workforce collects your location data while you are checked in, even when the app is closed or not in use. Your employer uses it to verify attendance, calculate salary, and keep a record of places visited during work hours for the last 31 days. Tracking stops when you check out. Please choose \"Allow all the time\" on the next screen.",
+    "locationDisclosure.allow": "Continue",
+    "locationDisclosure.notNow": "Not now"
   },
   "hi": {
     "app.name": "वर्कफोर्स प्रो",
@@ -1397,7 +1401,7 @@
     "tasks.priorityUrgent": "अति आवश्यक",
     "tasks.priorityLow": "कम",
     "common.pm": "अपराह्न",
-"common.am": "पूर्वाह्न",
+    "common.am": "पूर्वाह्न",
     "chat.chat": "चैट",
     "chat.searchChats": "चैट खोजें",
     "chat.newMessage": "नया संदेश",
@@ -1592,6 +1596,10 @@
     "language.hindi": "हिन्दी",
     "language.continue": "जारी रखें",
     "common.notAvailable": "उपलब्ध नहीं",
-    "profile.employeeId": "आईडी"
+    "profile.employeeId": "आईडी",
+    "locationDisclosure.title": "हमेशा लोकेशन की अनुमति दें",
+    "locationDisclosure.message": "Workforce आपके चेक-इन रहने के दौरान आपका लोकेशन डेटा एकत्र करता है, भले ही ऐप बंद हो या उपयोग में न हो। आपका नियोक्ता इसका उपयोग उपस्थिति सत्यापित करने, वेतन की गणना करने और पिछले 31 दिनों में कार्य समय के दौरान देखे गए स्थानों का रिकॉर्ड रखने के लिए करता है। चेक-आउट करने पर ट्रैकिंग बंद हो जाती है। कृपया अगली स्क्रीन पर \"हमेशा अनुमति दें\" चुनें।",
+    "locationDisclosure.allow": "जारी रखें",
+    "locationDisclosure.notNow": "अभी नहीं"
   }
 }

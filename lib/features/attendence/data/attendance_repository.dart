@@ -42,8 +42,8 @@ class AttendanceRepository {
       'latitude': latitude,
       'longitude': longitude,
       'accuracy': accuracy,
-      if (speed != null) 'speed': speed,
-      if (heading != null) 'heading': heading,
+      'speed': ?speed,
+      'heading': ?heading,
       'recordedAt': DateTime.now().toUtc().toIso8601String(),
     },
   );
@@ -395,7 +395,7 @@ class AttendanceRepository {
         data: {
           'lat': lat,
           'lng': lng,
-          if (accuracy != null) 'accuracy': accuracy,
+          'accuracy': ?accuracy,
         },
       );
 
