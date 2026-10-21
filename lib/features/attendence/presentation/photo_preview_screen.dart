@@ -165,14 +165,14 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
             );
           }
 
-          await LocationTrackingService.start();
+          // await LocationTrackingService.start();
 
-          debugPrint('🚀 Location tracking started after check-in');
+          // debugPrint('🚀 Location tracking started after check-in');
         } else {
           // Checkout successful → stop background location tracking
-          await LocationTrackingService.stop();
+          // await LocationTrackingService.stop();
 
-          debugPrint('🛑 Location tracking stopped after checkout');
+          // debugPrint('🛑 Location tracking stopped after checkout');
         }
       }
 

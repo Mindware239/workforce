@@ -6,6 +6,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/features/attendence/services/employee_location_service.dart';
 import 'package:workforce/features/auth/providers/auth_provider.dart';
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 import 'package:workforce/features/onboarding/presentation/widget/workforce_brand.dart';
@@ -134,7 +135,7 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
     if (!mounted) return;
 
     // Start background location tracking.
-    // await LocationTrackingService.start();
+    await LocationTrackingService.start();
 
     ref.read(authProvider.notifier).login(mobileNumber: mobileNumber);
   }

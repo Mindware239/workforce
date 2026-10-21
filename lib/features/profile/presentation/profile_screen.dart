@@ -77,6 +77,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     final photoPath = profile['photoPath']?.toString();
 
+    debugPrint('hello--> $photoPath');
+
     return RefreshIndicator(
       onRefresh: _refreshProfile,
       child: Scaffold(
