@@ -22,7 +22,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
-      title: 'Workforce',
+      title: 'WorkForce',
       theme: ThemeData(useMaterial3: true),
       routerConfig: NavigationService.router,
     );

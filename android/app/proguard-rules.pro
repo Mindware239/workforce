@@ -12,7 +12,7 @@
 -dontwarn com.google.android.play.core.**
 
 # Background location service + Dart entrypoint lookup
--keep class com.example.workforce.** { *; }
+-keep class com.mindware.workforce.** { *; }
 
 # Strip verbose/debug logging from release builds
 -assumenosideeffects class android.util.Log {

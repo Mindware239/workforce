@@ -1,4 +1,4 @@
-package com.example.workforce
+package com.mindware.workforce
 
 import android.Manifest
 import android.app.NotificationChannel
@@ -42,10 +42,10 @@ class LocationTrackingService : Service() {
         const val NOTIFICATION_ID = 1001
 
         const val ACTION_START =
-            "com.example.workforce.START_LOCATION_TRACKING"
+            "com.mindware.workforce.START_LOCATION_TRACKING"
 
         const val ACTION_STOP =
-            "com.example.workforce.STOP_LOCATION_TRACKING"
+            "com.mindware.workforce.STOP_LOCATION_TRACKING"
 
         private const val TAG = "WorkforceLocation"
 

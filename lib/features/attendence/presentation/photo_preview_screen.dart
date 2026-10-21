@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:geocoding/geocoding.dart';
+
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
@@ -36,7 +38,84 @@ class PhotoPreviewScreen extends ConsumerStatefulWidget {
 }
 
 class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
+  final Geocoding _geocoding = Geocoding();
   bool _isSubmitting = false;
+
+  String _geocodedLocation = '';
+  bool _isLoadingLocation = true;
+
+  @override
+  void initState() {
+    super.initState();
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadGeocodedLocation();
+    });
+  }
+
+  Future<void> _loadGeocodedLocation() async {
+    try {
+      debugPrint('========================================');
+      debugPrint('📍 REVERSE GEOCODING');
+      debugPrint('📍 Latitude: ${widget.latitude}');
+      debugPrint('📍 Longitude: ${widget.longitude}');
+
+      final placemarks = await _geocoding.placemarkFromCoordinates(
+        widget.latitude,
+        widget.longitude,
+      );
+
+      if (placemarks.isEmpty) {
+        debugPrint('⚠️ No location found for coordinates');
+
+        if (!mounted) return;
+
+        setState(() {
+          _geocodedLocation = '';
+          _isLoadingLocation = false;
+        });
+        return;
+      }
+
+      final place = placemarks.first;
+
+      final parts = <String>[
+        if ((place.street ?? '').trim().isNotEmpty) place.street!.trim(),
+        if ((place.subLocality ?? '').trim().isNotEmpty)
+          place.subLocality!.trim(),
+        if ((place.locality ?? '').trim().isNotEmpty) place.locality!.trim(),
+        if ((place.administrativeArea ?? '').trim().isNotEmpty)
+          place.administrativeArea!.trim(),
+      ];
+
+      final location = parts.join(', ');
+
+      debugPrint('📍 Street: ${place.street}');
+      debugPrint('📍 Area: ${place.subLocality}');
+      debugPrint('📍 City: ${place.locality}');
+      debugPrint('📍 State: ${place.administrativeArea}');
+      debugPrint('📍 Country: ${place.country}');
+      debugPrint('📍 Postal Code: ${place.postalCode}');
+      debugPrint('📍 Resolved Location: $location');
+      debugPrint('========================================');
+
+      if (!mounted) return;
+
+      setState(() {
+        _geocodedLocation = location;
+        _isLoadingLocation = false;
+      });
+    } catch (e) {
+      debugPrint('❌ Reverse geocoding failed: $e');
+
+      if (!mounted) return;
+
+      setState(() {
+        _geocodedLocation = '';
+        _isLoadingLocation = false;
+      });
+    }
+  }
 
   Future<void> _usePhoto() async {
     if (_isSubmitting) return;
@@ -278,30 +357,53 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
 
           const SizedBox(height: 8),
 
-          // Row(
-          //   children: [
-          //     const Icon(
-          //       Icons.location_on_outlined,
-          //       size: 16,
-          //       color: AppColors.mutedColor,
-          //     ),
-          //     const SizedBox(width: 8),
-          //     Expanded(
-          //       child: Text(
-          //         organizationName.isNotEmpty
-          //             ? organizationName
-          //             : _locationText(),
-          //         style: GoogleFonts.inter(
-          //           fontSize: 12,
-          //           height: 1.5,
-          //           color: AppColors.mutedColor,
-          //         ),
-          //       ),
-          //     ),
-          //   ],
-          // ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Icon(
+                Icons.location_on_outlined,
+                size: 16,
+                color: AppColors.mutedColor,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _isLoadingLocation
+                    ? Row(
+                        children: [
+                          const SizedBox(
+                            width: 12,
+                            height: 12,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 1.5,
+                              color: AppColors.mutedColor,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Getting location...',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              height: 1.5,
+                              color: AppColors.mutedColor,
+                            ),
+                          ),
+                        ],
+                      )
+                    : Text(
+                        _geocodedLocation.isNotEmpty
+                            ? _geocodedLocation
+                            : ref.tr('photoPreview.locationLabel'),
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          height: 1.5,
+                          color: AppColors.mutedColor,
+                        ),
+                      ),
+              ),
+            ],
+          ),
 
-          // const SizedBox(height: 8),
+          const SizedBox(height: 8),
 
           Row(
             children: [

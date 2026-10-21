@@ -1,4 +1,4 @@
-package com.example.workforce
+package com.mindware.workforce
 
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
