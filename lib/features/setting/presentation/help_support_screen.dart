@@ -1,15 +1,98 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/core/localization/app_localization.dart';
+import 'package:workforce/core/widgets/feature_widgets.dart';
 
-class HelpSupportScreen extends ConsumerWidget {
+const String _supportEmail = 'support@workforcepro.com';
+const String _supportPhone = '1-800-HR-SUPPORT';
+
+/// A help topic: where it leads, and the words that find it (the same
+/// keyword lists the web help page searches).
+class _Topic {
+  final String labelKey;
+  final IconData icon;
+  final String route;
+  final String terms;
+
+  const _Topic(this.labelKey, this.icon, this.route, this.terms);
+}
+
+const List<_Topic> _topics = [
+  _Topic(
+    'helpSupport.attendance',
+    Icons.fact_check_outlined,
+    AppRoutes.attendance,
+    'attendance check in out selfie face verification shift',
+  ),
+  _Topic(
+    'helpSupport.shiftSchedule',
+    Icons.calendar_month_outlined,
+    AppRoutes.monthlySummary,
+    'shift schedule roster timing hours summary',
+  ),
+  _Topic(
+    'helpSupport.salaryPayslip',
+    Icons.payments_outlined,
+    AppRoutes.myPay,
+    'salary payslip pay overtime deduction pf esi',
+  ),
+  _Topic(
+    'helpSupport.leaveTimeOff',
+    Icons.flight_takeoff_outlined,
+    AppRoutes.leaveRequest,
+    'leave holiday time off casual sick earned absence',
+  ),
+];
+
+class HelpSupportScreen extends ConsumerStatefulWidget {
   const HelpSupportScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HelpSupportScreen> createState() => _HelpSupportScreenState();
+}
+
+class _HelpSupportScreenState extends ConsumerState<HelpSupportScreen> {
+  final _search = TextEditingController();
+
+  @override
+  void dispose() {
+    _search.dispose();
+    super.dispose();
+  }
+
+  Future<void> _copy(String text, String message) async {
+    await Clipboard.setData(ClipboardData(text: text));
+
+    if (!mounted) return;
+
+    showFeatureSnack(context, message);
+  }
+
+  void _contactHr() {
+    _copy(
+      _supportEmail,
+      fill(ref.tr('helpx.emailCopied'), {'email': _supportEmail}),
+    );
+  }
+
+  void _reportIssue() {
+    final report = 'To: $_supportEmail\n'
+        'Subject: WorkForce issue report\n\n'
+        'Describe what happened:\n\n\n---\n'
+        'Screen: \n'
+        'Time: ${DateTime.now().toIso8601String()}';
+
+    _copy(report, ref.tr('helpx.reportCopied'));
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
       appBar: AppBar(
@@ -26,32 +109,65 @@ class HelpSupportScreen extends ConsumerWidget {
             color: AppColors.onAppBarColor,
           ),
         ),
-       
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          // physics: const BouncingScrollPhysics(),
           padding: const EdgeInsets.all(16),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHero(ref),
-        
+              _buildHero(),
               const SizedBox(height: 12),
-        
-              _buildPopularTopics(ref),
-        
+              _buildPopularTopics(),
               const SizedBox(height: 16),
-        
-              _buildDirectAssistance(ref),
-        
+              _buildSupportCard(
+                title: ref.tr('helpSupport.directAssistanceTitle'),
+                description: ref.tr('helpSupport.directAssistanceDescription'),
+                button: ElevatedButton.icon(
+                  onPressed: _contactHr,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primaryFillColor,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.support_agent_outlined, size: 16),
+                  label: Text(
+                    ref.tr('helpSupport.contactHr'),
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+              ),
               const SizedBox(height: 16),
-        
-              _buildBugReport(ref),
-        
+              _buildSupportCard(
+                title: ref.tr('helpSupport.foundBug'),
+                description: ref.tr('helpSupport.bugDescription'),
+                button: OutlinedButton.icon(
+                  onPressed: _reportIssue,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.saffronText,
+                    side: const BorderSide(color: AppColors.borderColor),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  icon: const Icon(Icons.bug_report_outlined, size: 16),
+                  label: Text(
+                    ref.tr('helpSupport.reportIssue'),
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ),
               const SizedBox(height: 24),
-        
-              _buildEnterpriseSupport(ref),
+              _buildEnterpriseSupport(),
             ],
           ),
         ),
@@ -59,10 +175,9 @@ class HelpSupportScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildHero(WidgetRef ref) {
+  Widget _buildHero() {
     return Container(
       width: double.infinity,
-      height: 160,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.primaryFillColor,
@@ -79,9 +194,7 @@ class HelpSupportScreen extends ConsumerWidget {
               color: Colors.white,
             ),
           ),
-
           const SizedBox(height: 8),
-
           Text(
             ref.tr('helpSupport.heroDescription'),
             style: GoogleFonts.inter(
@@ -89,34 +202,37 @@ class HelpSupportScreen extends ConsumerWidget {
               color: Colors.white.withValues(alpha: .78),
             ),
           ),
-
-          const Spacer(),
-
-          Container(
-            height: 48,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: [
-                const SizedBox(width: 16),
-
-                const Icon(Icons.search, size: 18, color: AppColors.mutedColor),
-
-                const SizedBox(width: 8),
-
-                Expanded(
-                  child: Text(
-                    ref.tr('helpSupport.searchHint'),
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      color: AppColors.mutedColor,
+          const SizedBox(height: 16),
+          TextField(
+            controller: _search,
+            onChanged: (_) => setState(() {}),
+            textInputAction: TextInputAction.search,
+            style: GoogleFonts.inter(fontSize: 14, color: AppColors.textColor),
+            decoration: InputDecoration(
+              filled: true,
+              fillColor: Colors.white,
+              isDense: true,
+              hintText: ref.tr('helpSupport.searchHint'),
+              hintStyle: GoogleFonts.inter(
+                fontSize: 14,
+                color: AppColors.mutedColor,
+              ),
+              prefixIcon: const Icon(
+                Icons.search,
+                size: 18,
+                color: AppColors.mutedColor,
+              ),
+              suffixIcon: _search.text.isEmpty
+                  ? null
+                  : IconButton(
+                      icon: const Icon(Icons.close, size: 18),
+                      onPressed: () => setState(_search.clear),
                     ),
-                  ),
-                ),
-              ],
+              contentPadding: const EdgeInsets.symmetric(vertical: 14),
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(12),
+                borderSide: BorderSide.none,
+              ),
             ),
           ),
         ],
@@ -124,7 +240,15 @@ class HelpSupportScreen extends ConsumerWidget {
     );
   }
 
-  Widget _buildPopularTopics(WidgetRef ref) {
+  Widget _buildPopularTopics() {
+    final term = _search.text.trim().toLowerCase();
+    final topics = _topics.where((topic) {
+      if (term.isEmpty) return true;
+
+      return topic.terms.contains(term) ||
+          ref.tr(topic.labelKey).toLowerCase().contains(term);
+    }).toList();
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -136,176 +260,66 @@ class HelpSupportScreen extends ConsumerWidget {
             color: AppColors.textColor,
           ),
         ),
-
         const SizedBox(height: 8),
-
-        Row(
-          children: [
-            Expanded(
-              child: _TopicCard(
-                icon: Icons.fact_check_outlined,
-                title: ref.tr('helpSupport.attendance'),
-                onTap: () {},
-              ),
-            ),
-
-            const SizedBox(width: 7),
-
-            Expanded(
-              child: _TopicCard(
-                icon: Icons.calendar_month_outlined,
-                title: ref.tr('helpSupport.shiftSchedule'),
-                onTap: () {},
-              ),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 7),
-
-        Row(
-          children: [
-            Expanded(
-              child: _TopicCard(
-                icon: Icons.payments_outlined,
-                title: ref.tr('helpSupport.salaryPayslip'),
-                onTap: () {},
-              ),
-            ),
-
-            const SizedBox(width: 7),
-
-            Expanded(
-              child: _TopicCard(
-                icon: Icons.flight_takeoff_outlined,
-                title: ref.tr('helpSupport.leaveTimeOff'),
-                onTap: () {},
-              ),
-            ),
-          ],
-        ),
+        if (topics.isEmpty)
+          EmptyNote(ref.tr('helpx.noTopics'), icon: Icons.search_off_rounded)
+        else
+          GridView.count(
+            crossAxisCount: 2,
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            mainAxisSpacing: 7,
+            crossAxisSpacing: 7,
+            childAspectRatio: 1.6,
+            children: [
+              for (final topic in topics)
+                _TopicCard(
+                  icon: topic.icon,
+                  title: ref.tr(topic.labelKey),
+                  onTap: () => context.push(topic.route),
+                ),
+            ],
+          ),
       ],
     );
   }
 
-  Widget _buildDirectAssistance(WidgetRef ref) {
-    return _SupportCard(
-      height: 144,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              ref.tr('helpSupport.directAssistanceTitle'),
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textColor,
-              ),
+  Widget _buildSupportCard({
+    required String title,
+    required String description,
+    required Widget button,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderColor, width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textColor,
             ),
-
-            const SizedBox(height: 4),
-
-            Text(
-              ref.tr('helpSupport.directAssistanceDescription'),
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: AppColors.mutedColor,
-              ),
-            ),
-
-            const Spacer(),
-
-            SizedBox(
-              width: 140,
-              height: 48,
-              child: ElevatedButton.icon(
-                onPressed: () {},
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryFillColor,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                icon: const Icon(Icons.support_agent_outlined, size: 16),
-                label: Text(
-                  ref.tr('helpSupport.contactHr'),
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            description,
+            style: GoogleFonts.inter(fontSize: 12, color: AppColors.mutedColor),
+          ),
+          const SizedBox(height: 12),
+          SizedBox(height: 44, child: button),
+        ],
       ),
     );
   }
 
-  Widget _buildBugReport(WidgetRef ref) {
-    return _SupportCard(
-      height: 144,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              ref.tr('helpSupport.foundBug'),
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.textColor,
-              ),
-            ),
-
-            const SizedBox(height: 4),
-
-            Text(
-              ref.tr('helpSupport.bugDescription'),
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: AppColors.mutedColor,
-              ),
-            ),
-
-            const Spacer(),
-
-            SizedBox(
-              width: 140,
-              height: 48,
-              child: OutlinedButton.icon(
-                onPressed: () {},
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.saffronText,
-                  side: const BorderSide(color: AppColors.borderColor, width: 1),
-                  padding: EdgeInsets.zero,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                icon: const Icon(Icons.bug_report_outlined, size: 16),
-                label: Text(
-                  ref.tr('helpSupport.reportIssue'),
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEnterpriseSupport(WidgetRef ref) {
+  Widget _buildEnterpriseSupport() {
     return Column(
       children: [
         Container(
@@ -313,9 +327,7 @@ class HelpSupportScreen extends ConsumerWidget {
           height: 1,
           color: AppColors.borderColor,
         ),
-
         const SizedBox(height: 16),
-
         Text(
           ref.tr('helpSupport.enterpriseSupportContact'),
           textAlign: TextAlign.center,
@@ -326,20 +338,29 @@ class HelpSupportScreen extends ConsumerWidget {
             color: AppColors.mutedColor,
           ),
         ),
-
         const SizedBox(height: 12),
-
-        _ContactRow(
-          icon: Icons.email_outlined,
-          text: 'support@workforcepro.com',
+        Center(
+          child: _ContactRow(
+            icon: Icons.email_outlined,
+            text: _supportEmail,
+            onTap: () => _copy(
+              _supportEmail,
+              fill(ref.tr('helpx.emailCopied'), {'email': _supportEmail}),
+            ),
+          ),
         ),
-
         const SizedBox(height: 8),
-
-        _ContactRow(icon: Icons.phone_outlined, text: '1-800-HR-SUPPORT'),
-
+        Center(
+          child: _ContactRow(
+            icon: Icons.phone_outlined,
+            text: _supportPhone,
+            onTap: () => _copy(
+              _supportPhone,
+              fill(ref.tr('helpx.phoneCopied'), {'phone': _supportPhone}),
+            ),
+          ),
+        ),
         const SizedBox(height: 12),
-
         Text(
           ref.tr('helpSupport.availability'),
           textAlign: TextAlign.center,
@@ -350,7 +371,7 @@ class HelpSupportScreen extends ConsumerWidget {
   }
 }
 
-class _TopicCard extends ConsumerWidget {
+class _TopicCard extends StatelessWidget {
   final IconData icon;
   final String title;
   final VoidCallback onTap;
@@ -362,16 +383,14 @@ class _TopicCard extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     return Material(
       color: Colors.transparent,
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(12),
         child: Container(
-          height: 102,
           decoration: BoxDecoration(
-          
             borderRadius: BorderRadius.circular(12),
             border: Border.all(color: AppColors.borderColor, width: 1),
           ),
@@ -383,13 +402,11 @@ class _TopicCard extends ConsumerWidget {
                 height: 40,
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Color(0xFFDADFF3),
+                  color: AppColors.saffronTint,
                 ),
                 child: Icon(icon, size: 20, color: AppColors.primaryFillColor),
               ),
-
               const SizedBox(height: 8),
-
               Text(
                 title,
                 textAlign: TextAlign.center,
@@ -407,52 +424,46 @@ class _TopicCard extends ConsumerWidget {
   }
 }
 
-class _SupportCard extends StatelessWidget {
-  final Widget child;
-  final double height;
-
-  const _SupportCard({required this.child, required this.height});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      height: height,
-      decoration: BoxDecoration(
-      
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: AppColors.borderColor, width: 1),
-      ),
-      child: child,
-    );
-  }
-}
-
 class _ContactRow extends StatelessWidget {
   final IconData icon;
   final String text;
+  final VoidCallback onTap;
 
-  const _ContactRow({required this.icon, required this.text});
+  const _ContactRow({
+    required this.icon,
+    required this.text,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Icon(icon, size: 16, color: AppColors.primaryFillColor),
-
-        const SizedBox(width: 8),
-
-        Text(
-          text,
-          style: GoogleFonts.inter(
-            fontSize: 12,
-            fontWeight: FontWeight.w500,
-            color: AppColors.saffronText,
-          ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 16, color: AppColors.primaryFillColor),
+            const SizedBox(width: 8),
+            Text(
+              text,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                color: AppColors.saffronText,
+              ),
+            ),
+            const SizedBox(width: 6),
+            const Icon(
+              Icons.copy_rounded,
+              size: 13,
+              color: AppColors.mutedColor,
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }
-

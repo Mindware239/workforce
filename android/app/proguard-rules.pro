@@ -8,6 +8,11 @@
 -dontwarn com.google.mlkit.**
 -dontwarn androidx.camera.**
 
+# WebRTC (calls): native code calls these Java classes by name over JNI
+-keep class org.webrtc.** { *; }
+-keep class com.cloudwebrtc.webrtc.** { *; }
+-dontwarn org.webrtc.**
+
 # Flutter references Play Core (deferred components) which this app doesn't use
 -dontwarn com.google.android.play.core.**
 

@@ -6,9 +6,13 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/core/localization/app_localization.dart';
+import 'package:workforce/core/widgets/feature_widgets.dart';
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 import 'package:workforce/features/profile/providers/document_provider.dart';
 
+/// Documents, as on the web: the organization's NDA first (view it, type your
+/// full name, tick the box and sign, or see when you signed it), then your own
+/// uploads in the six categories the API accepts, with download and delete.
 class DocumentsScreen extends ConsumerStatefulWidget {
   const DocumentsScreen({super.key});
 
@@ -17,26 +21,42 @@ class DocumentsScreen extends ConsumerStatefulWidget {
 }
 
 class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
-  String _selectedDocument = 'Identity proof';
+  /// The categories documents.validator.js accepts (less the NDA template).
+  static const List<String> _categories = [
+    'identity',
+    'address',
+    'education',
+    'experience',
+    'bank_passbook',
+    'other',
+  ];
+
+  String _selectedCategory = 'identity';
 
   PlatformFile? _selectedFile;
 
-  final List<String> _documentTypes = [
-    'Identity proof',
-    'Address proof',
-    'PAN card',
-    'Bank passbook',
-    'Other',
-  ];
+  final TextEditingController _signedNameController = TextEditingController();
+  bool _agreed = false;
+  String? _ndaFormError;
 
   @override
   void initState() {
     super.initState();
 
     Future.microtask(() {
-      ref.read(documentProvider.notifier).fetchDocuments();
+      ref.read(documentProvider.notifier).loadAll();
     });
   }
+
+  @override
+  void dispose() {
+    _signedNameController.dispose();
+    super.dispose();
+  }
+
+  // ============================================================
+  // ACTIONS
+  // ============================================================
 
   Future<void> _pickFile() async {
     try {
@@ -44,6 +64,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
         type: FileType.custom,
         allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png', 'webp'],
       );
+
+      if (result.isEmpty) return;
 
       final file = result.first;
 
@@ -55,12 +77,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       setState(() {
         _selectedFile = file;
       });
-
-      debugPrint('📄 Selected file: ${file.name}');
-      debugPrint('📂 Path: ${file.path}');
     } catch (e) {
-      debugPrint('❌ File picker error: $e');
-
       _showMessage(ref.tr('documents.unableSelectFile'));
     }
   }
@@ -78,25 +95,13 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       return;
     }
 
-    final category = _getCategoryValue(_selectedDocument);
-
-    debugPrint('📤 Uploading document...');
-    debugPrint('📄 File: ${_selectedFile!.name}');
-    debugPrint('📁 Path: $filePath');
-    debugPrint('📂 Category: $category');
-
     final success = await ref
         .read(documentProvider.notifier)
-        .uploadDocument(filePath: filePath, category: category);
+        .uploadDocument(filePath: filePath, category: _selectedCategory);
 
     if (!mounted) return;
 
     if (success) {
-      // Refresh documents from backend after successful upload.
-      await ref.read(documentProvider.notifier).fetchDocuments();
-
-      if (!mounted) return;
-
       setState(() {
         _selectedFile = null;
       });
@@ -109,42 +114,88 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     }
   }
 
-  String _documentLabel(String document) {
-    switch (document) {
-      case 'Identity proof':
-        return ref.tr('documents.identityProof');
-      case 'Address proof':
-        return ref.tr('documents.addressProof');
-      case 'PAN card':
-        return ref.tr('documents.panCard');
-      case 'Bank passbook':
-        return ref.tr('documents.bankPassbook');
-      case 'Other':
-        return ref.tr('documents.other');
-      default:
-        return document;
+  Future<void> _download(int id, String fileName) async {
+    final filePath = await ref
+        .read(documentProvider.notifier)
+        .downloadDocument(id, fileName: fileName);
+
+    if (!mounted) return;
+
+    if (filePath != null) {
+      _showMessage(
+        fill(ref.tr('docx.savedTo'), {'path': filePath}),
+      );
+    } else {
+      final error = ref.read(documentProvider).errorMessage;
+
+      _showMessage(error ?? ref.tr('documents.unableDownload'));
     }
   }
 
-  String _getCategoryValue(String document) {
-    switch (document) {
-      case 'Identity proof':
-        return 'identity';
+  Future<void> _delete(int id) async {
+    final confirmed = await confirmAction(
+      context,
+      title: ref.tr('docx.deleteTitle'),
+      message: ref.tr('docx.deleteMessage'),
+      confirmLabel: ref.tr('common.delete'),
+      cancelLabel: ref.tr('common.cancel'),
+      destructive: true,
+    );
 
-      case 'Address proof':
-        return 'address';
+    if (!confirmed || !mounted) return;
 
-      case 'PAN card':
-        return 'pan';
+    final error = await ref.read(documentProvider.notifier).deleteDocument(id);
 
-      case 'Bank passbook':
-        return 'bank_passbook';
+    if (!mounted) return;
 
-      case 'Other':
-        return 'other';
+    _showMessage(error ?? ref.tr('docx.deleted'));
+  }
 
+  Future<void> _signNda() async {
+    final name = _signedNameController.text.trim();
+
+    if (name.length < 2) {
+      setState(() => _ndaFormError = ref.tr('docx.typeFullName'));
+      return;
+    }
+
+    if (!_agreed) {
+      setState(() => _ndaFormError = ref.tr('docx.mustAgree'));
+      return;
+    }
+
+    setState(() => _ndaFormError = null);
+
+    final error = await ref.read(documentProvider.notifier).signNda(name);
+
+    if (!mounted) return;
+
+    if (error != null) {
+      setState(() => _ndaFormError = error);
+      return;
+    }
+
+    _signedNameController.clear();
+    setState(() => _agreed = false);
+    _showMessage(ref.tr('docx.ndaSigned'));
+  }
+
+  String _categoryLabel(String category) {
+    switch (category) {
+      case 'identity':
+        return ref.tr('documents.identityProof');
+      case 'address':
+        return ref.tr('documents.addressProof');
+      case 'education':
+        return ref.tr('docx.education');
+      case 'experience':
+        return ref.tr('docx.experience');
+      case 'bank_passbook':
+        return ref.tr('documents.bankPassbook');
+      case 'nda_template':
+        return ref.tr('documents.ndaAgreement');
       default:
-        return 'other';
+        return ref.tr('documents.other');
     }
   }
 
@@ -155,6 +206,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(message)));
   }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -172,67 +227,200 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       ),
 
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                ref.tr('documents.title'),
-                style: GoogleFonts.inter(
-                  fontSize: 30,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.textColor,
+        child: RefreshIndicator(
+          onRefresh: () => ref.read(documentProvider.notifier).loadAll(),
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  ref.tr('documents.title'),
+                  style: GoogleFonts.inter(
+                    fontSize: 30,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.textColor,
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: 8),
+                const SizedBox(height: 8),
 
-              Text(
-                ref.tr('documents.subtitle'),
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  height: 1.35,
-                  color: const Color(0xFF696269),
+                Text(
+                  ref.tr('documents.documentsSubtitle'),
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    height: 1.35,
+                    color: const Color(0xFF696269),
+                  ),
                 ),
-              ),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              _buildNdaCard(),
+                _buildNdaCard(documentState),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              _buildUploadCard(
-                isUploading: documentState.status == DocumentStatus.uploading,
-              ),
-
-              const SizedBox(height: 24),
-
-              Text(
-                ref.tr('documents.yourDocuments'),
-                style: GoogleFonts.inter(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textColor,
+                _buildUploadCard(
+                  isUploading:
+                      documentState.status == DocumentStatus.uploading,
                 ),
-              ),
 
-              const SizedBox(height: 8),
+                const SizedBox(height: 24),
 
-              _buildDocumentsList(documentState),
-            ],
+                Text(
+                  ref.tr('documents.yourDocuments'),
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textColor,
+                  ),
+                ),
+
+                const SizedBox(height: 8),
+
+                _buildDocumentsList(documentState),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildNdaCard() {
+  // ============================================================
+  // NDA
+  // ============================================================
+
+  Widget _buildNdaCard(DocumentState state) {
+    final template = state.ndaTemplate;
+    final signedAt = state.ndaSignedAt;
+
+    final (String badge, ChipTone tone) = template == null
+        ? (ref.tr('documents.notAvailable'), ChipTone.neutral)
+        : signedAt != null
+        ? (ref.tr('docx.signed'), ChipTone.success)
+        : (ref.tr('docx.actionNeeded'), ChipTone.warning);
+
+    Widget body;
+
+    if (state.isLoadingNda && state.nda == null) {
+      body = const Padding(
+        padding: EdgeInsets.symmetric(vertical: 12),
+        child: Center(
+          child: SizedBox(
+            width: 22,
+            height: 22,
+            child: CircularProgressIndicator(strokeWidth: 2),
+          ),
+        ),
+      );
+    } else if (state.ndaError != null && state.nda == null) {
+      body = ErrorBanner(state.ndaError!);
+    } else if (template == null) {
+      body = Text(
+        ref.tr('documents.ndaNotUploaded'),
+        style: GoogleFonts.inter(fontSize: 12, color: AppColors.mutedColor),
+      );
+    } else {
+      final templateId = toInt(template['id']);
+      final templateName =
+          template['fileName']?.toString() ?? ref.tr('documents.ndaAgreement');
+      final downloading =
+          templateId != null && state.busyId == templateId;
+
+      final viewButton = OutlinedButton.icon(
+        onPressed: templateId == null || downloading
+            ? null
+            : () => _download(templateId, templateName),
+        icon: downloading
+            ? const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.download_rounded, size: 18),
+        label: Text(ref.tr('docx.viewDocument')),
+      );
+
+      if (signedAt != null) {
+        body = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              fill(ref.tr('docx.signedOn'), {
+                'date': formatApiDate(signedAt),
+              }),
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: AppColors.mutedColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+            viewButton,
+          ],
+        );
+      } else {
+        body = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              ref.tr('docx.readThenSign'),
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: AppColors.mutedColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+            viewButton,
+            const SizedBox(height: 12),
+            if (_ndaFormError != null) ...[
+              ErrorBanner(_ndaFormError!),
+              const SizedBox(height: 10),
+            ],
+            TextField(
+              controller: _signedNameController,
+              textCapitalization: TextCapitalization.words,
+              decoration: featureInputDecoration(ref.tr('docx.typeFullName')),
+            ),
+            const SizedBox(height: 6),
+            CheckboxListTile(
+              value: _agreed,
+              contentPadding: EdgeInsets.zero,
+              controlAffinity: ListTileControlAffinity.leading,
+              dense: true,
+              onChanged: (value) => setState(() => _agreed = value ?? false),
+              title: Text(
+                ref.tr('docx.agreeToNda'),
+                style: GoogleFonts.inter(
+                  fontSize: 12.5,
+                  color: AppColors.textColor,
+                ),
+              ),
+            ),
+            const SizedBox(height: 6),
+            AbsorbPointer(
+              absorbing: state.isSigning,
+              child: Opacity(
+                opacity: state.isSigning ? 0.6 : 1,
+                child: WorkforcePrimaryButton(
+                  title: state.isSigning
+                      ? ref.tr('docx.signing')
+                      : ref.tr('docx.signNda'),
+                  onPressed: _signNda,
+                ),
+              ),
+            ),
+          ],
+        );
+      }
+    }
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
+        color: Colors.white,
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: AppColors.borderColor, width: 1),
       ),
@@ -251,37 +439,22 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                   ),
                 ),
               ),
-
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 10,
-                  vertical: 4,
-                ),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryFillColor.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(50),
-                ),
-                child: Text(
-                  ref.tr('documents.notAvailable'),
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    color: AppColors.mutedColor,
-                  ),
-                ),
-              ),
+              if (!(state.isLoadingNda && state.nda == null))
+                StatusChip(label: badge, tone: tone),
             ],
           ),
 
           const SizedBox(height: 9),
 
-          Text(
-            ref.tr('documents.ndaNotUploaded'),
-            style: GoogleFonts.inter(fontSize: 12, color: AppColors.mutedColor),
-          ),
+          body,
         ],
       ),
     );
   }
+
+  // ============================================================
+  // UPLOAD
+  // ============================================================
 
   Widget _buildUploadCard({required bool isUploading}) {
     return Container(
@@ -319,7 +492,9 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
             child: Opacity(
               opacity: isUploading ? 0.6 : 1,
               child: WorkforcePrimaryButton(
-                title: isUploading ? ref.tr('documents.uploading') : ref.tr('documents.upload'),
+                title: isUploading
+                    ? ref.tr('documents.uploading')
+                    : ref.tr('documents.upload'),
                 onPressed: _uploadDocument,
               ),
             ),
@@ -337,7 +512,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
-          value: _selectedDocument,
+          value: _selectedCategory,
           isExpanded: true,
           padding: const EdgeInsets.symmetric(horizontal: 12),
           icon: const Icon(
@@ -351,17 +526,17 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
             fontSize: 12,
             color: const Color(0xFF29252A),
           ),
-          items: _documentTypes.map((type) {
+          items: _categories.map((category) {
             return DropdownMenuItem<String>(
-  value: type,
-  child: Text(_documentLabel(type)),
-);
+              value: category,
+              child: Text(_categoryLabel(category)),
+            );
           }).toList(),
           onChanged: (value) {
             if (value == null) return;
 
             setState(() {
-              _selectedDocument = value;
+              _selectedCategory = value;
             });
           },
         ),
@@ -416,8 +591,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     );
   }
 
+  // ============================================================
+  // LIST
+  // ============================================================
+
   Widget _buildDocumentsList(DocumentState state) {
-    if (state.status == DocumentStatus.loading) {
+    if (state.status == DocumentStatus.loading && state.documents.isEmpty) {
       return const Padding(
         padding: EdgeInsets.symmetric(vertical: 24),
         child: Center(child: CircularProgressIndicator()),
@@ -443,17 +622,22 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
 
     return Column(
       children: state.documents.map((document) {
-        return _buildDocumentItem(document);
+        return _buildDocumentItem(document, state.busyId);
       }).toList(),
     );
   }
 
-  Widget _buildDocumentItem(Map<String, dynamic> document) {
-    final fileName = document['fileName']?.toString() ?? ref.tr('documents.document');
+  Widget _buildDocumentItem(Map<String, dynamic> document, int? busyId) {
+    final fileName =
+        document['fileName']?.toString() ?? ref.tr('documents.document');
 
     final category = document['category']?.toString() ?? '';
 
-    final createdAt = document['createdAt']?.toString();
+    final createdAt = document['createdAt'];
+
+    final id = toInt(document['id']);
+
+    final busy = id != null && busyId == id;
 
     return Container(
       width: double.infinity,
@@ -497,78 +681,73 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                   ),
                 ),
 
-                if (category.isNotEmpty) const SizedBox(height: 4),
+                const SizedBox(height: 4),
 
-                Row(
-                  children: [
-                    if (category.isNotEmpty)
-                      Text(
-                        category,
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          color: AppColors.mutedColor,
-                        ),
-                      ),
-                    SizedBox(width: 8),
-                    if (createdAt != null)
-                      Text(
-                        _formatDate(createdAt),
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          color: AppColors.mutedColor,
-                        ),
-                      ),
-                  ],
+                Text(
+                  [
+                    _categoryLabel(category),
+                    if (createdAt != null) formatApiDate(createdAt),
+                  ].join(' · '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 11.5,
+                    color: AppColors.mutedColor,
+                  ),
                 ),
               ],
             ),
           ),
 
-          GestureDetector(
-            onTap: () async {
-              final documentId = document['id'];
-
-              debugPrint('documentId: $documentId');
-
-              if (documentId == null) return;
-
-              final filePath = await ref
-                  .read(documentProvider.notifier)
-                  .downloadDocument(int.parse(documentId.toString()));
-
-              if (!mounted) return;
-
-              if (filePath != null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text(
-  ref.tr('documents.savedToDownloads').replaceFirst('{fileName}', fileName),
-)),
-                );
-              } else {
-                final error = ref.read(documentProvider).errorMessage;
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(error ?? ref.tr('documents.unableDownload')),
-                  ),
-                );
-              }
-            },
-            child: Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: AppColors.mutedColor.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(10),
+          if (busy)
+            const Padding(
+              padding: EdgeInsets.all(8),
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
               ),
-              child: Icon(
-                Icons.download,
-                color: AppColors.mutedColor,
-                size: 21,
-              ),
+            )
+          else ...[
+            _iconButton(
+              icon: Icons.download,
+              color: AppColors.mutedColor,
+              tooltip: ref.tr('docx.download'),
+              onTap: id == null ? null : () => _download(id, fileName),
             ),
-          ),
+            const SizedBox(width: 6),
+            _iconButton(
+              icon: Icons.delete_outline_rounded,
+              color: const Color(0xFFB3261E),
+              tooltip: ref.tr('common.delete'),
+              onTap: id == null ? null : () => _delete(id),
+            ),
+          ],
         ],
+      ),
+    );
+  }
+
+  Widget _iconButton({
+    required IconData icon,
+    required Color color,
+    required String tooltip,
+    VoidCallback? onTap,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(10),
+        child: Container(
+          width: 36,
+          height: 36,
+          decoration: BoxDecoration(
+            color: color.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(icon, color: color, size: 20),
+        ),
       ),
     );
   }
@@ -585,17 +764,5 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     }
 
     return Icons.image_outlined;
-  }
-
-  String _formatDate(String value) {
-    try {
-      final date = DateTime.parse(value).toLocal();
-
-      return '${date.day.toString().padLeft(2, '0')}/'
-          '${date.month.toString().padLeft(2, '0')}/'
-          '${date.year}';
-    } catch (_) {
-      return value;
-    }
   }
 }

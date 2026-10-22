@@ -265,6 +265,32 @@ class TaskNotifier extends Notifier<TaskState> {
     }
   }
   // ============================================================
+  // LIFECYCLE ACTION (start / pause / unblock / accept)
+  // POST /tasks/{id}/{action}
+  // ============================================================
+
+  Future<bool> performAction({
+    required int taskId,
+    required String action,
+  }) async {
+    state = state.copyWith(isUpdatingStatus: true, clearMessage: true);
+
+    try {
+      await repository.runLifecycleAction(taskId, action);
+
+      await loadTasks(scope: state.scope, status: state.selectedStatus);
+
+      state = state.copyWith(isUpdatingStatus: false);
+
+      return true;
+    } catch (e) {
+      state = state.copyWith(isUpdatingStatus: false, message: _cleanError(e));
+
+      return false;
+    }
+  }
+
+  // ============================================================
   // GET COMMENTS
   // ============================================================
 

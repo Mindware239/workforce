@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:workforce/core/realtime/realtime_service.dart';
 import 'package:workforce/features/chat/data/chat_repository.dart';
 
 // ================================================================
@@ -537,9 +538,14 @@ class ChatNotifier extends StateNotifier<ChatState> {
     final localId =
         'local_text_${DateTime.now().microsecondsSinceEpoch}';
 
+    // Sent with every attempt, so a retry after a dropped connection (or
+    // a socket send that timed out and is retried over REST) lands once.
+    final clientId = RealtimeService.newClientId();
+
     final optimisticMessage =
         <String, dynamic>{
       'id': localId,
+      'clientId': clientId,
       'conversationId': conversationId,
       'body': text,
       'mine': true,
@@ -579,6 +585,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
         conversationId: conversationId,
         localId: localId,
         body: text,
+        clientId: clientId,
       ),
     );
 
@@ -586,60 +593,59 @@ class ChatNotifier extends StateNotifier<ChatState> {
     return optimisticMessage;
   }
 
+  /// Text goes over the socket when it is up, and over REST when it is down
+  /// or the socket did not answer. Both carry the same clientId.
   Future<void> _sendTextToServer({
     required int conversationId,
     required String localId,
     required String body,
+    required String clientId,
   }) async {
     try {
-      final serverMessage =
-          await repository.sendMessage(
+      final realtime = RealtimeService.instance;
+      Map<String, dynamic>? serverMessage;
+
+      if (realtime.isConnected) {
+        try {
+          final reply = await realtime.emitWithAck('message:send', {
+            'conversationId': conversationId,
+            'body': body,
+            'clientId': clientId,
+          });
+          final message = reply['message'];
+          if (message is Map) {
+            serverMessage = {
+              ...Map<String, dynamic>.from(message),
+              'mine': true,
+            };
+          }
+        } on RealtimeException catch (e) {
+          // Refused outright (not a member, chat off): REST would say the same.
+          if (e.code != 'OFFLINE' && e.code != 'TIMEOUT') rethrow;
+        }
+      }
+
+      serverMessage ??= await repository.sendMessage(
         conversationId: conversationId,
         body: body,
+        clientId: clientId,
       );
 
-      final current = thread(conversationId);
-
-      final updated =
-          current.messages.map((message) {
-        if (message['id']?.toString() ==
-            localId) {
-          return {
-            ...serverMessage,
-            'pending': false,
-            'failed': false,
-            'localOnly': false,
-            'type': _messageType(
-              serverMessage,
-              fallback: 'text',
-            ),
-          };
-        }
-
-        return message;
-      }).toList();
-
-      _setThread(
+      await _settleLocal(
         conversationId,
-        current.copyWith(
-          messages:
-              _deduplicateMessages(updated),
-          isSending: false,
-          clearError: true,
-        ),
+        localId,
+        serverMessage,
+        type: _messageType(serverMessage, fallback: 'text'),
       );
 
-      await _saveMessagesLocally(
-        conversationId,
-        updated,
-      );
-
-      // Update chat list without showing a loader.
-      unawaited(
-        loadConversations(
-          showLoading: false,
-        ),
-      );
+      // While live, the server's own echo updates the list.
+      if (!realtime.isConnected) {
+        unawaited(
+          loadConversations(
+            showLoading: false,
+          ),
+        );
+      }
     } catch (e) {
       final current = thread(conversationId);
 
@@ -703,11 +709,16 @@ class ChatNotifier extends StateNotifier<ChatState> {
       return;
     }
 
+    // The same clientId as the first attempt: if that one did land, the
+    // server hands back the same message instead of a second copy.
+    final clientId = _clientIdOf(message) ?? RealtimeService.newClientId();
+
     final updated =
         current.messages.map((item) {
       if (item['id']?.toString() == localId) {
         return {
           ...item,
+          'clientId': clientId,
           'pending': true,
           'failed': false,
           'error': null,
@@ -735,6 +746,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
         conversationId: conversationId,
         localId: localId,
         body: body,
+        clientId: clientId,
       ),
     );
   }
@@ -747,6 +759,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
     required int conversationId,
     required File file,
     String type = 'image',
+    String? body,
   }) async {
     if (!await file.exists()) {
       return null;
@@ -755,11 +768,14 @@ class ChatNotifier extends StateNotifier<ChatState> {
     final localId =
         'local_${type}_${DateTime.now().microsecondsSinceEpoch}';
 
+    final clientId = RealtimeService.newClientId();
+
     final optimisticMessage =
         <String, dynamic>{
       'id': localId,
+      'clientId': clientId,
       'conversationId': conversationId,
-      'body': '',
+      'body': body ?? '',
       'mine': true,
       'createdAt':
           DateTime.now().toIso8601String(),
@@ -801,64 +817,48 @@ class ChatNotifier extends StateNotifier<ChatState> {
         localId: localId,
         file: file,
         type: type,
+        body: body,
+        clientId: clientId,
       ),
     );
 
     return optimisticMessage;
   }
 
+  /// Attachments always go over REST (multipart does not belong on the
+  /// socket); the server still pushes the result to every device.
   Future<void> _sendAttachmentToServer({
     required int conversationId,
     required String localId,
     required File file,
     required String type,
+    String? body,
+    String? clientId,
   }) async {
     try {
       final serverMessage =
           await repository.sendAttachment(
         conversationId: conversationId,
         file: file,
+        body: body,
+        clientId: clientId,
       );
 
-      final current = thread(conversationId);
-
-      final updated =
-          current.messages.map((message) {
-        if (message['id']?.toString() ==
-            localId) {
-          return {
-            ...serverMessage,
-            'pending': false,
-            'failed': false,
-            'localOnly': false,
-            'type': type,
-            'attachmentType': type,
-          };
-        }
-
-        return message;
-      }).toList();
-
-      _setThread(
+      await _settleLocal(
         conversationId,
-        current.copyWith(
-          messages:
-              _deduplicateMessages(updated),
-          isSending: false,
-          clearError: true,
-        ),
+        localId,
+        serverMessage,
+        type: type,
+        attachmentType: type,
       );
 
-      await _saveMessagesLocally(
-        conversationId,
-        updated,
-      );
-
-      unawaited(
-        loadConversations(
-          showLoading: false,
-        ),
-      );
+      if (!RealtimeService.instance.isConnected) {
+        unawaited(
+          loadConversations(
+            showLoading: false,
+          ),
+        );
+      }
     } catch (e) {
       final current = thread(conversationId);
 
@@ -934,11 +934,14 @@ class ChatNotifier extends StateNotifier<ChatState> {
             message['type']?.toString() ??
             'image';
 
+    final clientId = _clientIdOf(message) ?? RealtimeService.newClientId();
+
     final updated =
         current.messages.map((item) {
       if (item['id']?.toString() == localId) {
         return {
           ...item,
+          'clientId': clientId,
           'pending': true,
           'failed': false,
           'error': null,
@@ -967,6 +970,8 @@ class ChatNotifier extends StateNotifier<ChatState> {
         localId: localId,
         file: file,
         type: type,
+        body: message['body']?.toString(),
+        clientId: clientId,
       ),
     );
   }
@@ -1012,13 +1017,332 @@ class ChatNotifier extends StateNotifier<ChatState> {
         conversationId: conversationId,
       );
 
-      _setConversationUnreadCount(
-        conversationId,
-        0,
-      );
+      markReadLocally(conversationId);
     } catch (_) {
       // Do not block UI.
     }
+  }
+
+  /// The list's badge for this conversation is cleared in place, and the
+  /// total with it, rather than refetched.
+  void markReadLocally(int conversationId) {
+    var cleared = 0;
+    final updated = state.conversations.map((conversation) {
+      if (_conversationId(conversation) == conversationId) {
+        cleared = _int(conversation['unreadCount']);
+        return {...conversation, 'unreadCount': 0};
+      }
+      return conversation;
+    }).toList();
+
+    final total = state.unreadCount - cleared;
+    state = state.copyWith(
+      conversations: updated,
+      unreadCount: total < 0 ? 0 : total,
+    );
+  }
+
+  // ==============================================================
+  // LIVE (socket) EVENTS — see chat_realtime.dart
+  // ==============================================================
+
+  /// A pushed `message:new`. The sender's own optimistic bubble is matched
+  /// by clientId and replaced, so the message is drawn once.
+  void applyIncomingMessage(
+    int conversationId,
+    Map<String, dynamic> raw, {
+    required bool mine,
+    required bool onScreen,
+  }) {
+    final message = <String, dynamic>{
+      ...raw,
+      'mine': mine,
+      'pending': false,
+      'failed': false,
+      'localOnly': false,
+    };
+
+    final current = state.threads[conversationId];
+
+    if (current != null) {
+      final id = _messageId(message);
+      final known = id != null &&
+          current.messages.any((m) => _messageId(m) == id);
+
+      if (!known) {
+        final clientId = _clientIdOf(message);
+        var replaced = false;
+        final updated = <Map<String, dynamic>>[];
+
+        for (final m in current.messages) {
+          if (!replaced &&
+              clientId != null &&
+              _isLocalMessage(m) &&
+              _clientIdOf(m) == clientId) {
+            updated.add({
+              ...message,
+              if (m['localPath'] != null) 'localPath': m['localPath'],
+              if (m['attachmentType'] != null)
+                'attachmentType': m['attachmentType'],
+            });
+            replaced = true;
+          } else {
+            updated.add(m);
+          }
+        }
+
+        if (!replaced) updated.add(message);
+
+        final messages = _deduplicateMessages(updated);
+        _setThread(
+          conversationId,
+          current.copyWith(
+            messages: messages,
+            readers: mine
+                ? null
+                : _senderCaughtUp(current.readers, message),
+          ),
+        );
+        unawaited(_saveMessagesLocally(conversationId, messages));
+      }
+    }
+
+    _touchConversation(
+      conversationId,
+      message,
+      countUnread: !mine && !onScreen,
+    );
+  }
+
+  /// Sending moves the sender's own read and delivered watermarks to the
+  /// message's time on the server, without a receipt:update of its own; a
+  /// reply has evidently seen everything before it. Mirrored here so my
+  /// ticks turn read when the other person answers.
+  List<Map<String, dynamic>> _senderCaughtUp(
+    List<Map<String, dynamic>> readers,
+    Map<String, dynamic> message,
+  ) {
+    final senderId = _int(message['senderId']);
+    final at = DateTime.tryParse(message['createdAt']?.toString() ?? '');
+    if (at == null) return readers;
+
+    String later(dynamic current) {
+      final t = DateTime.tryParse(current?.toString() ?? '');
+      return t != null && t.isAfter(at) ? current.toString() : at.toUtc().toIso8601String();
+    }
+
+    return readers.map((reader) {
+      if (_int(reader['userId']) != senderId) return reader;
+      return {
+        ...reader,
+        'lastReadAt': later(reader['lastReadAt']),
+        'lastDeliveredAt': later(reader['lastDeliveredAt']),
+      };
+    }).toList();
+  }
+
+  void _touchConversation(
+    int conversationId,
+    Map<String, dynamic> message, {
+    required bool countUnread,
+  }) {
+    final index = state.conversations.indexWhere(
+      (c) => _conversationId(c) == conversationId,
+    );
+
+    if (index == -1) {
+      // A conversation this list has not seen (new, or never loaded).
+      unawaited(loadConversations(showLoading: false));
+      return;
+    }
+
+    final row = state.conversations[index];
+    final attachment = message['attachment'];
+
+    final updatedRow = <String, dynamic>{
+      ...row,
+      'lastMessageAt': message['createdAt'],
+      'unreadCount': countUnread
+          ? _int(row['unreadCount']) + 1
+          : row['unreadCount'],
+      'lastMessage': {
+        'body': message['body'],
+        'senderId': message['senderId'],
+        'senderName': message['senderName'],
+        'attachmentKind': attachment is Map ? attachment['kind'] : null,
+        'attachmentName': attachment is Map ? attachment['name'] : null,
+      },
+    };
+
+    state = state.copyWith(
+      conversations: [
+        updatedRow,
+        ...state.conversations.where(
+          (c) => _conversationId(c) != conversationId,
+        ),
+      ],
+      unreadCount: countUnread ? state.unreadCount + 1 : null,
+    );
+  }
+
+  /// A pushed `message:deleted`: the bubble vanishes, the list refetches
+  /// (its last line and unread count may both have changed).
+  void applyDeletedMessage(int conversationId, int messageId) {
+    final current = state.threads[conversationId];
+
+    if (current != null &&
+        current.messages.any((m) => _messageId(m) == messageId)) {
+      final messages = current.messages
+          .where((m) => _messageId(m) != messageId)
+          .toList();
+      _setThread(conversationId, current.copyWith(messages: messages));
+      unawaited(_saveMessagesLocally(conversationId, messages));
+    }
+
+    unawaited(loadConversations(showLoading: false));
+  }
+
+  /// A pushed `receipt:update`: one participant's watermarks moved, the
+  /// ticks on my messages redraw.
+  void applyReceipt(
+    int conversationId,
+    int userId, {
+    String? lastReadAt,
+    String? lastDeliveredAt,
+  }) {
+    final current = state.threads[conversationId];
+    if (current == null) return;
+
+    var changed = false;
+    final readers = current.readers.map((reader) {
+      if (_int(reader['userId']) != userId) return reader;
+      changed = true;
+      return {
+        ...reader,
+        'lastReadAt': lastReadAt,
+        'lastDeliveredAt': lastDeliveredAt,
+      };
+    }).toList();
+
+    if (changed) {
+      _setThread(conversationId, current.copyWith(readers: readers));
+    }
+  }
+
+  /// A pushed `conversation:updated`: created, renamed, or membership
+  /// changed. Removed from it → it leaves the list.
+  void applyConversationUpdated(
+    int conversationId, {
+    required bool removedMe,
+    required bool markRead,
+  }) {
+    if (removedMe) {
+      final threads = Map<int, ChatThreadState>.from(state.threads)
+        ..remove(conversationId);
+      state = state.copyWith(
+        threads: threads,
+        conversations: state.conversations
+            .where((c) => _conversationId(c) != conversationId)
+            .toList(),
+      );
+      unawaited(loadUnreadCount());
+      return;
+    }
+
+    unawaited(loadConversations(showLoading: false));
+    if (state.threads.containsKey(conversationId)) {
+      unawaited(catchUp(conversationId, markRead: markRead));
+    }
+  }
+
+  /// After a reconnect: everything newer than the last message held is
+  /// fetched with `?after=`, and the latest page is compared with what is
+  /// held to drop messages deleted meanwhile. Readers come along with both.
+  Future<void> catchUp(
+    int conversationId, {
+    bool markRead = false,
+  }) async {
+    final current = state.threads[conversationId];
+    if (current == null || current.isLoading) return;
+
+    final held = current.messages
+        .where((m) => !_isLocalMessage(m))
+        .map(_messageId)
+        .whereType<int>()
+        .toList();
+
+    if (held.isEmpty) {
+      await loadMessages(conversationId, refresh: true);
+      return;
+    }
+
+    try {
+      var lastId = held.reduce((a, b) => a > b ? a : b);
+      final fresh = <Map<String, dynamic>>[];
+      List<Map<String, dynamic>>? readers;
+
+      for (var page = 0; page < 10; page++) {
+        final result = await repository.getMessages(
+          conversationId: conversationId,
+          after: lastId,
+          limit: 100,
+        );
+        fresh.addAll(result.items);
+        readers = result.readers;
+        if (result.items.length < 100) break;
+        final next = _messageId(result.items.last);
+        if (next == null || next <= lastId) break;
+        lastId = next;
+      }
+
+      final latest = await repository.getMessages(
+        conversationId: conversationId,
+        limit: 50,
+      );
+      readers = latest.readers;
+
+      final latestIds =
+          latest.items.map(_messageId).whereType<int>().toSet();
+      final oldestLatest = latestIds.isEmpty
+          ? null
+          : latestIds.reduce((a, b) => a < b ? a : b);
+      final freshClientIds =
+          fresh.map(_clientIdOf).whereType<String>().toSet();
+
+      final now = thread(conversationId);
+      final kept = now.messages.where((m) {
+        if (_isLocalMessage(m)) {
+          final cid = _clientIdOf(m);
+          return cid == null || !freshClientIds.contains(cid);
+        }
+        final id = _messageId(m);
+        // Inside the window the latest page covers, but not on it: deleted.
+        if (id != null &&
+            oldestLatest != null &&
+            id >= oldestLatest &&
+            !latestIds.contains(id)) {
+          return false;
+        }
+        return true;
+      });
+
+      final messages = _deduplicateMessages([...kept, ...fresh]);
+
+      _setThread(
+        conversationId,
+        now.copyWith(messages: messages, readers: readers, clearError: true),
+      );
+      await _saveMessagesLocally(conversationId, messages);
+
+      if (markRead) await markConversationRead(conversationId);
+    } catch (_) {
+      // The next connect, or pull-to-refresh, tries again.
+    }
+  }
+
+  /// Sign-out: nothing of the previous account stays in memory.
+  void reset() {
+    state = const ChatState();
   }
 
   // ==============================================================
@@ -1126,7 +1450,16 @@ class ChatNotifier extends StateNotifier<ChatState> {
       ...serverMessages,
     ];
 
+    final serverClientIds =
+        serverMessages.map(_clientIdOf).whereType<String>().toSet();
+
     for (final local in localOnly) {
+      // Drawn once, as the real one, when the server already has it.
+      final clientId = _clientIdOf(local);
+      if (clientId != null && serverClientIds.contains(clientId)) {
+        continue;
+      }
+
       final localBody =
           local['body']?.toString() ?? '';
 
@@ -1263,6 +1596,83 @@ class ChatNotifier extends StateNotifier<ChatState> {
     );
   }
 
+  String? _clientIdOf(Map<String, dynamic> message) {
+    final value = message['clientId']?.toString();
+    return value == null || value.isEmpty ? null : value;
+  }
+
+  int? _conversationId(Map<String, dynamic> conversation) {
+    return int.tryParse(conversation['id']?.toString() ?? '');
+  }
+
+  int _int(dynamic value) {
+    return int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  /// Replaces the optimistic bubble [localId] with the server's copy. If the
+  /// socket's echo already replaced it, only the copy by id is refreshed.
+  Future<void> _settleLocal(
+    int conversationId,
+    String localId,
+    Map<String, dynamic> serverMessage, {
+    required String type,
+    String? attachmentType,
+  }) async {
+    final current = thread(conversationId);
+    final serverId = _messageId(serverMessage);
+    var replaced = false;
+    final updated = <Map<String, dynamic>>[];
+
+    for (final message in current.messages) {
+      final isLocal = message['id']?.toString() == localId;
+      final isEcho = serverId != null && _messageId(message) == serverId;
+
+      if (isLocal || isEcho) {
+        if (!replaced) {
+          updated.add({
+            ...serverMessage,
+            if (message['localPath'] != null) 'localPath': message['localPath'],
+            'mine': true,
+            'pending': false,
+            'failed': false,
+            'localOnly': false,
+            'type': type,
+            'attachmentType': ?attachmentType,
+          });
+          replaced = true;
+        }
+        continue;
+      }
+
+      updated.add(message);
+    }
+
+    if (!replaced) {
+      updated.add({
+        ...serverMessage,
+        'mine': true,
+        'pending': false,
+        'failed': false,
+        'localOnly': false,
+        'type': type,
+        'attachmentType': ?attachmentType,
+      });
+    }
+
+    final messages = _deduplicateMessages(updated);
+
+    _setThread(
+      conversationId,
+      current.copyWith(
+        messages: messages,
+        isSending: false,
+        clearError: true,
+      ),
+    );
+
+    await _saveMessagesLocally(conversationId, messages);
+  }
+
   String _messageType(
     Map<String, dynamic> message, {
     String fallback = 'text',
@@ -1291,6 +1701,14 @@ class ChatNotifier extends StateNotifier<ChatState> {
           return 'image';
         }
 
+        if (type == 'video') {
+          return 'video';
+        }
+
+        if (type == 'document') {
+          return 'document';
+        }
+
         if (type == 'text') {
           return 'text';
         }
@@ -1302,6 +1720,14 @@ class ChatNotifier extends StateNotifier<ChatState> {
           message['attachment'];
 
       if (attachment is Map) {
+        final kind =
+            attachment['kind']?.toString().toLowerCase();
+
+        if (kind == 'audio') return 'voice';
+        if (kind == 'image') return 'image';
+        if (kind == 'video') return 'video';
+        if (kind == 'document') return 'document';
+
         final mime =
             attachment['mimeType']
                     ?.toString()

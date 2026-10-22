@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/localization/app_localization.dart';
+import 'package:workforce/core/network/stored_file.dart';
+import 'package:workforce/core/widgets/feature_widgets.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/features/profile/presentation/bank_details_widget.dart';
@@ -55,7 +57,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     final organizationId = _getValue(profile['organizationId']);
 
     final workspaceId = _getValue(
-      profile['workspaceId'] ??
+      profile['workspaceName'] ??
           profile['workspace'] ??
           profile['workspaceId'],
     );
@@ -64,9 +66,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     final designation = _getValue(profile['designation']);
 
-    final joiningDate = _getValue(
-      profile['joiningDate'] ?? profile['dateOfJoining'],
+    final joiningDate = formatApiDate(
+      profile['joiningDate'] ??
+          profile['dateOfJoining'] ??
+          profile['joinedAt'],
+      fallback: ref.tr('common.notAvailable'),
     );
+
+    final faceRegisteredAt = profile['faceRegisteredAt'];
 
     final reportingManager = _getValue(
       profile['reportingManager'] ??
@@ -136,6 +143,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                             department: department,
                             joiningDate: joiningDate,
                             reportingManager: reportingManager,
+                            faceRegisteredAt: faceRegisteredAt,
                           ),
 
                           const SizedBox(height: 16),
@@ -190,26 +198,14 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             ),
           ),
           child: ClipOval(
+            // The face reference photo is served by the signed-in
+            // GET /api/files endpoint, which needs the bearer token.
             child: photoUrl != null
-                ? Image.network(
-                    photoUrl,
+                ? StoredFileImage(
+                    path: photoUrl,
                     width: 128,
                     height: 128,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) {
-                      return _buildInitials(fullName);
-                    },
-                    loadingBuilder: (
-                      context,
-                      child,
-                      loadingProgress,
-                    ) {
-                      if (loadingProgress == null) {
-                        return child;
-                      }
-
-                      return _buildInitials(fullName);
-                    },
+                    fallback: _buildInitials(fullName),
                   )
                 : _buildInitials(fullName),
           ),
@@ -239,6 +235,13 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
 
         const SizedBox(height: 8),
+
+        TextButton.icon(
+          onPressed: () =>
+              showFeatureSnack(context, ref.tr('profx.editManagedByAdmin')),
+          icon: const Icon(Icons.edit_outlined, size: 16),
+          label: Text(ref.tr('profile.editProfile')),
+        ),
 
         // Edit Profile button intentionally remains disabled.
         // SizedBox(
@@ -329,7 +332,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       return null;
     }
 
-    return 'https://workforce.orkuts.com/uploads/$photoPath';
+    return photoPath;
   }
 
   // ============================================================
@@ -344,6 +347,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     required String department,
     required String joiningDate,
     required String reportingManager,
+    required dynamic faceRegisteredAt,
   }) {
     return _ProfileCard(
       child: Column(
@@ -389,6 +393,15 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
           _DetailItem(
             label: ref.tr('profile.reportingManager'),
             value: reportingManager,
+          ),
+
+          _DetailItem(
+            label: ref.tr('profx.faceVerification'),
+            value: faceRegisteredAt == null
+                ? ref.tr('profx.faceNotRegistered')
+                : fill(ref.tr('profx.faceRegisteredOn'), {
+                    'date': formatApiDate(faceRegisteredAt),
+                  }),
             isLast: true,
           ),
         ],
@@ -555,6 +568,37 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 letterSpacing: .2,
                 color: AppColors.mutedColor,
               ),
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          ListTile(
+            contentPadding: EdgeInsets.zero,
+            dense: true,
+            onTap: () => context.push(AppRoutes.myAssets),
+            leading: const Icon(
+              Icons.laptop_mac_outlined,
+              color: AppColors.primaryFillColor,
+            ),
+            title: Text(
+              ref.tr('assets.myTitle'),
+              style: GoogleFonts.inter(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textColor,
+              ),
+            ),
+            subtitle: Text(
+              ref.tr('profx.assetsHint'),
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                color: AppColors.mutedColor,
+              ),
+            ),
+            trailing: const Icon(
+              Icons.chevron_right_rounded,
+              color: AppColors.mutedColor,
             ),
           ),
         ],

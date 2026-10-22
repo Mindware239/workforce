@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:workforce/features/field_work/presentation/field_work_screen.dart';
+import 'package:workforce/features/onboarding/presentation/screen/device_connection_screen.dart';
 import 'package:workforce/features/attendence/presentation/attendance_history_screen.dart';
 import 'package:workforce/features/attendence/presentation/location_verification_unsuccessful.dart';
 import 'package:workforce/features/auth/presentation/employee_login_screen.dart';
@@ -26,11 +28,24 @@ import 'package:workforce/features/attendence/presentation/attendence_screen.dar
 import 'package:workforce/features/schedule/presentation/schedule_screen.dart';
 import 'package:workforce/features/profile/presentation/profile_screen.dart';
 import 'package:workforce/features/task/presentation/task_screen.dart';
+import 'package:workforce/features/account/presentation/change_password_screen.dart';
+import 'package:workforce/features/account/presentation/delete_account_screen.dart';
+import 'package:workforce/features/account/presentation/terms_screen.dart';
+import 'package:workforce/features/setting/presentation/help_support_screen.dart';
+import 'package:workforce/features/announcements/presentation/announcements_screen.dart';
+import 'package:workforce/features/pay/presentation/my_pay_screen.dart';
+import 'package:workforce/features/floor/presentation/floor_screen.dart';
+import 'package:workforce/features/warehouse/presentation/warehouse_screen.dart';
+import 'package:workforce/features/leave/presentation/leave_detail_screen.dart';
+import 'package:workforce/features/task/presentation/task_detail_screen.dart';
+import 'package:workforce/features/task/presentation/task_history_screen.dart';
+import 'package:workforce/features/task/presentation/task_performance_screen.dart';
 
 class AppRoutes {
   static const String splash = '/splash';
   static const String dashboard = '/dashboard';
   static const String login = '/login';
+  
 
   static const String home = '/dashboard/home';
   static const String attendance = '/dashboard/attendance';
@@ -60,9 +75,31 @@ class AppRoutes {
 
   static const String myAssets = '/dashboard/assets';
 
+  static const String floor = '/dashboard/floor';
+  static const String warehouse = '/dashboard/warehouse';
+
+  static const String terms = '/dashboard/terms';
+  static const String deleteAccount = '/dashboard/delete-account';
+  static const String changePassword = '/dashboard/change-password';
+  static const String helpSupport = '/dashboard/help';
+
   static const String reviews = '/dashboard/reviews';
   static const String reviewDetail = '/dashboard/reviews/:id';
   static String reviewDetailPath(int id) => '/dashboard/reviews/$id';
+
+  static const String taskHistory = '/dashboard/taskHistory';
+  static const String taskPerformance = '/dashboard/taskPerformance';
+  static const String taskDetail = '/dashboard/taskDetail/:id';
+  static String taskDetailPath(int id) => '/dashboard/taskDetail/$id';
+
+  static const String announcements = '/dashboard/announcements';
+  static const String myPay = '/dashboard/my-pay';
+
+  static const String fieldWork = '/dashboard/field-work';
+  static const String deviceCheck = '/dashboard/device-check';
+
+  static const String leaveDetail = '/dashboard/leaveRequest/:id';
+  static String leaveDetailPath(int id) => '/dashboard/leaveRequest/$id';
 
   static final List<RouteBase> routes = [
     GoRoute(
@@ -282,6 +319,21 @@ class AppRoutes {
     ),
 
     GoRoute(
+      path: floor,
+      name: 'floor',
+      builder: (context, state) {
+        return const FloorScreen();
+      },
+    ),
+    GoRoute(
+      path: warehouse,
+      name: 'warehouse',
+      builder: (context, state) {
+        return const WarehouseScreen();
+      },
+    ),
+
+    GoRoute(
       path: reviews,
       name: 'reviews',
       builder: (context, state) {
@@ -301,6 +353,91 @@ class AppRoutes {
         }
 
         return ReviewDetailScreen(reviewId: id);
+      },
+    ),
+
+    GoRoute(
+      path: announcements,
+      name: 'announcements',
+      builder: (context, state) {
+        return const AnnouncementsScreen();
+      },
+    ),
+    GoRoute(
+      path: myPay,
+      name: 'myPay',
+      builder: (context, state) {
+        return const MyPayScreen();
+      },
+    ),
+    GoRoute(
+      path: terms,
+      name: 'terms',
+      builder: (context, state) => const TermsScreen(),
+    ),
+    GoRoute(
+      path: deleteAccount,
+      name: 'deleteAccount',
+      builder: (context, state) => const DeleteAccountScreen(),
+    ),
+    GoRoute(
+      path: changePassword,
+      name: 'changePassword',
+      builder: (context, state) => const ChangePasswordScreen(),
+    ),
+    GoRoute(
+      path: helpSupport,
+      name: 'helpSupport',
+      builder: (context, state) => const HelpSupportScreen(),
+    ),
+    GoRoute(
+      path: fieldWork,
+      name: 'fieldWork',
+      builder: (context, state) => const FieldWorkScreen(),
+    ),
+    GoRoute(
+      path: deviceCheck,
+      name: 'deviceCheck',
+      builder: (context, state) => const DeviceConnectionScreen(),
+    ),
+    GoRoute(
+      path: leaveDetail,
+      name: 'leaveDetail',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '');
+
+        if (id == null) {
+          return const Scaffold(
+            body: Center(child: Text('Invalid leave request.')),
+          );
+        }
+
+        return LeaveDetailScreen(leaveId: id);
+      },
+    ),
+    GoRoute(
+      path: taskHistory,
+      name: 'taskHistory',
+      builder: (context, state) => const TaskHistoryScreen(),
+    ),
+    GoRoute(
+      path: taskPerformance,
+      name: 'taskPerformance',
+      builder: (context, state) => const TaskPerformanceScreen(),
+    ),
+    GoRoute(
+      path: taskDetail,
+      name: 'taskDetail',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '');
+
+        if (id == null) {
+          return const Scaffold(
+            body: Center(child: Text('Invalid task.')),
+          );
+        }
+
+        return TaskDetailScreen(taskId: id);
       },
     ),
   ];

@@ -7,6 +7,7 @@ import 'package:workforce/core/services/secure_storage.dart';
 import 'package:workforce/features/attendence/data/attendance_repository.dart';
 import 'package:workforce/features/attendence/services/location_queue.dart';
 import 'package:workforce/features/attendence/services/location_sync_service.dart';
+import 'package:workforce/features/field_work/services/field_work_tracker.dart';
 
 bool _isHandlingLocation = false;
 
@@ -217,6 +218,23 @@ class BackgroundLocationHandler {
         heading: heading,
         recordedAt: timestamp,
       );
+
+      // --------------------------------------------------
+      // 2b. Field work: while a field session is active,
+      // the same fix is also pinged to that session.
+      // --------------------------------------------------
+
+      try {
+        await FieldWorkTracker.pingIfActive(
+          apiClient: apiClient,
+          lat: latitude,
+          lng: longitude,
+          accuracy: accuracy > 0 ? accuracy : null,
+          recordedAt: timestamp,
+        );
+      } catch (e) {
+        debugPrint('⚠️ Field work ping failed: $e');
+      }
 
       // --------------------------------------------------
       // 3. ALWAYS add GPS point to tracking queue

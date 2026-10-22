@@ -24,6 +24,14 @@
 		<string>????</string>
 		<key>CFBundleVersion</key>
 		<string>$(FLUTTER_BUILD_NUMBER)</string>
+		<key>NSCameraUsageDescription</key>
+		<string>The camera is used for face check-in and to scan warehouse barcodes and QR codes, and for video calls.</string>
+		<key>NSMicrophoneUsageDescription</key>
+		<string>The microphone is used for voice and video calls and for voice messages in chat.</string>
+		<key>UIBackgroundModes</key>
+		<array>
+			<string>audio</string>
+		</array>
 		<key>LSRequiresIPhoneOS</key>
 		<true/>
 		<key>UIApplicationSceneManifest</key>

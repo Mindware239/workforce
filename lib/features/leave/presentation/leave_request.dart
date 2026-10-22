@@ -1,9 +1,18 @@
+import 'dart:async';
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:just_audio/just_audio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:record/record.dart';
+import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/styles/tricolour_strip.dart';
+import 'package:workforce/core/widgets/feature_widgets.dart';
 import 'package:workforce/features/leave/providers/leave_provider.dart';
 
 class LeaveRequestScreen extends ConsumerStatefulWidget {
@@ -41,6 +50,23 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
 
   final TextEditingController reasonController = TextEditingController();
 
+  /// FIRST | SECOND, for a half day.
+  String halfDaySession = 'FIRST';
+
+  /// Set while answering a request that was sent back for changes.
+  int? editingId;
+
+  // Optional recorded reason (voice note), as on the web.
+  final AudioRecorder _recorder = AudioRecorder();
+  final AudioPlayer _previewPlayer = AudioPlayer();
+  bool _isRecording = false;
+  Duration _recordingDuration = Duration.zero;
+  Timer? _recordingTimer;
+  String? _voiceNotePath;
+
+  final ScrollController _scrollController = ScrollController();
+  final GlobalKey _formKey = GlobalKey();
+
   // ============================================================
   // INIT
   // ============================================================
@@ -71,9 +97,30 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
       case 'Earned Leave':
         return 'earned';
 
+      case 'Unpaid Leave':
+        return 'unpaid';
+
+      case 'Comp Off':
+        return 'comp_off';
+
       case 'Casual Leave':
       default:
         return 'casual';
+    }
+  }
+
+  static String _leaveTypeForCategory(String? category) {
+    switch (category) {
+      case 'sick':
+        return 'Sick Leave';
+      case 'earned':
+        return 'Earned Leave';
+      case 'unpaid':
+        return 'Unpaid Leave';
+      case 'comp_off':
+        return 'Comp Off';
+      default:
+        return 'Casual Leave';
     }
   }
 
@@ -81,13 +128,21 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
   // API LEAVE TYPE
   // ============================================================
 
+  /// full_day | half_day (one date, a session) | partial (a few hours:
+  /// "permission").
   String get apiLeaveType {
     if (leaveDuration == 'Half Day') {
+      return 'half_day';
+    }
+
+    if (leaveDuration == 'Permission') {
       return 'partial';
     }
 
     return 'full_day';
   }
+
+  bool get _usesTimes => leaveDuration == 'Permission';
 
   // ============================================================
   // NUMBER OF DAYS
@@ -98,13 +153,19 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
       return 0.5;
     }
 
-    if (startDate == null || endDate == null) {
+    if (leaveDuration == 'Permission') {
+      return 0;
+    }
+
+    if (startDate == null) {
       return 0;
     }
 
     final start = DateTime(startDate!.year, startDate!.month, startDate!.day);
 
-    final end = DateTime(endDate!.year, endDate!.month, endDate!.day);
+    final last = endDate ?? startDate!;
+
+    final end = DateTime(last.year, last.month, last.day);
 
     if (end.isBefore(start)) {
       return 0;
@@ -124,8 +185,332 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
     startTimeController.dispose();
     endTimeController.dispose();
     reasonController.dispose();
+    _recordingTimer?.cancel();
+    _recorder.dispose();
+    _previewPlayer.dispose();
+    _scrollController.dispose();
 
     super.dispose();
+  }
+
+  // ============================================================
+  // VOICE NOTE
+  // ============================================================
+
+  Future<void> _toggleRecording() async {
+    if (_isRecording) {
+      await _stopRecording();
+    } else {
+      await _startRecording();
+    }
+  }
+
+  Future<void> _startRecording() async {
+    try {
+      if (!await _recorder.hasPermission()) {
+        _showMessage(ref.tr('leavex.micPermission'));
+        return;
+      }
+
+      final directory = await getTemporaryDirectory();
+      final path =
+          '${directory.path}/leave_voice_${DateTime.now().millisecondsSinceEpoch}.m4a';
+
+      await _previewPlayer.stop();
+
+      await _recorder.start(
+        const RecordConfig(
+          encoder: AudioEncoder.aacLc,
+          bitRate: 96000,
+          sampleRate: 44100,
+        ),
+        path: path,
+      );
+
+      if (!mounted) return;
+
+      setState(() {
+        _isRecording = true;
+        _voiceNotePath = null;
+        _recordingDuration = Duration.zero;
+      });
+
+      _recordingTimer?.cancel();
+      _recordingTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!mounted || !_isRecording) return;
+
+        setState(() => _recordingDuration += const Duration(seconds: 1));
+
+        // The upload limit is generous, but a reason is not a podcast.
+        if (_recordingDuration.inSeconds >= 120) _stopRecording();
+      });
+    } catch (e) {
+      _showMessage(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  Future<void> _stopRecording() async {
+    if (!_isRecording) return;
+
+    try {
+      final path = await _recorder.stop();
+
+      _recordingTimer?.cancel();
+      _recordingTimer = null;
+
+      if (!mounted) return;
+
+      setState(() {
+        _isRecording = false;
+        _voiceNotePath =
+            (path != null && path.isNotEmpty && File(path).existsSync())
+            ? path
+            : null;
+      });
+    } catch (e) {
+      _showMessage(e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  Future<void> _playPreview() async {
+    final path = _voiceNotePath;
+
+    if (path == null) return;
+
+    try {
+      if (_previewPlayer.playing) {
+        await _previewPlayer.stop();
+        if (mounted) setState(() {});
+        return;
+      }
+
+      await _previewPlayer.setFilePath(path);
+      if (mounted) setState(() {});
+      await _previewPlayer.play();
+      if (mounted) setState(() {});
+    } catch (_) {
+      _showMessage(ref.tr('leavex.couldNotPlay'));
+    }
+  }
+
+  void _clearVoiceNote() {
+    _previewPlayer.stop();
+
+    setState(() => _voiceNotePath = null);
+  }
+
+  String _formatDuration(Duration duration) {
+    final minutes = duration.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final seconds = duration.inSeconds.remainder(60).toString().padLeft(2, '0');
+
+    return '$minutes:$seconds';
+  }
+
+  Widget _buildVoiceNote(bool isLoading) {
+    return Wrap(
+      spacing: 8,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        OutlinedButton.icon(
+          onPressed: isLoading ? null : _toggleRecording,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: _isRecording
+                ? const Color(0xFFB71C1C)
+                : AppColors.saffronText,
+            side: BorderSide(
+              color: _isRecording
+                  ? const Color(0xFFB71C1C)
+                  : AppColors.borderColor,
+            ),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          icon: Icon(
+            _isRecording ? Icons.stop_rounded : Icons.mic_none_rounded,
+            size: 18,
+          ),
+          label: Text(
+            _isRecording
+                ? fill(ref.tr('leavex.stopRecording'), {
+                    'time': _formatDuration(_recordingDuration),
+                  })
+                : ref.tr('leavex.recordReason'),
+            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
+          ),
+        ),
+        if (_voiceNotePath != null) ...[
+          IconButton(
+            tooltip: ref.tr('leavex.playVoiceNote'),
+            onPressed: _playPreview,
+            icon: Icon(
+              _previewPlayer.playing
+                  ? Icons.stop_circle_outlined
+                  : Icons.play_circle_outline_rounded,
+              color: AppColors.primaryFillColor,
+            ),
+          ),
+          Text(
+            ref.tr('leavex.voiceNoteAttached'),
+            style: GoogleFonts.inter(fontSize: 12, color: AppColors.mutedColor),
+          ),
+          IconButton(
+            tooltip: ref.tr('common.delete'),
+            onPressed: isLoading ? null : _clearVoiceNote,
+            icon: const Icon(
+              Icons.close_rounded,
+              size: 18,
+              color: AppColors.mutedColor,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  // ============================================================
+  // SENT BACK FOR CHANGES
+  // ============================================================
+
+  /// Loads a sent-back request into the form so it can be answered in place.
+  void _startEditing(Map<String, dynamic> leave) {
+    final start = DateTime.tryParse(leave['start_date']?.toString() ?? '');
+    final end = DateTime.tryParse(leave['end_date']?.toString() ?? '');
+    final type = leave['leave_type']?.toString();
+
+    TimeOfDay? parseTime(dynamic value) {
+      final parts = (value?.toString() ?? '').split(':');
+
+      if (parts.length < 2) return null;
+
+      final h = int.tryParse(parts[0]);
+      final m = int.tryParse(parts[1]);
+
+      return h == null || m == null ? null : TimeOfDay(hour: h, minute: m);
+    }
+
+    setState(() {
+      editingId = toInt(leave['id']);
+      leaveType = _leaveTypeForCategory(leave['leave_category']?.toString());
+      leaveDuration = type == 'half_day'
+          ? 'Half Day'
+          : type == 'partial'
+          ? 'Permission'
+          : 'Full Day';
+      halfDaySession = leave['half_day_session']?.toString() == 'SECOND'
+          ? 'SECOND'
+          : 'FIRST';
+
+      startDate = start == null ? null : DateTime(start.year, start.month, start.day);
+      endDate = end == null ? null : DateTime(end.year, end.month, end.day);
+      startDateController.text =
+          startDate == null ? '' : _formatDisplayDate(startDate!);
+      endDateController.text =
+          endDate == null ? '' : _formatDisplayDate(endDate!);
+
+      startTime = parseTime(leave['start_time']);
+      endTime = parseTime(leave['end_time']);
+      startTimeController.text =
+          startTime == null ? '' : startTime!.format(context);
+      endTimeController.text = endTime == null ? '' : endTime!.format(context);
+
+      reasonController.text = leave['reason']?.toString() ?? '';
+      _voiceNotePath = null;
+    });
+
+    final formContext = _formKey.currentContext;
+
+    if (formContext != null) {
+      Scrollable.ensureVisible(
+        formContext,
+        duration: const Duration(milliseconds: 350),
+      );
+    }
+  }
+
+  Widget _buildChangesRequested(List<Map<String, dynamic>> requests) {
+    final sentBack = requests
+        .where((r) => r['status']?.toString() == 'changes_requested')
+        .toList();
+
+    if (sentBack.isEmpty) return const SizedBox.shrink();
+
+    return Column(
+      children: sentBack.map((leave) {
+        final remarks = leave['admin_remarks']?.toString().trim() ?? '';
+        final id = toInt(leave['id']);
+
+        return Container(
+          width: double.infinity,
+          margin: const EdgeInsets.only(bottom: 12),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: AppColors.saffronTint,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: AppColors.saffronLight),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  const Icon(
+                    Icons.error_outline_rounded,
+                    size: 18,
+                    color: AppColors.saffronText,
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      '${ref.tr('leavex.changesNeeded')} · ${_buildLeaveTitle(leave)}',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.saffronText,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              if (remarks.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  remarks,
+                  style: GoogleFonts.inter(
+                    fontSize: 12.5,
+                    color: AppColors.textColor,
+                  ),
+                ),
+              ],
+              const SizedBox(height: 8),
+              Wrap(
+                spacing: 8,
+                children: [
+                  ElevatedButton(
+                    onPressed: () => _startEditing(leave),
+                    child: Text(ref.tr('leavex.updateRequest')),
+                  ),
+                  if (id != null)
+                    OutlinedButton(
+                      onPressed: () => _openDetail(id),
+                      child: Text(ref.tr('leavex.viewDetails')),
+                    ),
+                ],
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
+  Future<void> _openDetail(int id) async {
+    await context.push(AppRoutes.leaveDetailPath(id));
+
+    if (!mounted) return;
+
+    ref.read(leaveProvider.notifier).loadLeaveData();
   }
 
   // ============================================================
@@ -157,6 +542,8 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
             ]);
           },
           child: SingleChildScrollView(
+            controller: _scrollController,
+            physics: const AlwaysScrollableScrollPhysics(),
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -165,11 +552,17 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
 
                 const SizedBox(height: 16),
 
+                // A request sent back is the one thing here that needs doing.
+                _buildChangesRequested(leaveState.requests),
+
                 _buildBalanceCards(leaveState.balances),
 
                 const SizedBox(height: 16),
 
-                _buildNewRequest(leaveState.isLoading),
+                KeyedSubtree(
+                  key: _formKey,
+                  child: _buildNewRequest(leaveState.isLoading),
+                ),
 
                 const SizedBox(height: 16),
 
@@ -214,49 +607,76 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
   // ============================================================
 
   Widget _buildBalanceCards(List<Map<String, dynamic>> balances) {
-    String getRemaining(String category) {
+    Map<String, dynamic>? balanceOf(String category) {
       for (final balance in balances) {
-        if (balance['category']?.toString() == category) {
-          return balance['remaining']?.toString() ?? '0';
-        }
+        if (balance['category']?.toString() == category) return balance;
       }
 
-      return '0';
+      return null;
+    }
+
+    String trimNum(dynamic value) {
+      final n = toNum(value);
+
+      if (n == null) return '0';
+
+      return n == n.roundToDouble() ? n.toInt().toString() : n.toString();
+    }
+
+    // A null remaining is an untracked entitlement: unlimited.
+    Widget card(String category, String title, IconData icon, Color color) {
+      final balance = balanceOf(category);
+      final tracked = balance == null || balance['remaining'] != null;
+      final pending = toNum(balance?['pending']) ?? 0;
+
+      return _BalanceCard(
+        title: title,
+        value: tracked ? trimNum(balance?['remaining']) : '∞',
+        suffix: tracked ? ref.tr('leave.daysLeft') : ref.tr('leavex.notTracked'),
+        icon: icon,
+        textColor: color,
+        footnote: balance == null || balance['total'] == null
+            ? null
+            : [
+                fill(ref.tr('leavex.usedCount'), {
+                  'n': trimNum(balance['used']),
+                }),
+                if (pending > 0)
+                  fill(ref.tr('leavex.pendingCount'), {'n': trimNum(pending)}),
+              ].join(' · '),
+      );
     }
 
     return Row(
       children: [
         Expanded(
-          child: _BalanceCard(
-            title: ref.tr('leave.casualLeaveShort'),
-            value: getRemaining('casual'),
-            suffix: ref.tr('leave.daysLeft'),
-            icon: Icons.event_available_outlined,
-            textColor: AppColors.primaryFillColor,
+          child: card(
+            'casual',
+            ref.tr('leave.casualLeaveShort'),
+            Icons.event_available_outlined,
+            AppColors.primaryFillColor,
           ),
         ),
 
         const SizedBox(width: 6),
 
         Expanded(
-          child: _BalanceCard(
-            title: ref.tr('leave.sickLeaveShort'),
-            value: getRemaining('sick'),
-            suffix: ref.tr('leave.daysLeft'),
-            icon: Icons.sick_outlined,
-            textColor: const Color(0xFF7E3000),
+          child: card(
+            'sick',
+            ref.tr('leave.sickLeaveShort'),
+            Icons.sick_outlined,
+            const Color(0xFF7E3000),
           ),
         ),
 
         const SizedBox(width: 6),
 
         Expanded(
-          child: _BalanceCard(
-            title: ref.tr('leave.earnedLeaveShort'),
-            value: getRemaining('earned'),
-            suffix: ref.tr('leave.daysLeft'),
-            icon: Icons.beach_access_outlined,
-            textColor: AppColors.successColor,
+          child: card(
+            'earned',
+            ref.tr('leave.earnedLeaveShort'),
+            Icons.beach_access_outlined,
+            AppColors.successColor,
           ),
         ),
       ],
@@ -271,7 +691,22 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _sectionTitle(ref.tr('leave.newRequest')),
+          Row(
+            children: [
+              Expanded(
+                child: _sectionTitle(
+                  editingId != null
+                      ? ref.tr('leavex.updatingRequest')
+                      : ref.tr('leave.newRequest'),
+                ),
+              ),
+              if (editingId != null)
+                TextButton(
+                  onPressed: isLoading ? null : _cancelRequest,
+                  child: Text(ref.tr('common.cancel')),
+                ),
+            ],
+          ),
 
           const SizedBox(height: 12),
 
@@ -291,11 +726,19 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
                       leaveType = value;
                     });
                   },
-            items: const ['Casual Leave', 'Sick Leave', 'Earned Leave'],
+            items: const [
+              'Casual Leave',
+              'Sick Leave',
+              'Earned Leave',
+              'Unpaid Leave',
+              'Comp Off',
+            ],
             labels: {
               'Casual Leave': ref.tr('leave.casualLeave'),
               'Sick Leave': ref.tr('leave.sickLeave'),
               'Earned Leave': ref.tr('leave.earnedLeave'),
+              'Unpaid Leave': ref.tr('leavex.unpaidLeave'),
+              'Comp Off': ref.tr('leavex.compOff'),
             },
           ),
 
@@ -316,34 +759,58 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
                     setState(() {
                       leaveDuration = value;
 
-                      if (value == 'Full Day') {
-                        // Half-day time fields are no longer
-                        // applicable.
+                      if (value != 'Permission') {
+                        // Times only apply to a permission.
                         startTime = null;
                         endTime = null;
 
                         startTimeController.clear();
                         endTimeController.clear();
-                      } else {
-                        // Half Day does not use end date.
+                      }
+
+                      if (value != 'Full Day') {
+                        // A half day / permission is one date.
                         endDate = null;
                         endDateController.clear();
                       }
                     });
                   },
-            items: const ['Full Day', 'Half Day'],
+            items: const ['Full Day', 'Half Day', 'Permission'],
             labels: {
               'Full Day': ref.tr('leave.fullDay'),
               'Half Day': ref.tr('leave.halfDay'),
+              'Permission': ref.tr('leavex.permission'),
             },
           ),
 
           const SizedBox(height: 8),
 
           // ------------------------------------------------------
+          // HALF DAY → SESSION
+          // ------------------------------------------------------
+          if (leaveDuration == 'Half Day') ...[
+            _FieldLabel(ref.tr('leavex.session')),
+            _DropdownField(
+              value: halfDaySession,
+              onChanged: isLoading
+                  ? null
+                  : (value) {
+                      if (value == null) return;
+                      setState(() => halfDaySession = value);
+                    },
+              items: const ['FIRST', 'SECOND'],
+              labels: {
+                'FIRST': ref.tr('leavex.firstHalf'),
+                'SECOND': ref.tr('leavex.secondHalf'),
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+
+          // ------------------------------------------------------
           // NUMBER OF DAYS
           // ------------------------------------------------------
-          if (leaveDuration != 'Half Day') ...[
+          if (leaveDuration == 'Full Day') ...[
             _FieldLabel(ref.tr('leave.numberOfDays')),
             _DaysField(value: numberOfDays),
             const SizedBox(height: 8),
@@ -382,9 +849,9 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
           ],
 
           // ------------------------------------------------------
-          // HALF DAY → START TIME
+          // PERMISSION → START TIME
           // ------------------------------------------------------
-          if (leaveDuration == 'Half Day') ...[
+          if (_usesTimes) ...[
             _FieldLabel(ref.tr('leave.startTime')),
 
             _TextField(
@@ -413,6 +880,17 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
             const SizedBox(height: 8),
           ],
 
+          if (_durationHint() != null) ...[
+            Text(
+              _durationHint()!,
+              style: GoogleFonts.inter(
+                fontSize: 11.5,
+                color: AppColors.mutedColor,
+              ),
+            ),
+            const SizedBox(height: 8),
+          ],
+
           // ------------------------------------------------------
           // REASON
           // ------------------------------------------------------
@@ -425,7 +903,12 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
             readOnly: isLoading,
           ),
 
-          const SizedBox(height: 20),
+          const SizedBox(height: 10),
+
+          // Optional recorded reason, sent as `voiceNote`.
+          _buildVoiceNote(isLoading),
+
+          const SizedBox(height: 16),
 
           // ------------------------------------------------------
           // BUTTONS
@@ -489,7 +972,9 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
                           ),
                         )
                       : Text(
-                          ref.tr('leave.submitRequest'),
+                          editingId != null
+                              ? ref.tr('leavex.resubmit')
+                              : ref.tr('leave.submitRequest'),
                           style: GoogleFonts.inter(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
@@ -508,13 +993,38 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
   // SELECT START DATE
   // ============================================================
 
+  String? _durationHint() {
+    if (leaveDuration == 'Permission') {
+      final permission = ref.read(leaveProvider).permission;
+
+      if (permission == null) return null;
+
+      return fill(ref.tr('leavex.permissionHint'), {
+        'left': permission['remaining'],
+        'cap': permission['cap'],
+        'max': permission['perRequest'],
+      });
+    }
+
+    if (leaveDuration == 'Half Day') return ref.tr('leavex.halfDayHint');
+
+    return null;
+  }
+
   Future<void> _selectStartDate() async {
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+
+    // A request being answered may legitimately start in the past by now,
+    // so the floor only applies to a new one.
+    final first = editingId != null && startDate != null && startDate!.isBefore(today)
+        ? startDate!
+        : today;
 
     final picked = await showDatePicker(
       context: context,
       initialDate: startDate ?? now,
-      firstDate: DateTime(now.year, now.month, now.day),
+      firstDate: first,
       lastDate: DateTime(2100),
     );
 
@@ -687,22 +1197,18 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
     // ----------------------------------------------------------
 
     if (leaveDuration == 'Full Day') {
-      if (endDate == null) {
-        _showMessage(ref.tr('leave.selectEndDate'));
-        return;
-      }
-
-      if (endDate!.isBefore(startDate!)) {
+      // A single day needs no end date: it ends where it starts.
+      if (endDate != null && endDate!.isBefore(startDate!)) {
         _showMessage(ref.tr('leave.endDateBeforeStart'));
         return;
       }
     }
 
     // ----------------------------------------------------------
-    // HALF DAY VALIDATION
+    // PERMISSION VALIDATION
     // ----------------------------------------------------------
 
-    if (leaveDuration == 'Half Day') {
+    if (_usesTimes) {
       if (startTime == null) {
         _showMessage(ref.tr('leave.selectStartTime'));
         return;
@@ -729,10 +1235,18 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
 
     final reason = reasonController.text.trim();
 
-    if (reason.isEmpty) {
-      _showMessage(ref.tr('leave.provideReason'));
+    if (reason.length < 3) {
+      _showMessage(
+        reason.isEmpty
+            ? ref.tr('leave.provideReason')
+            : ref.tr('leavex.reasonTooShort'),
+      );
       return;
     }
+
+    if (_isRecording) await _stopRecording();
+
+    if (!mounted) return;
 
     // ----------------------------------------------------------
     // API VALUES
@@ -740,21 +1254,22 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
 
     final apiStartDate = _formatApiDate(startDate!);
 
-    // Full Day only.
-    final String? apiEndDate = leaveDuration == 'Full Day' && endDate != null
+    // A half day / permission is one date.
+    final String apiEndDate = leaveDuration == 'Full Day' && endDate != null
         ? _formatApiDate(endDate!)
-        : null;
+        : apiStartDate;
 
-    // Half Day only.
-    final String? apiStartTime =
-        leaveDuration == 'Half Day' && startTime != null
+    // Permission only.
+    final String? apiStartTime = _usesTimes && startTime != null
         ? _formatApiTime(startTime!)
         : null;
 
-    // Half Day only.
-    final String? apiEndTime = leaveDuration == 'Half Day' && endTime != null
+    // Permission only.
+    final String? apiEndTime = _usesTimes && endTime != null
         ? _formatApiTime(endTime!)
         : null;
+
+    final wasEditing = editingId != null;
 
     try {
       final success = await ref
@@ -779,13 +1294,23 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
             startTime: apiStartTime,
             endTime: apiEndTime,
 
+            halfDaySession:
+                leaveDuration == 'Half Day' ? halfDaySession : null,
+
             reason: reason,
+            voiceNotePath: _voiceNotePath,
+            resubmitId: editingId,
           );
 
       if (!mounted) return;
 
       if (success) {
-        _showMessage(ref.tr('leave.submittedSuccess'), isError: false);
+        _showMessage(
+          wasEditing
+              ? ref.tr('leavex.resubmitted')
+              : ref.tr('leave.submittedSuccess'),
+          isError: false,
+        );
 
         _clearForm();
       } else {
@@ -833,7 +1358,13 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
       endTimeController.clear();
 
       reasonController.clear();
+
+      halfDaySession = 'FIRST';
+      editingId = null;
+      _voiceNotePath = null;
     });
+
+    _previewPlayer.stop();
   }
 
   // ============================================================
@@ -999,13 +1530,17 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
 
         final status = request['status']?.toString();
 
+        final id = toInt(request['id']);
+
         return _RecentRequest(
           icon: _getLeaveIcon(request['leave_category']?.toString()),
           title: _buildLeaveTitle(request),
           date: _buildLeaveDate(request),
+          note: _buildRequestNote(request),
           status: _formatStatus(status),
           statusColor: _getStatusColor(status),
           isLast: index == requests.length - 1,
+          onTap: id == null ? null : () => _openDetail(id),
         );
       }),
     );
@@ -1025,9 +1560,50 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
         return ref.tr('leave.pending');
       case 'cancelled':
         return ref.tr('leave.cancelled');
+      case 'changes_requested':
+        return ref.tr('leavex.changesRequested');
       default:
         return ref.tr('leave.unknown');
     }
+  }
+
+  /// Who has a pending request, or who decided it, and the remarks.
+  String? _buildRequestNote(Map<String, dynamic> request) {
+    final status = request['status']?.toString();
+    final lines = <String>[];
+
+    final approver = (request['currentApproverName'] ??
+            request['currentStepLabel'])
+        ?.toString();
+
+    if (status == 'pending' && approver != null && approver.isNotEmpty) {
+      final total = toInt(request['totalLevels']) ?? 1;
+
+      lines.add(
+        total > 1
+            ? fill(ref.tr('leavex.withApprover'), {
+                'level': toInt(request['current_level']) ?? 1,
+                'total': total,
+                'name': approver,
+              })
+            : fill(ref.tr('leavex.withApproverSingle'), {'name': approver}),
+      );
+    }
+
+    if (status != 'pending' && request['reviewed_at'] != null) {
+      lines.add(
+        fill(ref.tr('leavex.decidedBy'), {
+          'name': request['reviewedByName'] ?? '-',
+          'date': formatApiDate(request['reviewed_at']),
+        }),
+      );
+    }
+
+    final remarks = request['admin_remarks']?.toString().trim() ?? '';
+
+    if (remarks.isNotEmpty) lines.add('“$remarks”');
+
+    return lines.isEmpty ? null : lines.join('\n');
   }
 
   // ============================================================
@@ -1043,6 +1619,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
         return const Color(0xFFB71C1C);
 
       case 'pending':
+      case 'changes_requested':
         return const Color(0xFFE68A00);
 
       case 'cancelled':
@@ -1095,10 +1672,29 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
         categoryName = ref.tr('leave.earnedLeave');
         break;
 
+      case 'unpaid':
+        categoryName = ref.tr('leavex.unpaidLeave');
+        break;
+
+      case 'comp_off':
+        categoryName = ref.tr('leavex.compOff');
+        break;
+
       case 'casual':
       default:
         categoryName = ref.tr('leave.casualLeave');
         break;
+    }
+
+    if (request['leave_type']?.toString() == 'partial') {
+      final from = request['start_time']?.toString() ?? '';
+      final to = request['end_time']?.toString() ?? '';
+
+      String hm(String t) => t.length >= 5 ? t.substring(0, 5) : t;
+
+      return from.isEmpty
+          ? '$categoryName (${ref.tr('leavex.permission')})'
+          : '$categoryName (${ref.tr('leavex.permission')} ${hm(from)}–${hm(to)})';
     }
 
     if (totalDays == 0.5) {
@@ -1192,18 +1788,23 @@ class _BalanceCard extends StatelessWidget {
   final IconData icon;
   final Color textColor;
 
+  /// "2 used · 1 awaiting approval" — days taken kept apart from days held
+  /// by a request still being approved.
+  final String? footnote;
+
   const _BalanceCard({
     required this.title,
     required this.value,
     required this.suffix,
     required this.icon,
     required this.textColor,
+    this.footnote,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 104,
+      height: footnote == null ? 104 : 132,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(12),
@@ -1238,18 +1839,36 @@ class _BalanceCard extends StatelessWidget {
 
               const SizedBox(width: 4),
 
-              Padding(
-                padding: const EdgeInsets.only(bottom: 1),
-                child: Text(
-                  suffix,
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: AppColors.mutedColor,
+              Flexible(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 1),
+                  child: Text(
+                    suffix,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppColors.mutedColor,
+                    ),
                   ),
                 ),
               ),
             ],
           ),
+
+          if (footnote != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              footnote!,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(
+                fontSize: 10,
+                height: 1.2,
+                color: AppColors.mutedColor,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -1421,6 +2040,8 @@ class _DropdownField extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return DropdownButtonFormField<String>(
+      // Keyed on the value so a request loaded into the form shows it.
+      key: ValueKey(value),
       initialValue: value,
       onChanged: onChanged,
       style: GoogleFonts.inter(fontSize: 12, color: AppColors.textColor),
@@ -1461,21 +2082,32 @@ class _RecentRequest extends StatelessWidget {
   final IconData icon;
   final String title;
   final String date;
+  final String? note;
   final String status;
   final Color statusColor;
   final bool isLast;
+  final VoidCallback? onTap;
 
   const _RecentRequest({
     required this.icon,
     required this.title,
     required this.date,
+    this.note,
     required this.status,
     required this.statusColor,
     this.isLast = false,
+    this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      child: _content(),
+    );
+  }
+
+  Widget _content() {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -1521,6 +2153,20 @@ class _RecentRequest extends StatelessWidget {
                     color: AppColors.mutedColor,
                   ),
                 ),
+
+                if (note != null) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    note!,
+                    maxLines: 4,
+                    overflow: TextOverflow.ellipsis,
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      height: 1.3,
+                      color: AppColors.mutedColor,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),

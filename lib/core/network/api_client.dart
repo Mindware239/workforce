@@ -2,6 +2,11 @@ import 'package:dio/dio.dart';
 import 'package:workforce/core/services/secure_storage.dart';
 
 class ApiClient {
+  /// The REST base URL. The realtime socket derives its origin from this, so
+  /// pointing the app at another server stays a one-line change here.
+  // static const String baseUrl = 'https://workforce.orkuts.com/api';
+  static const String baseUrl = 'http://192.168.1.142:5050/api';
+
   late final Dio dio;
 
   final SecureStorage secureStorage;
@@ -11,8 +16,7 @@ class ApiClient {
   }) {
     dio = Dio(
       BaseOptions(
-        // baseUrl: 'https://workforce.orkuts.com/api',
-        baseUrl: 'http://192.168.1.142:5050/api',
+        baseUrl: baseUrl,
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
         headers: {

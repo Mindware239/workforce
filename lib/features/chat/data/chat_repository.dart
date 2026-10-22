@@ -267,12 +267,14 @@ class ChatRepository {
   Future<Map<String, dynamic>> sendMessage({
     required int conversationId,
     required String body,
+    String? clientId,
   }) async {
     try {
       final response = await apiClient.post(
         '/chat/conversations/$conversationId/messages',
         data: {
           'body': body,
+          'clientId': ?clientId,
         },
       );
 
@@ -299,6 +301,7 @@ class ChatRepository {
     required int conversationId,
     required File file,
     String? body,
+    String? clientId,
   }) async {
     try {
       final fileName = file.path.split(Platform.pathSeparator).last;
@@ -306,6 +309,7 @@ class ChatRepository {
       final formData = FormData.fromMap({
         if (body != null && body.trim().isNotEmpty)
           'body': body.trim(),
+        'clientId': ?clientId,
         'attachment': await MultipartFile.fromFile(
           file.path,
           filename: fileName,

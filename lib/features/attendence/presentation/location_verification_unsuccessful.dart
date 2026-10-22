@@ -7,6 +7,7 @@ import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/features/attendence/data/attendance_repository.dart';
+import 'package:workforce/features/attendence/providers/attendance_provider.dart';
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 
 class LocationVerificationUnsuccessfulScreen
@@ -155,6 +156,7 @@ class _LocationVerificationUnsuccessfulScreenState
           'latitude': position.latitude,
           'longitude': position.longitude,
           'accuracy': position.accuracy,
+          'isStart': ref.read(attendanceProvider).today?['entryTime'] == null,
         },
       );
     } catch (e, stackTrace) {
@@ -236,6 +238,24 @@ class _LocationVerificationUnsuccessfulScreenState
               const SizedBox(height: 12),
 
               _buildSupportButton(context),
+
+              const SizedBox(height: 8),
+
+              // The server accepts attendance away from every workplace
+              // when field work is approved for the day.
+              TextButton.icon(
+                onPressed: _isChecking
+                    ? null
+                    : () => context.push(AppRoutes.fieldWork),
+                icon: const Icon(Icons.directions_walk_rounded, size: 18),
+                label: Text(
+                  ref.tr('fieldWork.offsiteHint'),
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
             ],
           ),
         ),

@@ -2,7 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/features/attendence/presentation/attendence_record.dart';
@@ -73,6 +75,10 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
               else ...[
                 _buildAttendanceInfo(attendanceState),
 
+                const SizedBox(height: 12),
+
+                _buildShortcuts(),
+
                 const SizedBox(height: 16),
 
                 _buildStats(attendanceState),
@@ -93,9 +99,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   // ============================================================
 
   Widget _buildHeader(AttendanceState attendanceState) {
-    final today = attendanceState.today;
-
-    final status = today?['status']?.toString();
+    final status = _dayStatus(attendanceState);
 
     final statusText = _getStatusText(status);
     final statusColor = _getStatusColor(status);
@@ -179,6 +183,13 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
     final hasAttendance = today != null;
 
+    final lateMinutes =
+        num.tryParse(today?['lateMinutes']?.toString() ?? '')?.toInt() ?? 0;
+
+    final shiftName = _text(schedule?['shiftName']);
+    final shiftCode = _text(schedule?['shiftCode']);
+    final exitPlace = _text(today?['exitPlace']);
+
     final shiftText = standardEntry != null && standardExit != null
         ? '${_formatTime(standardEntry)} – ${_formatTime(standardExit)}'
         : '--';
@@ -209,6 +220,17 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
               value: hasAttendance && entryTime != null
                   ? _formatTime(entryTime)
                   : ref.tr('attendance.notCheckedIn'),
+              details: [
+                if (_text(today?['entryPlace']) != null)
+                  (_text(today?['entryPlace'])!, AppColors.saffronText),
+                if (lateMinutes > 0)
+                  (
+                    ref
+                        .tr('attendance.lateBy')
+                        .replaceFirst('{minutes}', '$lateMinutes'),
+                    const Color(0xFFB3261E),
+                  ),
+              ],
             ),
 
             const SizedBox(height: 16),
@@ -217,6 +239,25 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
               icon: Icons.access_time_rounded,
               label: ref.tr('attendance.shift'),
               value: shiftText,
+              details: [
+                if (shiftName != null)
+                  (
+                    shiftCode != null ? '$shiftName · $shiftCode' : shiftName,
+                    AppColors.saffronText,
+                  ),
+                if (schedule?['dayType'] == 'holiday')
+                  (
+                    ref
+                        .tr('attendance.holidayToday')
+                        .replaceFirst(
+                          '{name}',
+                          _text(schedule?['holidayName']) ?? '',
+                        ),
+                    AppColors.saffronDeep,
+                  ),
+                if (schedule?['dayType'] == 'weekly_off')
+                  (ref.tr('attendance.weeklyOffToday'), AppColors.mutedColor),
+              ],
             ),
 
             if (today?['exitTime'] != null) ...[
@@ -226,11 +267,100 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
                 icon: Icons.logout_rounded,
                 label: ref.tr('attendance.checkOut'),
                 value: _formatTime(today!['exitTime'].toString()),
+                details: [
+                  if (exitPlace != null &&
+                      exitPlace != _text(today['entryPlace']))
+                    (
+                      ref
+                          .tr('attendance.exitAt')
+                          .replaceFirst('{place}', exitPlace),
+                      AppColors.mutedColor,
+                    ),
+                ],
               ),
             ],
           ],
         ),
       ),
+    );
+  }
+
+  String? _text(dynamic value) {
+    final text = value?.toString().trim();
+
+    return text == null || text.isEmpty ? null : text;
+  }
+
+  // ============================================================
+  // DEVICE CHECK / FIELD WORK
+  // ============================================================
+
+  Widget _buildShortcuts() {
+    Widget tile({
+      required IconData icon,
+      required String title,
+      required String subtitle,
+      required String route,
+    }) {
+      return Expanded(
+        child: Material(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          child: InkWell(
+            borderRadius: BorderRadius.circular(12),
+            onTap: () => context.push(route),
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: AppColors.borderColor, width: 1),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(icon, size: 20, color: AppColors.primaryFillColor),
+                  const SizedBox(height: 8),
+                  Text(
+                    title,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textColor,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      color: AppColors.mutedColor,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        tile(
+          icon: Icons.phonelink_lock_outlined,
+          title: ref.tr('attendance.deviceCheck'),
+          subtitle: ref.tr('attendance.deviceCheckSubtitle'),
+          route: AppRoutes.deviceCheck,
+        ),
+        const SizedBox(width: 12),
+        tile(
+          icon: Icons.directions_walk_rounded,
+          title: ref.tr('attendance.fieldWork'),
+          subtitle: ref.tr('attendance.fieldWorkSubtitle'),
+          route: AppRoutes.fieldWork,
+        ),
+      ],
     );
   }
 
@@ -276,7 +406,11 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
         _StatCard(
           title: ref.tr('attendance.remaining'),
-          value: hasAttendance ? _formatDuration(remainingMinutes) : '--',
+          value: !hasAttendance
+              ? '--'
+              : remainingMinutes == 0 && workingMinutes > 0
+              ? ref.tr('attendance.complete')
+              : _formatDuration(remainingMinutes),
           valueColor: AppColors.textColor,
         ),
       ],
@@ -547,12 +681,36 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   // STATUS
   // ============================================================
 
+  /// The day's verdict as the web Today page derives it: not started, on a
+  /// break, shift completed, late (any late minutes), else on time.
+  String? _dayStatus(AttendanceState attendanceState) {
+    final today = attendanceState.today;
+
+    if (today?['entryTime'] == null) return null;
+
+    if (attendanceState.activeBreak != null) return 'on_break';
+
+    if (today?['exitTime'] != null) return 'completed';
+
+    final late = num.tryParse(today?['lateMinutes']?.toString() ?? '') ?? 0;
+
+    if (late > 0 || today?['status'] == 'late') return 'late';
+
+    return 'on_time';
+  }
+
   String _getStatusText(String? status) {
     if (status == null || status.isEmpty) {
       return ref.tr('attendance.statusNotStarted');
     }
 
     switch (status.toLowerCase()) {
+      case 'on_break':
+        return ref.tr('attendance.statusOnBreak');
+
+      case 'completed':
+        return ref.tr('attendance.statusShiftCompleted');
+
       case 'late':
         return ref.tr('attendance.statusLate');
 
@@ -574,6 +732,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
   Color _getStatusColor(String? status) {
     switch (status?.toLowerCase()) {
+      case 'on_break':
+        return AppColors.saffronText;
+
+      case 'completed':
+        return AppColors.navy;
+
       case 'late':
         return const Color(0xFFF2A900);
 
@@ -593,6 +757,12 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
 
   Color _getStatusBackground(String? status) {
     switch (status?.toLowerCase()) {
+      case 'on_break':
+        return AppColors.saffronTint;
+
+      case 'completed':
+        return AppColors.navyLight;
+
       case 'late':
         return const Color(0xFFFFF4D6);
 
@@ -728,10 +898,14 @@ class _InfoRow extends StatelessWidget {
   final String label;
   final String value;
 
+  /// Small coloured lines under the value (place, shift name, holiday...).
+  final List<(String, Color)> details;
+
   const _InfoRow({
     required this.icon,
     required this.label,
     required this.value,
+    this.details = const [],
   });
 
   @override
@@ -773,6 +947,16 @@ class _InfoRow extends StatelessWidget {
                   color: AppColors.textColor,
                 ),
               ),
+
+              for (final (text, color) in details)
+                Text(
+                  text,
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: color,
+                  ),
+                ),
             ],
           ),
         ),

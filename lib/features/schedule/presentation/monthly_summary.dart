@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/styles/tricolour_strip.dart';
@@ -158,11 +160,16 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
 
         const SizedBox(height: 16),
 
-        _buildMiniStats(summary, dailyTable),
+        _buildMiniStats(summary, dailyTable, _list(data['weeklyProductivity'])),
 
         const SizedBox(height: 16),
 
-        _buildHoursLogged(summary),
+        // As on the web, the hours card leads through to the day-by-day
+        // history.
+        GestureDetector(
+          onTap: () => context.push(AppRoutes.attendanceHistory),
+          child: _buildHoursLogged(summary),
+        ),
 
         const SizedBox(height: 16),
 
@@ -337,13 +344,23 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
 
   Widget _buildMiniStats(
     Map<String, dynamic> summary,
-    List<Map<String, dynamic>> dailyTable,
-  ) {
+    List<Map<String, dynamic>> dailyTable, [
+    List<Map<String, dynamic>> weeklyProductivity = const [],
+  ]) {
     final presentDays = _int(summary['presentDays']) ?? 0;
 
     final totalDays = _int(summary['totalWorkingDays']) ?? 0;
 
-    final productivity = _calculateAverageProductivity(dailyTable);
+    // The web averages the API's weekly productivity figures; fall back to
+    // the daily table when the server did not send them.
+    final weekly = weeklyProductivity
+        .map((w) => _double(w['percent']))
+        .whereType<double>()
+        .toList();
+
+    final productivity = weekly.isNotEmpty
+        ? weekly.reduce((a, b) => a + b) / weekly.length
+        : _calculateAverageProductivity(dailyTable);
 
     return Row(
       children: [

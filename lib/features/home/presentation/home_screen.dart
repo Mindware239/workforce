@@ -19,6 +19,7 @@ import 'package:workforce/features/attendence/providers/attendance_provider.dart
 import 'package:workforce/features/auth/providers/auth_provider.dart';
 import 'package:workforce/features/home/presentation/widget/current_date_text.dart';
 import 'package:workforce/features/notification/providers/notification_provider.dart';
+import 'package:workforce/features/operations/providers/entitlements_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -40,21 +41,23 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   final GlobalKey _tourLeave = GlobalKey();
   final GlobalKey _tourNotifications = GlobalKey();
   final GlobalKey _tourSchedule = GlobalKey();
+  final GlobalKey _tourProfile = GlobalKey();
 
   static const String _tourCompletedKey = 'workforce_home_tour_completed';
   bool _tourStarted = false;
 
   List<GlobalKey> get _tourKeys => [
-        _tourGreeting,
-        _tourShift,
-        _tourAttendance,
-        _tourProductivity,
-        _tourHistory,
-        _tourMonthlySummary,
-        _tourLeave,
-        _tourNotifications,
-        _tourSchedule,
-      ];
+    _tourGreeting,
+    _tourShift,
+    _tourAttendance,
+    _tourProductivity,
+    _tourHistory,
+    _tourMonthlySummary,
+    _tourLeave,
+    _tourNotifications,
+    _tourSchedule,
+    _tourProfile,
+  ];
 
   Future<void> _markTourCompleted() async {
     final prefs = await SharedPreferences.getInstance();
@@ -336,6 +339,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               icon: const Icon(
                 Icons.calendar_today_outlined,
                 size: 21,
+                color: AppColors.onAppBarColor,
+              ),
+            ),
+          ),
+
+          Showcase(
+            key: _tourProfile,
+            title: 'Your Profile',
+            description: 'Open your profile to view or update your personal information and account details.',
+            child: IconButton(
+              onPressed: () {
+                // Keep the exact profile navigation logic already in your app.
+                context.push(
+                  AppRoutes.profile,
+                ); // Replace if your route name differs.
+              },
+              splashRadius: 20,
+              padding: EdgeInsets.zero,
+              icon: const Icon(
+                Icons.account_circle_outlined,
+                size: 24,
                 color: AppColors.onAppBarColor,
               ),
             ),
@@ -813,9 +837,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
             description:
                 'Review your productivity score and see how your '
                 'performance compares with last week.',
-            child: _ProductivityCard(
-              dashboard: attendanceState.dashboard,
-            ),
+            child: _ProductivityCard(dashboard: attendanceState.dashboard),
           ),
         ),
       ],
@@ -824,6 +846,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildQuickActions(NotificationState notificationState) {
     final unreadCount = notificationState.unreadCount;
+    final operationsFeatures = ref.watch(entitlementsProvider);
 
     String notificationSubtitle;
 
@@ -864,8 +887,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Showcase(
                 key: _tourHistory,
                 title: 'Attendance History',
-                description:
-                    'Review your previous attendance records and working hours.',
+                description: 'Review your previous attendance records and working hours.',
                 child: _QuickAction(
                   icon: 'assets/icons/clock.svg',
                   title: ref.tr('home.attendanceHistory'),
@@ -892,8 +914,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               Showcase(
                 key: _tourLeave,
                 title: 'Leave Requests',
-                description:
-                    'Open this section to access your leave requests.',
+                description: 'Open this section to access your leave requests.',
                 child: _QuickAction(
                   icon: 'assets/icons/leave.svg',
                   title: ref.tr('home.leaveRequests'),
@@ -913,6 +934,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               ),
 
               _QuickAction(
+                iconData: Icons.directions_walk_rounded,
+                title: ref.tr('home.fieldWork'),
+                subtitle: ref.tr('home.fieldWorkSubtitle'),
+                onTap: () {
+                  context.push(AppRoutes.fieldWork);
+                },
+              ),
+
+              _QuickAction(
                 iconData: Icons.devices_other_outlined,
                 title: ref.tr('home.myAssets'),
                 subtitle: ref.tr('home.myAssetsSubtitle'),
@@ -921,12 +951,52 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 },
               ),
 
+              // The floor and the warehouse exist only where the plan
+              // includes production / inventory (same rule as the web).
+              if (featureEnabled(operationsFeatures, productionFeature))
+                _QuickAction(
+                  iconData: Icons.precision_manufacturing_outlined,
+                  title: ref.tr('home.floor'),
+                  subtitle: ref.tr('home.floorSubtitle'),
+                  onTap: () {
+                    context.push(AppRoutes.floor);
+                  },
+                ),
+
+              if (featureEnabled(operationsFeatures, inventoryFeature))
+                _QuickAction(
+                  iconData: Icons.qr_code_scanner_rounded,
+                  title: ref.tr('home.warehouse'),
+                  subtitle: ref.tr('home.warehouseSubtitle'),
+                  onTap: () {
+                    context.push(AppRoutes.warehouse);
+                  },
+                ),
+
               _QuickAction(
                 iconData: Icons.insights_outlined,
                 title: ref.tr('home.performanceReviews'),
                 subtitle: ref.tr('home.performanceReviewsSubtitle'),
                 onTap: () {
                   context.push(AppRoutes.reviews);
+                },
+              ),
+
+              _QuickAction(
+                iconData: Icons.payments_outlined,
+                title: ref.tr('home.myPay'),
+                subtitle: ref.tr('home.myPaySubtitle'),
+                onTap: () {
+                  context.push(AppRoutes.myPay);
+                },
+              ),
+
+              _QuickAction(
+                iconData: Icons.campaign_outlined,
+                title: ref.tr('home.announcements'),
+                subtitle: ref.tr('home.announcementsSubtitle'),
+                onTap: () {
+                  context.push(AppRoutes.announcements);
                 },
               ),
 

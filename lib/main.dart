@@ -4,6 +4,7 @@ import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/location/location_background.dart';
 import 'package:workforce/core/services/navigation_service.dart';
 import 'package:workforce/core/styles/app_theme.dart';
+import 'package:workforce/features/call/presentation/call_screen.dart';
 
 @pragma('vm:entry-point')
 void locationBackgroundEntryPoint() {
@@ -27,6 +28,8 @@ class MyApp extends StatelessWidget {
       theme: AppTheme.light,
       themeMode: ThemeMode.light,
       routerConfig: NavigationService.router,
+      // A call rings, and stays on screen, over whichever page is open.
+      builder: (context, child) => CallLayer(child: child ?? const SizedBox.shrink()),
     );
   }
 }

@@ -1,6 +1,7 @@
-
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:workforce/core/network/api_client.dart';
+import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/core/network/network_providers.dart';
 
 class NotificationRepository {
@@ -15,7 +16,6 @@ class NotificationRepository {
       queryParameters: {'limit': limit},
     );
 
-   
     return Map<String, dynamic>.from(response.data);
   }
 
@@ -31,6 +31,33 @@ class NotificationRepository {
     final response = await apiClient.put('/notifications/read-all');
 
     return Map<String, dynamic>.from(response.data);
+  }
+
+  /// Replies to a message from a person (POST /notifications/:id/reply,
+  /// multipart: `message` and/or an `audio` voice note). The reply goes back
+  /// to the sender as a notification of their own.
+  Future<void> reply(
+    int notificationId, {
+    String? message,
+    String? audioFilePath,
+  }) async {
+    try {
+      final form = FormData.fromMap({
+        if (message != null && message.trim().isNotEmpty)
+          'message': message.trim(),
+        if (audioFilePath != null)
+          'audio': await MultipartFile.fromFile(
+            audioFilePath,
+            filename: audioFilePath.split(RegExp(r'[\\/]')).last,
+            // The reply uploader only accepts an audio/* part.
+            contentType: DioMediaType('audio', 'mp4'),
+          ),
+      });
+
+      await apiClient.post('/notifications/$notificationId/reply', data: form);
+    } catch (e) {
+      throw apiException(e, 'Could not send that reply.');
+    }
   }
 }
 

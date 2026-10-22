@@ -6,7 +6,10 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/localization/app_localization.dart';
+import 'package:workforce/core/network/api_error.dart';
+import 'package:workforce/core/widgets/feature_widgets.dart';
 import 'package:workforce/features/auth/providers/auth_provider.dart';
+import 'package:workforce/features/onboarding/presentation/providers/onboarding_provider.dart';
 
 class CompleteProfilePage extends ConsumerStatefulWidget {
   const CompleteProfilePage({
@@ -715,32 +718,88 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                   ],
                 ),
 
-                const SizedBox(height: 4),
-
-                Text(
-                  ref.tr('completeProfile.test'),
-                  style: GoogleFonts.inter(
-                    fontSize: 11.5,
-                    color: AppColors.mutedColor,
-                  ),
-                ),
-
                 const SizedBox(height: 12),
 
                 Container(height: 1, color: AppColors.borderColor),
 
-                const SizedBox(height: 22),
+                const SizedBox(height: 14),
 
-                Center(
-                  child: Text(
-                    '${ref.tr('completeProfile.termsNotPublished')}any terms yet.',
-                    textAlign: TextAlign.center,
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: AppColors.mutedColor,
-                      height: 1.4,
-                    ),
-                  ),
+                // The organization's published terms (GET /organizations/terms).
+                Consumer(
+                  builder: (context, ref, _) {
+                    final terms = ref.watch(organizationTermsProvider);
+
+                    return terms.when(
+                      loading: () => const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24),
+                        child: Center(
+                          child: SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                        ),
+                      ),
+                      error: (error, _) => Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: ErrorBanner(cleanErrorMessage(error)),
+                      ),
+                      data: (data) {
+                        final content = data['content']?.toString().trim() ?? '';
+
+                        if (content.isEmpty) {
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 8),
+                            child: Center(
+                              child: Text(
+                                ref.tr('completeProfile.termsNotPublished'),
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: AppColors.mutedColor,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          );
+                        }
+
+                        return ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxHeight:
+                                MediaQuery.of(context).size.height * 0.55,
+                          ),
+                          child: SingleChildScrollView(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  content,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12.5,
+                                    height: 1.5,
+                                    color: AppColors.textColor,
+                                  ),
+                                ),
+                                if (data['updatedAt'] != null) ...[
+                                  const SizedBox(height: 10),
+                                  Text(
+                                    fill(ref.tr('onbx.termsUpdated'), {
+                                      'date': formatApiDate(data['updatedAt']),
+                                    }),
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11,
+                                      color: AppColors.mutedColor,
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
                 ),
 
                 const SizedBox(height: 22),

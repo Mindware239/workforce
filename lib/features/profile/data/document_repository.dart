@@ -1,11 +1,15 @@
 import 'dart:io';
 
 import 'package:dio/dio.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:workforce/core/network/api_client.dart';
+import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/core/network/network_providers.dart';
 
+/// The employee's documents (`/api/documents`), as the web Documents page
+/// uses them: the organization's NDA (read, type your name, sign), the
+/// employee's own uploads, download and delete.
 class DocumentRepository {
   final ApiClient apiClient;
 
@@ -16,144 +20,115 @@ class DocumentRepository {
     try {
       final response = await apiClient.get('/documents/mine');
 
-      debugPrint('========== MY DOCUMENTS RESPONSE ==========');
-      debugPrint('${response.data}');
-      debugPrint('===========================================');
-
-      final responseData = response.data;
-
-      // API response:
-      // {
-      //   success: true,
-      //   statusCode: 200,
-      //   message: "Your documents",
-      //   data: [...]
-      // }
-
-      if (responseData is Map) {
-        final documents = responseData['data'];
-
-        if (documents is List) {
-          return documents
-              .whereType<Map>()
-              .map((item) => Map<String, dynamic>.from(item))
-              .toList();
-        }
-      }
-
-      return [];
-    } on DioException catch (e) {
-      debugPrint('❌ Get documents error: ${e.message}');
-      debugPrint('❌ Status: ${e.response?.statusCode}');
-      debugPrint('❌ Response: ${e.response?.data}');
-
-      final responseData = e.response?.data;
-
-      if (responseData is Map) {
-        final message = responseData['message'];
-
-        if (message != null && message.toString().trim().isNotEmpty) {
-          throw Exception(message.toString());
-        }
-      }
-
-      throw Exception(e.message ?? 'Unable to load documents.');
+      return asMapList(unwrapData(response.data));
+    } catch (e) {
+      throw apiException(e, 'Unable to load documents.');
     }
   }
 
-  /// POST /api/documents
+  /// POST /api/documents (multipart: file, category)
   ///
-  /// multipart/form-data:
-  /// file     -> binary
-  /// category -> string
+  /// category: identity | address | education | experience | bank_passbook | other
   Future<Map<String, dynamic>> uploadDocument({
     required String filePath,
     required String category,
   }) async {
     try {
-      final fileName = filePath.split('/').last;
+      final fileName = filePath.split(RegExp(r'[\\/]')).last;
 
       final formData = FormData.fromMap({
-        'file': await MultipartFile.fromFile(filePath, filename: fileName),
         'category': category,
+        'file': await MultipartFile.fromFile(filePath, filename: fileName),
       });
-
-      debugPrint('========== DOCUMENT UPLOAD ==========');
-      debugPrint('File: $fileName');
-      debugPrint('Path: $filePath');
-      debugPrint('Category: $category');
-      debugPrint('=====================================');
 
       final response = await apiClient.dio.post('/documents', data: formData);
 
-      debugPrint('========== UPLOAD RESPONSE ==========');
-      debugPrint('${response.data}');
-      debugPrint('====================================');
-
-      return Map<String, dynamic>.from(response.data);
-    } on DioException catch (e) {
-      debugPrint('❌ Upload document error: ${e.message}');
-      debugPrint('❌ Status: ${e.response?.statusCode}');
-      debugPrint('❌ Response: ${e.response?.data}');
-
-      final responseData = e.response?.data;
-
-      if (responseData is Map<String, dynamic>) {
-        final message = responseData['message'];
-
-        if (message != null) {
-          throw Exception(message.toString());
-        }
-      }
-
-      throw Exception(e.message ?? 'Unable to upload document.');
+      return asMap(unwrapData(response.data));
+    } catch (e) {
+      throw apiException(e, 'Unable to upload document.');
     }
   }
 
-  Future<String> downloadDocument({required int documentId}) async {
+  /// DELETE /api/documents/:id
+  Future<void> deleteDocument(int documentId) async {
     try {
-      final response = await apiClient.dio.get(
+      await apiClient.delete('/documents/$documentId');
+    } catch (e) {
+      throw apiException(e, 'Could not delete that document.');
+    }
+  }
+
+  /// GET /api/documents/nda-template
+  ///
+  /// `{ template: {id, fileName, ...} | null, signedAt: string | null }`.
+  Future<Map<String, dynamic>> getNdaTemplate() async {
+    try {
+      final response = await apiClient.get('/documents/nda-template');
+
+      return asMap(unwrapData(response.data));
+    } catch (e) {
+      throw apiException(e, 'Could not load the NDA.');
+    }
+  }
+
+  /// POST /api/documents/nda-template/sign  `{ signedName }`
+  Future<Map<String, dynamic>> signNda(String signedName) async {
+    try {
+      final response = await apiClient.post(
+        '/documents/nda-template/sign',
+        data: {'signedName': signedName},
+      );
+
+      return asMap(unwrapData(response.data));
+    } catch (e) {
+      throw apiException(e, 'Could not sign the NDA.');
+    }
+  }
+
+  /// GET /api/documents/:id/download — saved to the Download folder
+  /// (Android), falling back to the app documents folder. Returns the path.
+  Future<String> downloadDocument({
+    required int documentId,
+    String? fileName,
+  }) async {
+    try {
+      final response = await apiClient.dio.get<List<int>>(
         '/documents/$documentId/download',
         options: Options(responseType: ResponseType.bytes),
       );
 
+      var name = (fileName != null && fileName.trim().isNotEmpty)
+          ? fileName.trim()
+          : 'document_$documentId';
+
       final contentDisposition = response.headers.value('content-disposition');
 
-      String fileName = 'document_$documentId';
-
-      if (contentDisposition != null) {
+      if ((fileName == null || fileName.trim().isEmpty) &&
+          contentDisposition != null) {
         final match = RegExp(
           r'filename="?([^"]+)"?',
           caseSensitive: false,
         ).firstMatch(contentDisposition);
 
         if (match != null && match.group(1) != null) {
-          fileName = match.group(1)!;
+          name = match.group(1)!;
         }
       }
 
-      final directory = Directory('/storage/emulated/0/Download');
+      Directory directory = Directory('/storage/emulated/0/Download');
 
-      final filePath = '${directory.path}/$fileName';
-
-      final file = File(filePath);
-
-      await file.writeAsBytes(response.data as List<int>, flush: true);
-
-      return filePath;
-    } on DioException catch (e) {
-      debugPrint('========== DOCUMENT DOWNLOAD ERROR ==========');
-      debugPrint('Status: ${e.response?.statusCode}');
-      debugPrint('Response: ${e.response?.data}');
-      debugPrint('=============================================');
-
-      final data = e.response?.data;
-
-      if (data is Map && data['message'] != null) {
-        throw Exception(data['message'].toString());
+      if (!Platform.isAndroid || !await directory.exists()) {
+        directory = await getApplicationDocumentsDirectory();
       }
 
-      throw Exception(e.message ?? 'Unable to download document.');
+      final safeName = name.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+      final file = File('${directory.path}/$safeName');
+
+      await file.writeAsBytes(response.data ?? const [], flush: true);
+
+      return file.path;
+    } catch (e) {
+      throw apiException(e, 'Unable to download document.');
     }
   }
 }

@@ -3,6 +3,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'package:workforce/core/network/api_client.dart';
+import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/core/network/network_providers.dart';
 import 'package:workforce/features/attendence/data/fingerprint_repository.dart';
 
@@ -15,6 +16,46 @@ class AttendanceRepository {
     final response = await apiClient.get('/attendance/me/today');
 
     return Map<String, dynamic>.from(response.data);
+  }
+
+  // ============================================================
+  // REGULARISATION (attendance correction requests)
+  // POST /attendance/policy/regularisations
+  //   { date YYYY-MM-DD (not future), requestedEntryTime HH:mm?,
+  //     requestedExitTime HH:mm?, reason 3-1000 }
+  // POST /attendance/policy/regularisations/:id/cancel (pending only)
+  // ============================================================
+
+  Future<void> requestRegularisation({
+    required String date,
+    String? requestedEntryTime,
+    String? requestedExitTime,
+    required String reason,
+  }) async {
+    try {
+      await apiClient.post(
+        '/attendance/policy/regularisations',
+        data: {
+          'date': date,
+          'requestedEntryTime': requestedEntryTime,
+          'requestedExitTime': requestedExitTime,
+          'reason': reason,
+        },
+      );
+    } catch (e) {
+      throw apiException(e, 'Unable to send the correction request.');
+    }
+  }
+
+  Future<void> cancelRegularisation(int id) async {
+    try {
+      await apiClient.post(
+        '/attendance/policy/regularisations/$id/cancel',
+        data: <String, dynamic>{},
+      );
+    } catch (e) {
+      throw apiException(e, 'Unable to withdraw the request.');
+    }
   }
 
   Future<Map<String, dynamic>> getMonthlyReport({

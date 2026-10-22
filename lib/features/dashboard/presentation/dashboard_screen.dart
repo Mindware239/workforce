@@ -7,9 +7,10 @@ import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/features/attendence/presentation/attendence_screen.dart';
 import 'package:workforce/features/chat/presentation/chat_list_screen.dart';
 import 'package:workforce/features/chat/providers/chat_provider.dart';
+import 'package:workforce/features/chat/providers/chat_realtime.dart';
 import 'package:workforce/features/dashboard/providers/dashboard_provider.dart';
 import 'package:workforce/features/home/presentation/home_screen.dart';
-import 'package:workforce/features/profile/presentation/profile_screen.dart';
+// import 'package:workforce/features/profile/presentation/profile_screen.dart';
 
 import 'package:workforce/features/task/presentation/task_screen.dart';
 
@@ -26,7 +27,7 @@ class DashboardPage extends ConsumerWidget {
     AttendanceScreen(),
     TasksScreen(),
     ChatListScreen(),
-    ProfileScreen(),
+    // ProfileScreen(),
   ];
 
   @override
@@ -37,9 +38,14 @@ class DashboardPage extends ConsumerWidget {
     final selectedIndex =
         ref.watch(dashboardTabProvider);
 
-    // Watch chat state so the bottom navigation
+    // The signed-in shell keeps chat live: opens the socket and folds
+    // pushed events into chatProvider, this badge included.
+    ref.watch(chatRealtimeProvider);
+
+    // Watch the unread total so the bottom navigation
     // badge updates immediately.
-    final chatState = ref.watch(chatProvider);
+    final unreadCount =
+        ref.watch(chatProvider.select((s) => s.unreadCount));
 
     if (index != 0 && selectedIndex == 0) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -57,7 +63,7 @@ class DashboardPage extends ConsumerWidget {
 
       bottomNavigationBar: _DashboardBottomNav(
         currentIndex: selectedIndex,
-        unreadCount: chatState.unreadCount,
+        unreadCount: unreadCount,
         onTap: (index) {
           ref
               .read(dashboardTabProvider.notifier)
@@ -108,10 +114,10 @@ class _DashboardBottomNav extends StatelessWidget {
       label: 'Chat',
       icon: 'assets/icons/chat.svg',
     ),
-    _NavItem(
-      label: 'Profile',
-      icon: 'assets/icons/profile.svg',
-    ),
+    // _NavItem(
+    //   label: 'Profile',
+    //   icon: 'assets/icons/profile.svg',
+    // ),
   ];
 
   @override

@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/localization/app_language.dart';
 import 'package:workforce/core/localization/app_localization.dart';
+import 'package:workforce/core/realtime/realtime_service.dart';
 import 'package:workforce/core/services/auth_service.dart';
 import 'package:workforce/core/services/secure_storage.dart';
 import 'package:workforce/core/styles/app_colors.dart';
@@ -15,6 +16,8 @@ import 'package:workforce/features/language/presentation/language_selection_scre
 import 'package:workforce/features/language/providers/language_provider.dart';
 import 'package:workforce/features/notification/presentation/notification.dart';
 import 'package:workforce/features/setting/presentation/help_support_screen.dart';
+import 'package:workforce/features/account/providers/account_provider.dart';
+import 'package:workforce/features/field_work/services/field_work_tracker.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
   const SettingsScreen({super.key});
@@ -29,11 +32,15 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
   Future<void> _logout() async {
     final secureStorage = SecureStorage();
 
+    // Close the live connection before the token goes.
+    RealtimeService.instance.disconnect();
+
     // Remove JWT and saved employee data
     await secureStorage.clearAuth();
 
     // Update authentication state
     await LocationTrackingService.stop();
+    await FieldWorkTracker.clear();
 
     AuthService.logout();
 
@@ -96,12 +103,22 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                     trailingText: selectedLanguage == AppLanguage.english
                         ? selectedLanguage.englishName
                         : selectedLanguage.hindiName,
-                    onTap: () {
-                      Navigator.of(context).push(
+                    onTap: () async {
+                      await Navigator.of(context).push(
                         MaterialPageRoute(
                           builder: (context) => const LanguageSelectionScreen(),
                         ),
                       );
+
+                      // The server copy lets the choice follow the person to
+                      // the web app; the local choice stands regardless.
+                      final language = ref.read(languageProvider);
+
+                      try {
+                        await ref
+                            .read(accountRepositoryProvider)
+                            .savePreferences(language: language.code);
+                      } catch (_) {}
                     },
                     isLast: true,
                   ),
@@ -119,14 +136,20 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                 children: [
                   _SettingsRow(
                     icon: Icons.lock_outline_rounded,
-                    title: ref.tr('settings.security'),
-                    onTap: () {},
+                    title: ref.tr('setx.changePassword'),
+                    onTap: () => context.push(AppRoutes.changePassword),
                   ),
 
                   _SettingsRow(
-                    icon: Icons.shield_outlined,
-                    title: ref.tr('settings.privacy'),
-                    onTap: () {},
+                    icon: Icons.description_outlined,
+                    title: ref.tr('termsx.title'),
+                    onTap: () => context.push(AppRoutes.terms),
+                  ),
+
+                  _SettingsRow(
+                    icon: Icons.person_remove_outlined,
+                    title: ref.tr('delx.cardTitle'),
+                    onTap: () => context.push(AppRoutes.deleteAccount),
                     isLast: true,
                   ),
                 ],

@@ -9,6 +9,7 @@ import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/features/chat/providers/chat_provider.dart';
+import 'package:workforce/features/chat/providers/chat_realtime.dart';
 
 class ChatListScreen extends ConsumerStatefulWidget {
   const ChatListScreen({super.key});
@@ -132,6 +133,8 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
         child: Column(
           children: [
             _buildHeader(state),
+
+            const RealtimeConnectionBanner(),
 
             Expanded(
               child: RefreshIndicator(
@@ -302,9 +305,21 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
 
     final lastMessage = conversation['lastMessage'];
 
-    final body = lastMessage is Map
+    var body = lastMessage is Map
         ? lastMessage['body']?.toString() ?? ''
         : '';
+
+    // An attachment without text shows its kind instead of an empty line.
+    if (body.trim().isEmpty && lastMessage is Map) {
+      body = switch (lastMessage['attachmentKind']?.toString()) {
+        'image' => ref.tr('chatx.photo'),
+        'audio' => ref.tr('chatx.voiceNote'),
+        'video' => ref.tr('chatx.video'),
+        'document' =>
+          lastMessage['attachmentName']?.toString() ?? ref.tr('chatx.document'),
+        _ => body,
+      };
+    }
 
     final senderName = lastMessage is Map
         ? lastMessage['senderName']?.toString() ?? ''
@@ -313,6 +328,22 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
     final lastMessageAt = DateTime.tryParse(
       conversation['lastMessageAt']?.toString() ?? '',
     );
+
+    // Live: who is typing here, and whether a direct partner is online.
+    final group = conversation['type']?.toString() == 'group';
+    final partnerId = group
+        ? null
+        : int.tryParse(conversation['partnerId']?.toString() ?? '');
+    final typing = typingLine(
+      ref,
+      typingNamesIn(ref.watch(chatTypingProvider), id),
+      group: group,
+    );
+    if (partnerId != null) {
+      ref.read(chatPresenceProvider.notifier).want(partnerId);
+    }
+    final online = partnerId != null &&
+        ref.watch(chatPresenceProvider)[partnerId]?.online == true;
 
     return InkWell(
       borderRadius: BorderRadius.circular(14),
@@ -330,7 +361,26 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
         ),
         child: Row(
           children: [
-            _buildAvatar(title, size: 48),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                _buildAvatar(title, size: 48),
+                if (online)
+                  Positioned(
+                    right: 0,
+                    bottom: 0,
+                    child: Container(
+                      width: 13,
+                      height: 13,
+                      decoration: BoxDecoration(
+                        color: AppColors.indiaGreen,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
 
             const SizedBox(width: 12),
 
@@ -369,7 +419,19 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(
+                        child: typing != null
+                            ? Text(
+                                typing,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontStyle: FontStyle.italic,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.saffronText,
+                                ),
+                              )
+                            : Text(
                           body.isEmpty
                               ? ref.tr('chat.noMessages')
                               : senderName.isNotEmpty && senderName != title

@@ -33,6 +33,10 @@ class AttendanceState {
   final List<Map<String, dynamic>> historyRecords;
   final Map<String, dynamic>? historySummary;
 
+  /// The rest of GET /attendance/me/history: `latePolicy`, `compOff` and
+  /// `regularisations` (correction requests), each optional.
+  final Map<String, dynamic>? historyExtras;
+
   final bool isLoadingMonthlyReport;
   final Map<String, dynamic>? monthlyReport;
 
@@ -62,6 +66,7 @@ class AttendanceState {
     this.standardWorkingHoursMinutes = 0,
     this.historyRecords = const [],
     this.historySummary,
+    this.historyExtras,
 
     this.isLoadingMonthlyReport = false,
     this.monthlyReport,
@@ -97,6 +102,7 @@ class AttendanceState {
     int? standardWorkingHoursMinutes,
     List<Map<String, dynamic>>? historyRecords,
     Map<String, dynamic>? historySummary,
+    Map<String, dynamic>? historyExtras,
     bool clearHistory = false,
 
     bool? isLoadingMonthlyReport,
@@ -147,6 +153,10 @@ class AttendanceState {
       historySummary: clearHistory
           ? null
           : historySummary ?? this.historySummary,
+
+      historyExtras: clearHistory
+          ? null
+          : historyExtras ?? this.historyExtras,
 
       isLoadingMonthlyReport:
           isLoadingMonthlyReport ?? this.isLoadingMonthlyReport,
@@ -413,6 +423,12 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
         historyRecords: records,
 
         historySummary: summary,
+
+        historyExtras: {
+          'latePolicy': data['latePolicy'],
+          'compOff': data['compOff'],
+          'regularisations': data['regularisations'],
+        },
       );
     } catch (e) {
       state = state.copyWith(

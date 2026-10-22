@@ -5,6 +5,7 @@ import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/features/attendence/data/attendance_pdf_service.dart';
+import 'package:workforce/features/attendence/presentation/attendance_history_extras.dart';
 
 import '../providers/attendance_provider.dart';
 
@@ -141,6 +142,13 @@ class _AttendanceHistoryScreenState
         const SizedBox(height: 16),
 
         _buildSummary(state),
+
+        const SizedBox(height: 16),
+
+        AttendanceHistoryExtras(
+          extras: state.historyExtras,
+          onChanged: _loadHistory,
+        ),
 
         const SizedBox(height: 24),
 
@@ -337,8 +345,22 @@ class _AttendanceHistoryScreenState
         ? (summary!['onTimeRatePercent'] as num).toDouble()
         : 0.0;
 
+    final daysPresent = summary?['daysPresent'] is num
+        ? (summary!['daysPresent'] as num).toInt()
+        : 0;
+
     return Row(
       children: [
+        Expanded(
+          child: _SummaryCard(
+            title: ref.tr('attendanceHistory.present'),
+            value: '$daysPresent',
+            valueColor: AppColors.navy,
+          ),
+        ),
+
+        const SizedBox(width: 12),
+
         Expanded(
           child: _SummaryCard(
             title: ref.tr('attendanceHistory.avgHours'),
@@ -396,11 +418,13 @@ class _AttendanceHistoryScreenState
             } catch (e) {
               if (!mounted) return;
 
-              SnackBar(
-                content: Text(
-                  ref
-                      .tr('attendanceHistory.exportError')
-                      .replaceFirst('{error}', e.toString()),
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    ref
+                        .tr('attendanceHistory.exportError')
+                        .replaceFirst('{error}', e.toString()),
+                  ),
                 ),
               );
             }
@@ -925,9 +949,71 @@ class _AttendanceLogCard extends ConsumerWidget {
               ),
             ],
           ),
+
+          ..._extraLines(ref),
         ],
       ),
     );
+  }
+
+  /// Where the day was marked, and overtime with its approval state, as
+  /// the web history card shows them.
+  List<Widget> _extraLines(WidgetRef ref) {
+    final entryPlace = record['entryPlace']?.toString();
+    final exitPlace = record['exitPlace']?.toString();
+    final overtime = record['overtimeMinutes'] is num
+        ? (record['overtimeMinutes'] as num).toInt()
+        : 0;
+    final otStatus = record['overtimeApprovalStatus']?.toString() ?? 'pending';
+    final approved = record['overtimeApprovedMinutes'] is num
+        ? (record['overtimeApprovedMinutes'] as num).toInt()
+        : overtime;
+
+    final lines = <Widget>[];
+
+    TextStyle style(Color color) =>
+        GoogleFonts.inter(fontSize: 11, color: color);
+
+    if (entryPlace != null && entryPlace.isNotEmpty) {
+      lines.add(
+        Text(
+          exitPlace != null && exitPlace.isNotEmpty && exitPlace != entryPlace
+              ? '$entryPlace → $exitPlace'
+              : entryPlace,
+          style: style(AppColors.mutedColor),
+        ),
+      );
+    }
+
+    if (overtime > 0) {
+      final color = switch (otStatus) {
+        'approved' => AppColors.indiaGreen,
+        'rejected' => const Color(0xFFB3261E),
+        _ => AppColors.saffronText,
+      };
+
+      lines.add(
+        Text(
+          '${ref.tr('attendanceHistory.overtime')}: '
+          '${_formatDuration(otStatus == 'approved' ? approved : overtime)} · '
+          '${ref.tr('attendanceHistory.ot_$otStatus')}',
+          style: style(color).copyWith(fontWeight: FontWeight.w600),
+        ),
+      );
+    }
+
+    if (lines.isEmpty) return const [];
+
+    return [
+      const SizedBox(height: 6),
+      Align(
+        alignment: Alignment.centerLeft,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: lines,
+        ),
+      ),
+    ];
   }
 
   String _timeRange(String? entry, String? exit) {

@@ -1,6 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:workforce/core/realtime/realtime_service.dart';
 import 'package:workforce/core/services/auth_service.dart';
 import 'package:workforce/features/auth/data/auth_repository.dart';
+import 'package:workforce/features/field_work/services/field_work_tracker.dart';
 
 class AuthState {
   final bool isLoading;
@@ -75,6 +79,9 @@ class AuthNotifier
       user: user,
       onboardingStatus: onboardingStatus,
     );
+
+    // Live chat (and calls) from app start, with the stored token.
+    unawaited(RealtimeService.instance.connect());
   } catch (e) {
     state = state.copyWith(
       isLoading: false,
@@ -117,6 +124,9 @@ class AuthNotifier
         onboardingStatus:
             onboardingStatus,
       );
+
+      // A fresh token: (re)open the socket with it.
+      unawaited(RealtimeService.instance.reconnect());
 
       return true;
     } catch (e) {
@@ -218,8 +228,12 @@ class AuthNotifier
   // ------------------------------------------------------
 
   Future<void> logout() async {
+    // Close the live connection before the token goes.
+    RealtimeService.instance.disconnect();
+
     await repository.secureStorage
         .clearAuth();
+    await FieldWorkTracker.clear();
 
     AuthService.logout();
 

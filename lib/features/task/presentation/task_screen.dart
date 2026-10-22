@@ -2,11 +2,15 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio/just_audio.dart';
 
+import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/localization/app_localization.dart';
+import 'package:workforce/core/widgets/feature_widgets.dart';
+import 'package:workforce/features/task/presentation/task_ui.dart';
 import 'package:workforce/features/task/providers/task_provider.dart';
 
 class TasksScreen extends ConsumerStatefulWidget {
@@ -21,7 +25,17 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
 
   String selectedAssignee = 'Assigned to me';
 
-  final List<String> filters = ['All', 'To Do', 'In progress', 'Completed'];
+  /// Every state an employee can be in, as the web's filter strip offers
+  /// them ('' = all).
+  final List<String> filters = [
+    '',
+    'pending',
+    'in_progress',
+    'blocked',
+    'submitted',
+    'changes_requested',
+    'completed',
+  ];
 
   @override
   void initState() {
@@ -55,19 +69,9 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
   // ============================================================
 
   String? _getStatus() {
-    switch (selectedFilter) {
-      case 1:
-        return 'pending';
+    final value = filters[selectedFilter];
 
-      case 2:
-        return 'in_progress';
-
-      case 3:
-        return 'completed';
-
-      default:
-        return null;
-    }
+    return value.isEmpty ? null : value;
   }
 
   // ============================================================
@@ -118,7 +122,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _TaskCard(
                       task: task,
-                      onStart: () => _startTask(task),
+                      onAction: (action) => _cardAction(task, action),
                       onDetails: () => _openTaskDetails(task),
                     ),
                   ),
@@ -147,13 +151,29 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          ref.tr('tasks.title'),
-          style: GoogleFonts.inter(
-            fontSize: 30,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textColor,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                ref.tr('tasks.title'),
+                style: GoogleFonts.inter(
+                  fontSize: 30,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.textColor,
+                ),
+              ),
+            ),
+            IconButton(
+              tooltip: ref.tr('taskx.historyTitle'),
+              icon: const Icon(Icons.history, color: AppColors.saffronText),
+              onPressed: () => context.push(AppRoutes.taskHistory),
+            ),
+            IconButton(
+              tooltip: ref.tr('taskx.perfTitle'),
+              icon: const Icon(Icons.insights, color: AppColors.saffronText),
+              onPressed: () => context.push(AppRoutes.taskPerformance),
+            ),
+          ],
         ),
 
         const SizedBox(height: 8),
@@ -196,13 +216,9 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
                       ),
                     ),
                     child: Text(
-                      {
-                            'All': ref.tr('tasks.all'),
-                            'To Do': ref.tr('tasks.toDo'),
-                            'In progress': ref.tr('tasks.inProgress'),
-                            'Completed': ref.tr('tasks.completed'),
-                          }[filters[index]] ??
-                          filters[index],
+                      filters[index].isEmpty
+                          ? ref.tr('tasks.all')
+                          : taskStatusLabel(ref, filters[index]),
                       style: GoogleFonts.inter(
                         fontSize: 16,
                         fontWeight: FontWeight.w500,
@@ -285,76 +301,46 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
     );
   }
 
-  Future<void> _startTask(Map<String, dynamic> task) async {
+  /// The one-tap moves on a card (start, resume, pause, unblock). Moves that
+  /// need more (submitting, marking stuck) open the full task instead.
+  Future<void> _cardAction(Map<String, dynamic> task, String action) async {
     final taskId = int.tryParse(task['id']?.toString() ?? '');
 
     if (taskId == null) return;
 
+    if (action == 'submit' || action == 'block') {
+      await _openTaskDetails(task);
+      return;
+    }
+
     final success = await ref
         .read(taskProvider.notifier)
-        .updateTaskStatus(taskId: taskId, status: 'in_progress');
+        .performAction(taskId: taskId, action: action);
 
     if (!mounted) return;
 
     final message = ref.read(taskProvider).message;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          success
-              ? ref.tr('tasks.startedSuccessfully')
-              : message ?? ref.tr('tasks.unableToStart'),
-        ),
-      ),
+    showFeatureSnack(
+      context,
+      success
+          ? (action == 'start'
+                ? ref.tr('tasks.startedSuccessfully')
+                : ref.tr('taskx.updated'))
+          : message ?? ref.tr('taskx.couldNotUpdate'),
     );
   }
 
   Future<void> _openTaskDetails(Map<String, dynamic> task) async {
     final taskId = int.tryParse(task['id']?.toString() ?? '');
 
-    if (taskId == null) {
-      return;
-    }
+    if (taskId == null) return;
 
-    final notifier = ref.read(taskProvider.notifier);
-
-    final success = await notifier.fetchTask(taskId);
-
-    if (!success) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            ref.read(taskProvider).message ?? ref.tr('tasks.unableToLoad'),
-          ),
-        ),
-      );
-
-      return;
-    }
-
-    await notifier.fetchComments(taskId);
+    await context.push(AppRoutes.taskDetailPath(taskId));
 
     if (!mounted) return;
 
-    _showTaskDetails();
-  }
-
-  void _showTaskDetails() {
-    final state = ref.read(taskProvider);
-    final task = state.selectedTask;
-
-    if (task == null) return;
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) {
-        return _TaskDetailsSheet();
-      },
-    );
+    await _loadTasks();
   }
 
   Widget _buildEmptyState() {
@@ -415,12 +401,12 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
 class _TaskCard extends ConsumerWidget {
   final Map<String, dynamic> task;
 
-  final VoidCallback onStart;
+  final ValueChanged<String> onAction;
   final VoidCallback onDetails;
 
   const _TaskCard({
     required this.task,
-    required this.onStart,
+    required this.onAction,
     required this.onDetails,
   });
 
@@ -443,9 +429,13 @@ class _TaskCard extends ConsumerWidget {
     final voiceNotePath = task['voiceNotePath']?.toString();
     debugPrint('🎤 ASSIGN TASK AUDIO URL: $voiceNotePath');
 
-    final isCompleted = status == 'completed';
+    // At most two moves, as the web card offers: the obvious one primary.
+    final actions = _cardActions(status);
 
-    final isPending = status == 'pending';
+    final progress = (num.tryParse(task['progressPercent']?.toString() ?? '') ?? 0)
+        .toInt();
+
+    final overdue = isTaskOverdue(task);
 
     return Container(
       width: double.infinity,
@@ -510,14 +500,32 @@ class _TaskCard extends ConsumerWidget {
 
                 const SizedBox(height: 8),
 
-                _StatusBadge(
-                  text: _formatStatus(status, ref),
-                  completed: isCompleted,
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    StatusChip(
+                      label: taskStatusLabel(ref, status),
+                      tone: taskStatusTone(status),
+                    ),
+                    if (overdue)
+                      StatusChip(
+                        label: ref.tr('taskx.late'),
+                        tone: ChipTone.danger,
+                      ),
+                    if (progress > 0 && progress < 100)
+                      StatusChip(
+                        label: fill(ref.tr('taskx.progressValue'), {
+                          'n': progress,
+                        }),
+                        tone: ChipTone.primary,
+                      ),
+                  ],
                 ),
 
                 if (voiceNotePath != null && voiceNotePath.isNotEmpty) ...[
                   const SizedBox(height: 12),
-                  _AudioPlayer(audioUrl: voiceNotePath),
+                  TaskVoiceNotePlayer(audioUrl: voiceNotePath),
                 ],
 
                 if (description.isNotEmpty) ...[
@@ -555,31 +563,49 @@ class _TaskCard extends ConsumerWidget {
 
           Column(
             children: [
-              if (isPending)
+              for (final action in actions) ...[
                 SizedBox(
                   height: 35,
-                  child: ElevatedButton(
-                    onPressed: onStart,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primaryFillColor,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                    ),
-                    child: Text(
-                      ref.tr('tasks.start'),
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
+                  child: action.primary
+                      ? ElevatedButton(
+                          onPressed: () => onAction(action.action),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.primaryFillColor,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            ref.tr(action.labelKey),
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        )
+                      : OutlinedButton(
+                          onPressed: () => onAction(action.action),
+                          style: OutlinedButton.styleFrom(
+                            foregroundColor: AppColors.saffronText,
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: Text(
+                            ref.tr(action.labelKey),
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w500,
+                            ),
+                          ),
+                        ),
                 ),
-
-              if (isPending) const SizedBox(height: 8),
+                const SizedBox(height: 8),
+              ],
 
               _DetailsButton(onTap: onDetails),
             ],
@@ -645,53 +671,6 @@ class _PriorityBadge extends StatelessWidget {
   }
 }
 
-class _StatusBadge extends StatelessWidget {
-  final String text;
-  final String statusKey;
-  final bool completed;
-
-  const _StatusBadge({
-    required this.text,
-    required this.completed,
-  }) : statusKey = '';
-
-  @override
-  Widget build(BuildContext context) {
-    Color background;
-    Color textColor;
-
-    if (completed) {
-      background = AppColors.indiaGreenLight;
-      textColor = AppColors.successColor;
-    } else if (statusKey.toLowerCase() == 'in_progress') {
-      background = AppColors.primaryTintColor;
-      textColor = AppColors.saffronText;
-    } else if (statusKey.toLowerCase() == 'cancelled') {
-      background = const Color(0xFFFFE1E1);
-      textColor = const Color(0xFFC62828);
-    } else {
-      background = const Color(0xFFECE9EE);
-      textColor = const Color(0xFF716A76);
-    }
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
-      decoration: BoxDecoration(
-        color: background,
-        borderRadius: BorderRadius.circular(9),
-      ),
-      child: Text(
-        text,
-        style: GoogleFonts.inter(
-          fontSize: 11,
-          fontWeight: FontWeight.w500,
-          color: textColor,
-        ),
-      ),
-    );
-  }
-}
-
 class _DetailsButton extends ConsumerWidget {
   final VoidCallback onTap;
 
@@ -723,16 +702,16 @@ class _DetailsButton extends ConsumerWidget {
   }
 }
 
-class _AudioPlayer extends StatefulWidget {
+class TaskVoiceNotePlayer extends StatefulWidget {
   final String audioUrl;
 
-  const _AudioPlayer({required this.audioUrl});
+  const TaskVoiceNotePlayer({super.key, required this.audioUrl});
 
   @override
-  State<_AudioPlayer> createState() => _AudioPlayerState();
+  State<TaskVoiceNotePlayer> createState() => _TaskVoiceNotePlayerState();
 }
 
-class _AudioPlayerState extends State<_AudioPlayer> {
+class _TaskVoiceNotePlayerState extends State<TaskVoiceNotePlayer> {
   static const String _uploadBaseUrl = 'https://workforce.orkuts.com/uploads/';
 
   late final AudioPlayer _player;
@@ -1093,512 +1072,6 @@ class _AudioPlayerState extends State<_AudioPlayer> {
   }
 }
 
-class _TaskDetailsSheet extends ConsumerStatefulWidget {
-  const _TaskDetailsSheet();
-
-  @override
-  ConsumerState<_TaskDetailsSheet> createState() => _TaskDetailsSheetState();
-}
-
-class _TaskDetailsSheetState extends ConsumerState<_TaskDetailsSheet> {
-  @override
-  Widget build(BuildContext context) {
-    final state = ref.watch(taskProvider);
-    final task = state.selectedTask;
-
-    if (task == null) {
-      return const SizedBox.shrink();
-    }
-
-    final title = task['title']?.toString() ?? ref.tr('tasks.task');
-    final description = task['description']?.toString() ?? '';
-    final priority = task['priority']?.toString() ?? '';
-    final status = task['status']?.toString() ?? '';
-    final dueDate = task['dueDate']?.toString() ?? '';
-    final assignedTo = task['assignedToName']?.toString() ?? '';
-    final assignedBy = task['assignedByName']?.toString() ?? '';
-
-    final taskId = int.tryParse(task['id']?.toString() ?? '');
-
-    final keyboardInset = MediaQuery.of(context).viewInsets.bottom;
-
-    return AnimatedPadding(
-      duration: const Duration(milliseconds: 220),
-      curve: Curves.easeOut,
-      padding: EdgeInsets.only(bottom: keyboardInset),
-      child: Container(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.55,
-        ),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-        ),
-        child: SafeArea(
-          child: Column(
-            children: [
-              // =====================================================
-              // HEADER
-              // =====================================================
-
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        title,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.inter(
-                          fontSize: 30,
-                          fontWeight: FontWeight.bold,
-                          color: AppColors.textColor,
-                        ),
-                      ),
-                    ),
-
-                    InkWell(
-                      borderRadius: BorderRadius.circular(20),
-                      onTap: () {
-                        Navigator.of(context).pop();
-                      },
-                      child: const Padding(
-                        padding: EdgeInsets.all(6),
-                        child: Icon(
-                          Icons.close,
-                          size: 20,
-                          color: Color(0xFF77707A),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const Divider(height: 1, color: Color(0xFFE9E5EA)),
-
-              // =====================================================
-              // CONTENT
-              // =====================================================
-              Expanded(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // =================================================
-                      // BADGES
-                      // =================================================
-
-                      Row(
-                        children: [
-                          _PriorityBadge(
-                            text: _formatPriority(priority, ref),
-                            priorityKey: priority,
-                          ),
-
-                          const SizedBox(width: 8),
-
-                          _StatusBadge(
-                            text: _formatStatus(status, ref),
-                            completed: status == 'completed',
-                          ),
-
-                          const SizedBox(width: 8),
-
-                          if (dueDate.isNotEmpty)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 9,
-                                vertical: 5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF1EDF2),
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                              child: Text(
-                                ref
-                                    .tr('tasks.due')
-                                    .replaceFirst(
-                                      '{date}',
-                                      _formatDate(dueDate, ref),
-                                    ),
-                                style: GoogleFonts.inter(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w500,
-                                  color: const Color(0xFF5E5662),
-                                ),
-                              ),
-                            ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 14),
-
-                      // =================================================
-                      // DESCRIPTION
-                      // =================================================
-                      if (description.isNotEmpty) ...[
-                        Text(
-                          description,
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
-                            height: 1.5,
-                            color: AppColors.mutedColor,
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-                      ],
-
-                      // =================================================
-                      // ASSIGNMENT
-                      // =================================================
-                      if (assignedTo.isNotEmpty || assignedBy.isNotEmpty) ...[
-                        Text(
-                          'For ${assignedTo.isEmpty ? '-' : assignedTo}'
-                          '${assignedBy.isNotEmpty ? ' · assigned by $assignedBy' : ''}',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: AppColors.mutedColor,
-                          ),
-                        ),
-
-                        const SizedBox(height: 16),
-                      ],
-
-                      // =================================================
-                      // STATUS
-                      // =================================================
-                      Text(
-                        ref.tr('tasks.status'),
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                          color: AppColors.textColor,
-                        ),
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      Container(
-                        height: 45,
-                        decoration: BoxDecoration(
-                          border: Border.all(color: AppColors.borderColor),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.symmetric(horizontal: 10),
-                        child: DropdownButtonHideUnderline(
-                          child: DropdownButton<String>(
-                            value:
-                                [
-                                  'pending',
-                                  'in_progress',
-                                  'completed',
-                                  'cancelled',
-                                ].contains(status)
-                                ? status
-                                : null,
-                            isExpanded: true,
-                            icon: const Icon(
-                              Icons.keyboard_arrow_down,
-                              size: 18,
-                            ),
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: AppColors.textColor,
-                            ),
-                            items: [
-                              DropdownMenuItem(
-                                value: 'pending',
-                                child: Text(ref.tr('tasks.toDo')),
-                              ),
-                              DropdownMenuItem(
-                                value: 'in_progress',
-                                child: Text(ref.tr('tasks.inProgress')),
-                              ),
-                              DropdownMenuItem(
-                                value: 'completed',
-                                child: Text(ref.tr('tasks.completed')),
-                              ),
-                              DropdownMenuItem(
-                                value: 'cancelled',
-                                child: Text(ref.tr('tasks.cancelled')),
-                              ),
-                            ],
-                            onChanged: taskId == null
-                                ? null
-                                : (newStatus) async {
-                                    if (newStatus == null ||
-                                        newStatus == status) {
-                                      return;
-                                    }
-
-                                    await ref
-                                        .read(taskProvider.notifier)
-                                        .updateTaskStatus(
-                                          taskId: taskId,
-                                          status: newStatus,
-                                        );
-                                  },
-                          ),
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // =================================================
-                      // NOTES
-                      // =================================================
-                      Row(
-                        children: [
-                          Text(
-                            ref.tr('tasks.notes'),
-                            style: GoogleFonts.inter(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.textColor,
-                            ),
-                          ),
-
-                          const Spacer(),
-
-                          Text(
-                            '${state.comments.length}',
-                            style: GoogleFonts.inter(
-                              fontSize: 11,
-                              color: AppColors.mutedColor,
-                            ),
-                          ),
-                        ],
-                      ),
-
-                      const SizedBox(height: 8),
-
-                      // =================================================
-                      // COMMENTS - REAL TIME
-                      // =================================================
-                      if (state.isLoadingComments)
-                        const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Center(
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        )
-                      else if (state.comments.isEmpty)
-                        Text(
-                          ref.tr('tasks.noNotes'),
-                          style: GoogleFonts.inter(
-                            fontSize: 11,
-                            color: AppColors.mutedColor,
-                          ),
-                        )
-                      else
-                        ...state.comments.map((comment) {
-                          final userName =
-                              comment['userName']?.toString() ??
-                              ref.tr('tasks.user');
-
-                          final body = comment['body']?.toString() ?? '';
-
-                          final createdAt =
-                              comment['createdAt']?.toString() ?? '';
-
-                          return Container(
-                            width: double.infinity,
-                            margin: const EdgeInsets.only(bottom: 8),
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: AppColors.backgroundColor,
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  userName,
-                                  style: GoogleFonts.inter(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.textColor,
-                                  ),
-                                ),
-
-                                const SizedBox(height: 3),
-
-                                Text(
-                                  body,
-                                  style: GoogleFonts.inter(
-                                    fontSize: 11,
-                                    height: 1.4,
-                                    color: AppColors.mutedColor,
-                                  ),
-                                ),
-
-                                if (createdAt.isNotEmpty) ...[
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    _formatDateTime(createdAt, ref),
-                                    style: GoogleFonts.inter(
-                                      fontSize: 9,
-                                      color: const Color(0xFF8B838F),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
-                          );
-                        }),
-
-                      const SizedBox(height: 16),
-
-                      // =================================================
-                      // ADD NOTE
-                      // =================================================
-                      if (taskId != null) _AddTaskComment(taskId: taskId),
-
-                      const SizedBox(height: 10),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AddTaskComment extends ConsumerStatefulWidget {
-  final int? taskId;
-
-  const _AddTaskComment({required this.taskId});
-
-  @override
-  ConsumerState<_AddTaskComment> createState() => _AddTaskCommentState();
-}
-
-class _AddTaskCommentState extends ConsumerState<_AddTaskComment> {
-  final TextEditingController _controller = TextEditingController();
-  bool _isPosting = false;
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> _postComment() async {
-    final body = _controller.text.trim();
-
-    if (body.isEmpty || widget.taskId == null || _isPosting) {
-      return;
-    }
-
-    setState(() {
-      _isPosting = true;
-    });
-
-    final success = await ref
-        .read(taskProvider.notifier)
-        .addComment(taskId: widget.taskId!, body: body);
-
-    if (!mounted) return;
-
-    setState(() {
-      _isPosting = false;
-    });
-
-    if (success) {
-      _controller.clear();
-    } else {
-      final message = ref.read(taskProvider).message;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message ?? ref.tr('tasks.unableToAddNote'))),
-      );
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: SizedBox(
-            child: TextField(
-              controller: _controller,
-              textInputAction: TextInputAction.done,
-              onSubmitted: (_) => _postComment(),
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                color: AppColors.textColor,
-              ),
-              decoration: InputDecoration(
-                hintText: ref.tr('tasks.addNote'),
-                hintStyle: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: const Color(0xFF9A929D),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 8,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.borderColor),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: AppColors.borderColor),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(
-                    color: AppColors.primaryFillColor,
-                    width: 1,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ),
-        const SizedBox(width: 8),
-        SizedBox(
-          child: ElevatedButton(
-            onPressed: _isPosting ? null : _postComment,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryFillColor,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: _isPosting
-                ? const SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 1.5),
-                  )
-                : Text(
-                    ref.tr('tasks.post'),
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white,
-                    ),
-                  ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
 // ================================================================
 // HELPERS
 // ================================================================
@@ -1615,20 +1088,6 @@ String _formatPriority(String value, WidgetRef ref) {
       return ref.tr('tasks.priorityLow');
     default:
       return value.isEmpty ? '' : value[0].toUpperCase() + value.substring(1);
-  }
-}
-
-String _formatStatus(String value, WidgetRef ref) {
-  switch (value) {
-    case 'in_progress':
-      return ref.tr('tasks.inProgress');
-    case 'completed':
-      return ref.tr('tasks.completed');
-    case 'cancelled':
-      return ref.tr('tasks.cancelled');
-    case 'pending':
-    default:
-      return ref.tr('tasks.toDo');
   }
 }
 
@@ -1657,20 +1116,38 @@ String _formatDate(String value, WidgetRef ref) {
   }
 }
 
-String _formatDateTime(String value, WidgetRef ref) {
-  try {
-    final date = DateTime.parse(value).toLocal();
-    final hour = date.hour == 0
-        ? 12
-        : date.hour > 12
-        ? date.hour - 12
-        : date.hour;
-    final minute = date.minute.toString().padLeft(2, '0');
-    final period = date.hour >= 12 ? ref.tr('common.pm') : ref.tr('common.am');
-
-    return '${_formatDate(value, ref)} '
-        '${ref.tr('tasks.at')} $hour:$minute $period';
-  } catch (_) {
-    return value;
+/// What a card offers for each status (web: task-status.ts nextActions).
+/// submit and block need a note/reason, so they open the full task.
+List<({String action, String labelKey, bool primary})> _cardActions(
+  String status,
+) {
+  switch (status) {
+    case 'pending':
+    case 'accepted':
+      return const [
+        (action: 'start', labelKey: 'tasks.start', primary: true),
+        (action: 'block', labelKey: 'taskx.markBlocked', primary: false),
+      ];
+    case 'in_progress':
+      return const [
+        (action: 'submit', labelKey: 'taskx.submitShort', primary: true),
+        (action: 'pause', labelKey: 'taskx.pause', primary: false),
+      ];
+    case 'paused':
+      return const [
+        (action: 'start', labelKey: 'taskx.resume', primary: true),
+        (action: 'submit', labelKey: 'taskx.submitShort', primary: false),
+      ];
+    case 'blocked':
+      return const [
+        (action: 'unblock', labelKey: 'taskx.resume', primary: true),
+      ];
+    case 'changes_requested':
+      return const [
+        (action: 'start', labelKey: 'taskx.startAgain', primary: true),
+        (action: 'submit', labelKey: 'taskx.submitShort', primary: false),
+      ];
+    default:
+      return const [];
   }
 }
