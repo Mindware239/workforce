@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 import 'package:workforce/features/profile/providers/document_provider.dart';
@@ -164,8 +165,10 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
 
       appBar: AppBar(
         centerTitle: true,
-        backgroundColor: AppColors.whiteBackgroundColor,
-        surfaceTintColor: AppColors.whiteBackgroundColor,
+        backgroundColor: AppColors.appBarColor,
+        surfaceTintColor: AppColors.appBarColor,
+        foregroundColor: AppColors.onAppBarColor,
+        bottom: const TricolourStrip(),
       ),
 
       body: SafeArea(
@@ -255,7 +258,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
                   vertical: 4,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3525CD).withValues(alpha: 0.1),
+                  color: AppColors.primaryFillColor.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(50),
                 ),
                 child: Text(
@@ -467,7 +470,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
             width: 42,
             height: 42,
             decoration: BoxDecoration(
-              color: const Color(0xFF3525CD).withValues(alpha: 0.1),
+              color: AppColors.primaryFillColor.withValues(alpha: 0.1),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Icon(

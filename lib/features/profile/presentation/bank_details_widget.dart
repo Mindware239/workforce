@@ -846,7 +846,7 @@ class _BankDetailsWidgetState
                   style:
                       OutlinedButton.styleFrom(
                     foregroundColor:
-                        AppColors.primaryFillColor,
+                        AppColors.saffronText,
                     side: const BorderSide(
                       color: AppColors.borderColor,
                       width: 1,
@@ -867,7 +867,7 @@ class _BankDetailsWidgetState
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color:
-                          AppColors.primaryFillColor,
+                          AppColors.saffronText,
                     ),
                   ),
                 ),

@@ -6,6 +6,7 @@ import 'package:workforce/core/localization/app_language.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/features/language/providers/language_provider.dart';
 import 'package:workforce/features/onboarding/presentation/widget/radio_circle.dart';
 import 'package:workforce/features/onboarding/presentation/widget/workforce_brand.dart';
@@ -21,8 +22,10 @@ class LanguageSelectionScreen extends ConsumerWidget {
       backgroundColor: AppColors.whiteBackgroundColor,
       appBar: AppBar(
         centerTitle: true,
-        backgroundColor: AppColors.whiteBackgroundColor,
-        surfaceTintColor: AppColors.whiteBackgroundColor,
+        backgroundColor: AppColors.appBarColor,
+        surfaceTintColor: AppColors.appBarColor,
+        foregroundColor: AppColors.onAppBarColor,
+        bottom: const TricolourStrip(),
       ),
       body: SafeArea(
         child: Padding(

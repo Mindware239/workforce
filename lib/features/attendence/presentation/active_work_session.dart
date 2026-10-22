@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 
 class ActiveWorkSessionScreen extends StatefulWidget {
@@ -22,14 +23,16 @@ class _ActiveWorkSessionScreenState extends State<ActiveWorkSessionScreen> {
       backgroundColor: AppColors.whiteBackgroundColor,
       appBar: AppBar(
         centerTitle: true,
-        backgroundColor: AppColors.whiteBackgroundColor,
-        surfaceTintColor: AppColors.whiteBackgroundColor,
+        backgroundColor: AppColors.appBarColor,
+        surfaceTintColor: AppColors.appBarColor,
+        foregroundColor: AppColors.onAppBarColor,
+        bottom: const TricolourStrip(),
         title: Text(
           'Active Work Session',
           style: GoogleFonts.inter(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: AppColors.primaryFillColor,
+            color: AppColors.onAppBarColor,
           ),
         ),
       ),
@@ -89,7 +92,7 @@ class _ActiveWorkSessionScreenState extends State<ActiveWorkSessionScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFFE5F1E6),
+              color: AppColors.indiaGreenLight,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Row(
@@ -100,7 +103,7 @@ class _ActiveWorkSessionScreenState extends State<ActiveWorkSessionScreen> {
                   height: 8,
                   decoration: const BoxDecoration(
                     shape: BoxShape.circle,
-                    color: Color(0xFF2E7D32),
+                    color: AppColors.successColor,
                   ),
                 ),
                 const SizedBox(width: 4),
@@ -109,7 +112,7 @@ class _ActiveWorkSessionScreenState extends State<ActiveWorkSessionScreen> {
                   style: GoogleFonts.inter(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: const Color(0xFF2E7D32),
+                    color: AppColors.successColor,
                   ),
                 ),
               ],
@@ -183,7 +186,7 @@ class _ActiveWorkSessionScreenState extends State<ActiveWorkSessionScreen> {
               style: GoogleFonts.inter(
                 fontSize: 14,
                 fontWeight: FontWeight.w700,
-                color: AppColors.primaryFillColor,
+                color: AppColors.saffronText,
               ),
             ),
           ),
@@ -253,7 +256,7 @@ class _ActiveWorkSessionScreenState extends State<ActiveWorkSessionScreen> {
       child: OutlinedButton(
         onPressed: () {},
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primaryFillColor,
+          foregroundColor: AppColors.saffronText,
           side: const BorderSide(color: AppColors.borderColor, width: 1),
           padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(

@@ -107,7 +107,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
                         style: GoogleFonts.inter(
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
-                          color: AppColors.primaryFillColor,
+                          color: AppColors.saffronText,
                         ),
                       ),
                     ],
@@ -141,7 +141,7 @@ class _RoleSelectionScreenState extends State<RoleSelectionScreen> {
             style: GoogleFonts.inter(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: AppColors.primaryFillColor,
+              color: AppColors.saffronText,
             ),
           ),
         ],
@@ -193,7 +193,7 @@ class _RoleOption extends StatelessWidget {
                 width: 48,
                 height: 48,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF0ECF9),
+                  color: AppColors.primarySurfaceTintColor,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, size: 20, color: AppColors.mutedColor),

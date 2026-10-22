@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 
 class DeviceConnectionScreen extends StatelessWidget {
@@ -12,14 +13,16 @@ class DeviceConnectionScreen extends StatelessWidget {
       backgroundColor: AppColors.whiteBackgroundColor,
       appBar: AppBar(
         centerTitle: true,
-        backgroundColor: AppColors.whiteBackgroundColor,
-        surfaceTintColor: AppColors.whiteBackgroundColor,
+        backgroundColor: AppColors.appBarColor,
+        surfaceTintColor: AppColors.appBarColor,
+        foregroundColor: AppColors.onAppBarColor,
+        bottom: const TricolourStrip(),
         title: Text(
           'Device Connection',
           style: GoogleFonts.inter(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: AppColors.primaryFillColor,
+            color: AppColors.onAppBarColor,
           ),
         ),
       ),
@@ -94,7 +97,7 @@ class DeviceConnectionScreen extends StatelessWidget {
               height: 11,
               decoration: const BoxDecoration(
                 shape: BoxShape.circle,
-                color: Color(0xFF2E7D32),
+                color: AppColors.successColor,
               ),
               child: const Icon(Icons.check, size: 7, color: Colors.white),
             ),
@@ -202,7 +205,7 @@ class _DeviceRow extends StatelessWidget {
                         margin: const EdgeInsets.only(right: 10),
                         decoration: const BoxDecoration(
                           shape: BoxShape.circle,
-                          color: Color(0xFF2E7D32),
+                          color: AppColors.successColor,
                         ),
                       ),
 

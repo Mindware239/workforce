@@ -9,6 +9,7 @@ import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/services/auth_service.dart';
 import 'package:workforce/core/services/secure_storage.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/features/attendence/services/employee_location_service.dart';
 import 'package:workforce/features/language/presentation/language_selection_screen.dart';
 import 'package:workforce/features/language/providers/language_provider.dart';
@@ -50,14 +51,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
       backgroundColor: AppColors.whiteBackgroundColor,
       appBar: AppBar(
         centerTitle: true,
-        backgroundColor: AppColors.whiteBackgroundColor,
-        surfaceTintColor: AppColors.whiteBackgroundColor,
+        backgroundColor: AppColors.appBarColor,
+        surfaceTintColor: AppColors.appBarColor,
+        foregroundColor: AppColors.onAppBarColor,
+        bottom: const TricolourStrip(),
         title: Text(
           ref.tr('settings.settings'),
           style: GoogleFonts.inter(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: AppColors.textColor,
+            color: AppColors.onAppBarColor,
           ),
         ),
       ),

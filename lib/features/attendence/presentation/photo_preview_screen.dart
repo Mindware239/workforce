@@ -514,7 +514,7 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
                 context.pop();
               },
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primaryFillColor,
+          foregroundColor: AppColors.saffronText,
           side: const BorderSide(color: AppColors.borderColor),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),

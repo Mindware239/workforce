@@ -816,7 +816,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
               style: GoogleFonts.inter(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: AppColors.primaryFillColor,
+                color: AppColors.saffronText,
               ),
             ),
           ],
@@ -874,7 +874,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
           context.pop();
         },
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primaryFillColor,
+          foregroundColor: AppColors.saffronText,
           side: const BorderSide(color: AppColors.borderColor),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),

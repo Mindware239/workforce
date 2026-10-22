@@ -182,7 +182,7 @@ class _VerificationUnsuccessfulScreenState
           // TODO: Open support
         },
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primaryFillColor,
+          foregroundColor: AppColors.saffronText,
           side: const BorderSide(color: AppColors.borderColor, width: 1),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
@@ -193,7 +193,7 @@ class _VerificationUnsuccessfulScreenState
           style: GoogleFonts.inter(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: AppColors.primaryFillColor,
+            color: AppColors.saffronText,
           ),
         ),
       ),

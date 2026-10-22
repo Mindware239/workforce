@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/location/location_background.dart';
 import 'package:workforce/core/services/navigation_service.dart';
+import 'package:workforce/core/styles/app_theme.dart';
 
 @pragma('vm:entry-point')
 void locationBackgroundEntryPoint() {
@@ -23,7 +24,8 @@ class MyApp extends StatelessWidget {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'WorkForce',
-      theme: ThemeData(useMaterial3: true),
+      theme: AppTheme.light,
+      themeMode: ThemeMode.light,
       routerConfig: NavigationService.router,
     );
   }

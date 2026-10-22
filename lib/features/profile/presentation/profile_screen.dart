@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/features/profile/presentation/bank_details_widget.dart';
 import 'package:workforce/features/profile/providers/profile_provider.dart';
 import 'package:workforce/features/setting/presentation/settings_screen.dart';
@@ -84,8 +85,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
       child: Scaffold(
         backgroundColor: AppColors.whiteBackgroundColor,
         appBar: AppBar(
-          backgroundColor: AppColors.whiteBackgroundColor,
-          surfaceTintColor: AppColors.whiteBackgroundColor,
+          backgroundColor: AppColors.appBarColor,
+          surfaceTintColor: AppColors.appBarColor,
+          foregroundColor: AppColors.onAppBarColor,
+          bottom: const TricolourStrip(),
           actions: [
             IconButton(
               onPressed: () {
@@ -97,7 +100,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               },
               icon: const Icon(
                 Icons.settings_outlined,
-                color: AppColors.primaryFillColor,
+                color: AppColors.onAppBarColor,
               ),
             ),
           ],
@@ -430,7 +433,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   width: 48,
                   height: 48,
                   decoration: BoxDecoration(
-                    color: const Color(0xFF3525CD)
+                    color: AppColors.primaryFillColor
                         .withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),

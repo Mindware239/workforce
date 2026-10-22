@@ -206,7 +206,7 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
             style: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: FontWeight.w500,
-              color: AppColors.primaryFillColor,
+              color: AppColors.saffronText,
             ),
           ),
         ],

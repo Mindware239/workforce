@@ -617,7 +617,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
         style: GoogleFonts.inter(
           fontSize: size * .32,
           fontWeight: FontWeight.bold,
-          color: AppColors.primaryFillColor,
+          color: AppColors.saffronText,
         ),
       ),
     );
@@ -766,7 +766,7 @@ class _ContactsSheetState extends ConsumerState<_ContactsSheet> {
 
                   filled: true,
 
-                  fillColor: const Color(0xFFFFF8FA),
+                  fillColor: AppColors.primarySurfaceTintColor,
 
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: 12,
@@ -864,7 +864,7 @@ class _ContactsSheetState extends ConsumerState<_ContactsSheet> {
                 style: GoogleFonts.inter(
                   fontSize: 16,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.primaryFillColor,
+                  color: AppColors.saffronText,
                 ),
               ),
             ),

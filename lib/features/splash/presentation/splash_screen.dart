@@ -11,6 +11,7 @@ import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/network/network_providers.dart';
 import 'package:workforce/core/services/auth_service.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/features/auth/providers/auth_provider.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -109,13 +110,18 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
                 color: AppColors.primaryFillColor,
               ),
             ),
+            const SizedBox(height: 12),
+            TricolourStrip(
+              width: 120,
+              borderRadius: BorderRadius.circular(2),
+            ),
             const SizedBox(height: 16),
             Text(
               'Employee Management System',
               style: GoogleFonts.inter(
                 fontSize: 20,
                 fontWeight: FontWeight.normal,
-                color: Color(0xFF464555),
+                color: AppColors.unSelectedColor,
               ),
             ),
           ],

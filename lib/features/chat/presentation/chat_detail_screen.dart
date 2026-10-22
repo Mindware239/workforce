@@ -10,6 +10,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/features/chat/providers/chat_provider.dart';
 
@@ -530,15 +531,17 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       backgroundColor: AppColors.whiteBackgroundColor,
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.white,
+        backgroundColor: AppColors.appBarColor,
+        surfaceTintColor: AppColors.appBarColor,
+        foregroundColor: AppColors.onAppBarColor,
+        bottom: const TricolourStrip(),
         leading: IconButton(
           onPressed: () {
             Navigator.of(context).pop();
           },
           icon: const Icon(
             Icons.arrow_back_rounded,
-            color: AppColors.textColor,
+            color: AppColors.onAppBarColor,
           ),
         ),
         titleSpacing: 0,
@@ -552,14 +555,14 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
               style: GoogleFonts.inter(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: AppColors.textColor,
+                color: AppColors.onAppBarColor,
               ),
             ),
             Text(
               ref.tr('chat.chat'),
               style: GoogleFonts.inter(
                 fontSize: 11,
-                color: AppColors.mutedColor,
+                color: AppColors.onAppBarMutedColor,
               ),
             ),
           ],

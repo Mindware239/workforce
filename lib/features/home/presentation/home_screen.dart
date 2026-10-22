@@ -13,6 +13,7 @@ import 'package:showcaseview/showcaseview.dart';
 import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/features/attendence/data/attendance_repository.dart';
 import 'package:workforce/features/attendence/providers/attendance_provider.dart';
 import 'package:workforce/features/auth/providers/auth_provider.dart';
@@ -307,15 +308,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
       appBar: AppBar(
-        surfaceTintColor: AppColors.whiteBackgroundColor,
-        backgroundColor: AppColors.whiteBackgroundColor,
+        surfaceTintColor: AppColors.appBarColor,
+        foregroundColor: AppColors.onAppBarColor,
+        bottom: const TricolourStrip(),
+        backgroundColor: AppColors.appBarColor,
         title: Text(
           // ref.tr('home.workforce'),
           'WorkForce Pro',
           style: GoogleFonts.inter(
             fontSize: 24,
             fontWeight: FontWeight.bold,
-            color: AppColors.primaryFillColor,
+            color: AppColors.onAppBarColor,
           ),
         ),
         actions: [
@@ -333,7 +336,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               icon: const Icon(
                 Icons.calendar_today_outlined,
                 size: 21,
-                color: AppColors.textColor,
+                color: AppColors.onAppBarColor,
               ),
             ),
           ),
@@ -449,9 +452,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       statusIcon = Icons.check_circle_outline;
 
-      statusColor = const Color(0xFF137333);
+      statusColor = AppColors.successColor;
 
-      statusBackground = const Color(0xFFE6F4EA);
+      statusBackground = AppColors.indiaGreenLight;
     } else if (hasCheckedIn) {
       if (isBreakActive) {
         statusText = ref.tr('home.onBreak');
@@ -466,26 +469,26 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
         statusIcon = Icons.access_time;
 
-        statusColor = AppColors.primaryFillColor;
+        statusColor = AppColors.saffronText;
 
-        statusBackground = const Color(0xFFE8D8FF);
+        statusBackground = AppColors.primaryTintColor;
       } else {
         statusText = ref.tr('home.checkedIn');
 
         statusIcon = Icons.access_time;
 
-        statusColor = AppColors.primaryFillColor;
+        statusColor = AppColors.saffronText;
 
-        statusBackground = const Color(0xFFE8D8FF);
+        statusBackground = AppColors.primaryTintColor;
       }
     } else {
       statusText = ref.tr('home.upcoming');
 
       statusIcon = Icons.access_time;
 
-      statusColor = AppColors.primaryFillColor;
+      statusColor = AppColors.saffronText;
 
-      statusBackground = const Color(0xFFE8D8FF);
+      statusBackground = AppColors.primaryTintColor;
     }
 
     return Container(
@@ -655,7 +658,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                             _startShift(false);
                           },
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: AppColors.primaryFillColor,
+                      foregroundColor: AppColors.saffronText,
                       side: const BorderSide(color: AppColors.primaryFillColor),
                       elevation: 0,
                       padding: EdgeInsets.zero,
@@ -681,7 +684,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               height: 48,
               alignment: Alignment.center,
               decoration: BoxDecoration(
-                color: const Color(0xFFE6F4EA),
+                color: AppColors.indiaGreenLight,
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
@@ -689,7 +692,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 style: GoogleFonts.inter(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
-                  color: const Color(0xFF137333),
+                  color: AppColors.successColor,
                 ),
               ),
             ),
@@ -898,6 +901,33 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     context.push(AppRoutes.leaveRequest);
                   },
                 ),
+              ),
+
+              _QuickAction(
+                iconData: Icons.receipt_long_outlined,
+                title: ref.tr('home.expenses'),
+                subtitle: ref.tr('home.expensesSubtitle'),
+                onTap: () {
+                  context.push(AppRoutes.expenses);
+                },
+              ),
+
+              _QuickAction(
+                iconData: Icons.devices_other_outlined,
+                title: ref.tr('home.myAssets'),
+                subtitle: ref.tr('home.myAssetsSubtitle'),
+                onTap: () {
+                  context.push(AppRoutes.myAssets);
+                },
+              ),
+
+              _QuickAction(
+                iconData: Icons.insights_outlined,
+                title: ref.tr('home.performanceReviews'),
+                subtitle: ref.tr('home.performanceReviewsSubtitle'),
+                onTap: () {
+                  context.push(AppRoutes.reviews);
+                },
               ),
 
               Showcase(
@@ -1188,7 +1218,7 @@ class _ProductivityCard extends ConsumerWidget {
                 isPositive ? Icons.arrow_upward : Icons.arrow_downward,
                 size: 10,
                 color: isPositive
-                    ? const Color(0xFF16A34A)
+                    ? AppColors.successColor
                     : const Color(0xFFBA1A1A),
               ),
 
@@ -1205,7 +1235,7 @@ class _ProductivityCard extends ConsumerWidget {
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                     color: isPositive
-                        ? const Color(0xFF16A34A)
+                        ? AppColors.successColor
                         : const Color(0xFFBA1A1A),
                   ),
                 ),
@@ -1219,7 +1249,9 @@ class _ProductivityCard extends ConsumerWidget {
 }
 
 class _QuickAction extends StatelessWidget {
-  final String icon;
+  /// An SVG asset path, or [iconData] for a Material icon.
+  final String? icon;
+  final IconData? iconData;
   final String title;
   final String? subtitle;
   final bool showNotificationDot;
@@ -1227,7 +1259,8 @@ class _QuickAction extends StatelessWidget {
   final VoidCallback onTap;
 
   const _QuickAction({
-    required this.icon,
+    this.icon,
+    this.iconData,
     required this.title,
     required this.onTap,
     this.subtitle,
@@ -1259,18 +1292,24 @@ class _QuickAction extends StatelessWidget {
                 alignment: Alignment.center,
                 decoration: const BoxDecoration(
                   shape: BoxShape.circle,
-                  color: Color(0xFFF0ECF9),
+                  color: AppColors.primarySurfaceTintColor,
                 ),
-                child: SvgPicture.asset(
-                  icon,
-                  width: 18,
-                  height: 18,
-                  fit: BoxFit.contain,
-                  colorFilter: const ColorFilter.mode(
-                    AppColors.primaryFillColor,
-                    BlendMode.srcIn,
-                  ),
-                ),
+                child: icon != null
+                    ? SvgPicture.asset(
+                        icon!,
+                        width: 18,
+                        height: 18,
+                        fit: BoxFit.contain,
+                        colorFilter: const ColorFilter.mode(
+                          AppColors.primaryFillColor,
+                          BlendMode.srcIn,
+                        ),
+                      )
+                    : Icon(
+                        iconData ?? Icons.apps_outlined,
+                        size: 20,
+                        color: AppColors.primaryFillColor,
+                      ),
               ),
 
               const SizedBox(width: 10),

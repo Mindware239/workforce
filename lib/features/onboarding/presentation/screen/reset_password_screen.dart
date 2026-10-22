@@ -141,7 +141,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           Navigator.pop(context);
         },
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primaryFillColor,
+          foregroundColor: AppColors.saffronText,
           padding: EdgeInsets.zero,
           side: const BorderSide(color: AppColors.borderColor, width: 1),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -151,7 +151,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
           style: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: AppColors.primaryFillColor,
+            color: AppColors.saffronText,
           ),
         ),
       ),
@@ -176,7 +176,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
               style: GoogleFonts.inter(
                 fontSize: 12,
                 fontWeight: FontWeight.w500,
-                color: AppColors.primaryFillColor,
+                color: AppColors.saffronText,
               ),
             ),
           ],

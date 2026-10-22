@@ -270,7 +270,7 @@ class _LocationVerificationUnsuccessfulScreenState
                 context.go(AppRoutes.dashboard);
               },
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primaryFillColor,
+          foregroundColor: AppColors.saffronText,
           side: const BorderSide(
             color: AppColors.borderColor,
             width: 1,
@@ -284,7 +284,7 @@ class _LocationVerificationUnsuccessfulScreenState
           style: GoogleFonts.inter(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: AppColors.primaryFillColor,
+            color: AppColors.saffronText,
           ),
         ),
       ),

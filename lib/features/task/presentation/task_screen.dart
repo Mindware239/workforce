@@ -561,7 +561,7 @@ class _TaskCard extends ConsumerWidget {
                   child: ElevatedButton(
                     onPressed: onStart,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF6645F5),
+                      backgroundColor: AppColors.primaryFillColor,
                       foregroundColor: Colors.white,
                       elevation: 0,
                       padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -608,8 +608,8 @@ class _PriorityBadge extends StatelessWidget {
         break;
 
       case 'medium':
-        background = const Color(0xFFDDEBFF);
-        textColor = const Color(0xFF2765B5);
+        background = AppColors.navyLight;
+        textColor = AppColors.navy;
         break;
 
       case 'urgent':
@@ -618,8 +618,8 @@ class _PriorityBadge extends StatelessWidget {
         break;
 
       case 'low':
-        background = const Color(0xFFE8F5E9);
-        textColor = const Color(0xFF39843C);
+        background = AppColors.indiaGreenLight;
+        textColor = AppColors.successColor;
         break;
 
       default:
@@ -661,11 +661,11 @@ class _StatusBadge extends StatelessWidget {
     Color textColor;
 
     if (completed) {
-      background = const Color(0xFFD9F5E9);
-      textColor = const Color(0xFF15915C);
+      background = AppColors.indiaGreenLight;
+      textColor = AppColors.successColor;
     } else if (statusKey.toLowerCase() == 'in_progress') {
-      background = const Color(0xFFE8D8FF);
-      textColor = AppColors.primaryFillColor;
+      background = AppColors.primaryTintColor;
+      textColor = AppColors.saffronText;
     } else if (statusKey.toLowerCase() == 'cancelled') {
       background = const Color(0xFFFFE1E1);
       textColor = const Color(0xFFC62828);

@@ -6,6 +6,12 @@ import 'package:workforce/features/auth/presentation/employee_login_screen.dart'
 import 'package:workforce/features/chat/presentation/chat_detail_screen.dart';
 import 'package:workforce/features/chat/presentation/chat_list_screen.dart';
 import 'package:workforce/features/dashboard/presentation/dashboard_screen.dart';
+import 'package:workforce/features/assets/presentation/my_assets_screen.dart';
+import 'package:workforce/features/expenses/presentation/expense_detail_screen.dart';
+import 'package:workforce/features/expenses/presentation/expenses_screen.dart';
+import 'package:workforce/features/expenses/presentation/new_expense_screen.dart';
+import 'package:workforce/features/reviews/presentation/review_detail_screen.dart';
+import 'package:workforce/features/reviews/presentation/reviews_screen.dart';
 import 'package:workforce/features/attendence/presentation/face_capture_screen.dart';
 import 'package:workforce/features/attendence/presentation/photo_preview_screen.dart';
 import 'package:workforce/features/attendence/presentation/verification_unsuccessful_screen.dart';
@@ -46,6 +52,17 @@ class AppRoutes {
   static const String leaveRequest = '/dashboard/leaveRequest';
   static const String monthlySummary = '/dashboard/monthlySummary';
   static const String completeProfile = '/completeProfile';
+
+  static const String expenses = '/dashboard/expenses';
+  static const String expenseNew = '/dashboard/expenses/new';
+  static const String expenseDetail = '/dashboard/expenses/:id';
+  static String expenseDetailPath(int id) => '/dashboard/expenses/$id';
+
+  static const String myAssets = '/dashboard/assets';
+
+  static const String reviews = '/dashboard/reviews';
+  static const String reviewDetail = '/dashboard/reviews/:id';
+  static String reviewDetailPath(int id) => '/dashboard/reviews/$id';
 
   static final List<RouteBase> routes = [
     GoRoute(
@@ -222,6 +239,68 @@ class AppRoutes {
       name: 'notification',
       builder: (context, state) {
         return const NotificationScreen();
+      },
+    ),
+
+    // Expenses: `new` is declared before `:id` so it is not read as an id.
+    GoRoute(
+      path: expenses,
+      name: 'expenses',
+      builder: (context, state) {
+        return const ExpensesScreen();
+      },
+    ),
+    GoRoute(
+      path: expenseNew,
+      name: 'expenseNew',
+      builder: (context, state) {
+        return const NewExpenseScreen();
+      },
+    ),
+    GoRoute(
+      path: expenseDetail,
+      name: 'expenseDetail',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '');
+
+        if (id == null) {
+          return const Scaffold(
+            body: Center(child: Text('Invalid expense claim.')),
+          );
+        }
+
+        return ExpenseDetailScreen(claimId: id);
+      },
+    ),
+
+    GoRoute(
+      path: myAssets,
+      name: 'myAssets',
+      builder: (context, state) {
+        return const MyAssetsScreen();
+      },
+    ),
+
+    GoRoute(
+      path: reviews,
+      name: 'reviews',
+      builder: (context, state) {
+        return const ReviewsScreen();
+      },
+    ),
+    GoRoute(
+      path: reviewDetail,
+      name: 'reviewDetail',
+      builder: (context, state) {
+        final id = int.tryParse(state.pathParameters['id'] ?? '');
+
+        if (id == null) {
+          return const Scaffold(
+            body: Center(child: Text('Invalid review.')),
+          );
+        }
+
+        return ReviewDetailScreen(reviewId: id);
       },
     ),
   ];

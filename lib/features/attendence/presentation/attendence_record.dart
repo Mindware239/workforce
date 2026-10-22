@@ -85,7 +85,7 @@ class AttendanceRecordedScreen extends StatelessWidget {
         margin: const EdgeInsets.all(16),
         decoration: const BoxDecoration(
           shape: BoxShape.circle,
-          color: Color(0xFF2E7D32),
+          color: AppColors.successColor,
         ),
         child: const Icon(
           Icons.check,

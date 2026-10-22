@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/features/attendence/data/attendance_pdf_service.dart';
 
 import '../providers/attendance_provider.dart';
@@ -85,8 +86,10 @@ class _AttendanceHistoryScreenState
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.whiteBackgroundColor,
-        surfaceTintColor: AppColors.whiteBackgroundColor,
+        backgroundColor: AppColors.appBarColor,
+        surfaceTintColor: AppColors.appBarColor,
+        foregroundColor: AppColors.onAppBarColor,
+        bottom: const TricolourStrip(),
       ),
       body: SafeArea(
         child: RefreshIndicator(
@@ -340,7 +343,7 @@ class _AttendanceHistoryScreenState
           child: _SummaryCard(
             title: ref.tr('attendanceHistory.avgHours'),
             value: _formatDuration(averageMinutes),
-            valueColor: const Color(0xFF00B889),
+            valueColor: AppColors.successColor,
           ),
         ),
 
@@ -1114,13 +1117,13 @@ class _StatusBadge extends ConsumerWidget  {
         ? const Color(0xFFFF3656)
         : isAbsent
         ? const Color(0xFFD32F2F)
-        : const Color(0xFF00A77C);
+        : AppColors.successColor;
 
     final background = isLate
         ? const Color(0xFFFFE5E9)
         : isAbsent
         ? const Color(0xFFFFEBEE)
-        : const Color(0xFFE4F8F1);
+        : AppColors.indiaGreenLight;
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

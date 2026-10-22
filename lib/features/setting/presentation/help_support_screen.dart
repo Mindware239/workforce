@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 
 class HelpSupportScreen extends ConsumerWidget {
@@ -13,14 +14,16 @@ class HelpSupportScreen extends ConsumerWidget {
       backgroundColor: AppColors.whiteBackgroundColor,
       appBar: AppBar(
         centerTitle: true,
-        backgroundColor: AppColors.whiteBackgroundColor,
-        surfaceTintColor: AppColors.whiteBackgroundColor,
+        backgroundColor: AppColors.appBarColor,
+        surfaceTintColor: AppColors.appBarColor,
+        foregroundColor: AppColors.onAppBarColor,
+        bottom: const TricolourStrip(),
         title: Text(
           ref.tr('helpSupport.title'),
           style: GoogleFonts.inter(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: AppColors.textColor,
+            color: AppColors.onAppBarColor,
           ),
         ),
        
@@ -279,7 +282,7 @@ class HelpSupportScreen extends ConsumerWidget {
               child: OutlinedButton.icon(
                 onPressed: () {},
                 style: OutlinedButton.styleFrom(
-                  foregroundColor: AppColors.primaryFillColor,
+                  foregroundColor: AppColors.saffronText,
                   side: const BorderSide(color: AppColors.borderColor, width: 1),
                   padding: EdgeInsets.zero,
                   shape: RoundedRectangleBorder(
@@ -445,7 +448,7 @@ class _ContactRow extends StatelessWidget {
           style: GoogleFonts.inter(
             fontSize: 12,
             fontWeight: FontWeight.w500,
-            color: AppColors.primaryFillColor,
+            color: AppColors.saffronText,
           ),
         ),
       ],

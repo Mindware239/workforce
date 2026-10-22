@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 
 import '../providers/notification_provider.dart';
@@ -60,14 +61,16 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
 
       appBar: AppBar(
         centerTitle: true,
-        backgroundColor: AppColors.whiteBackgroundColor,
-        surfaceTintColor: AppColors.whiteBackgroundColor,
+        backgroundColor: AppColors.appBarColor,
+        surfaceTintColor: AppColors.appBarColor,
+        foregroundColor: AppColors.onAppBarColor,
+        bottom: const TricolourStrip(),
         title: Text(
           ref.tr('notification.title'),
           style: GoogleFonts.inter(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: AppColors.primaryFillColor,
+            color: AppColors.onAppBarColor,
           ),
         ),
         actions: [
@@ -117,7 +120,10 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
                 ? const SizedBox(
                     width: 14,
                     height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 2),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: AppColors.onAppBarColor,
+                    ),
                   )
                 : Text(
                     ref.tr('notification.markAllAsRead'),
@@ -126,7 +132,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
                       fontSize: 12,
                       height: 1.15,
                       fontWeight: FontWeight.w600,
-                      color: AppColors.primaryFillColor,
+                      color: AppColors.onAppBarColor,
                     ),
                   ),
           ),

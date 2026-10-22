@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 
 class CompleteShiftScreen extends StatefulWidget {
@@ -19,14 +20,16 @@ class _CompleteShiftScreenState extends State<CompleteShiftScreen> {
       backgroundColor: AppColors.whiteBackgroundColor,
        appBar: AppBar(
         centerTitle: true,
-        backgroundColor: AppColors.whiteBackgroundColor,
-        surfaceTintColor: AppColors.whiteBackgroundColor,
+        backgroundColor: AppColors.appBarColor,
+        surfaceTintColor: AppColors.appBarColor,
+        foregroundColor: AppColors.onAppBarColor,
+        bottom: const TricolourStrip(),
         title: Text(
           'Complete your shift',
           style: GoogleFonts.inter(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: AppColors.primaryFillColor,
+            color: AppColors.onAppBarColor,
           ),
         ),
       ),
@@ -173,7 +176,7 @@ class _CompleteShiftScreenState extends State<CompleteShiftScreen> {
           Navigator.pop(context);
         },
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primaryFillColor,
+          foregroundColor: AppColors.saffronText,
           side: const BorderSide(
             color: AppColors.borderColor,
             width: 1,
@@ -188,7 +191,7 @@ class _CompleteShiftScreenState extends State<CompleteShiftScreen> {
           style: GoogleFonts.inter(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: AppColors.primaryFillColor,
+            color: AppColors.saffronText,
           ),
         ),
       ),

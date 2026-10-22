@@ -584,7 +584,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       case 'on-time':
       case 'ontime':
       case 'present':
-        return const Color(0xFF2E7D32);
+        return AppColors.successColor;
 
       default:
         return AppColors.mutedColor;
@@ -603,7 +603,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
       case 'on-time':
       case 'ontime':
       case 'present':
-        return const Color(0xFFE8F5E9);
+        return AppColors.indiaGreenLight;
 
       default:
         return const Color(0xFFF1F1F3);
@@ -743,7 +743,7 @@ class _InfoRow extends StatelessWidget {
           height: 40,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
-            color: Color(0xFFF1EEFA),
+            color: AppColors.primaryTintColor,
           ),
           child: Icon(icon, size: 18, color: AppColors.primaryFillColor),
         ),
@@ -899,7 +899,7 @@ class _TimelineItem extends StatelessWidget {
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
                     color: color == AppColors.primaryFillColor
-                        ? AppColors.primaryFillColor
+                        ? AppColors.saffronText
                         : AppColors.mutedColor,
                   ),
                 ),

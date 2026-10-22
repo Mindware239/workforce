@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/features/attendence/providers/attendance_provider.dart';
 import 'package:workforce/features/schedule/presentation/monthly_summary.dart';
@@ -99,8 +100,10 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.whiteBackgroundColor,
-        surfaceTintColor: AppColors.whiteBackgroundColor,
+        backgroundColor: AppColors.appBarColor,
+        surfaceTintColor: AppColors.appBarColor,
+        foregroundColor: AppColors.onAppBarColor,
+        bottom: const TricolourStrip(),
       ),
       body: SafeArea(
         child: SingleChildScrollView(
@@ -177,7 +180,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
           height: 40,
           padding: const EdgeInsets.symmetric(horizontal: 6),
           decoration: BoxDecoration(
-            color: const Color(0xFFF0ECF9),
+            color: AppColors.primarySurfaceTintColor,
             borderRadius: BorderRadius.circular(14),
           ),
           child: Row(
@@ -243,7 +246,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: const Color(0xFFE6F4EA),
+              color: AppColors.indiaGreenLight,
               borderRadius: BorderRadius.circular(50),
             ),
             child: Row(
@@ -252,7 +255,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                 const Icon(
                   Icons.access_time_rounded,
                   size: 15,
-                  color: Color(0xFF137333),
+                  color: AppColors.successColor,
                 ),
 
                 const SizedBox(width: 6),
@@ -262,7 +265,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                   style: GoogleFonts.inter(
                     fontSize: 12,
                     fontWeight: FontWeight.w500,
-                    color: const Color(0xFF137333),
+                    color: AppColors.successColor,
                   ),
                 ),
               ],
@@ -436,7 +439,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
                 style: GoogleFonts.inter(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: AppColors.primaryFillColor,
+                  color: AppColors.saffronText,
                 ),
               ),
             ],
@@ -536,7 +539,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
           style: GoogleFonts.inter(
             fontSize: 14,
             fontWeight: FontWeight.w400,
-            color: AppColors.primaryFillColor,
+            color: AppColors.saffronText,
           ),
         ),
       ),

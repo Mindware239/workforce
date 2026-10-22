@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/features/attendence/providers/attendance_provider.dart';
 import 'package:workforce/features/schedule/data/payslip_pdf_service.dart';
 
@@ -88,15 +89,17 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
       appBar: AppBar(
-        backgroundColor: AppColors.whiteBackgroundColor,
-        surfaceTintColor: AppColors.whiteBackgroundColor,
+        backgroundColor: AppColors.appBarColor,
+        surfaceTintColor: AppColors.appBarColor,
+        foregroundColor: AppColors.onAppBarColor,
+        bottom: const TricolourStrip(),
         elevation: 0,
         title: Text(
           ref.tr('monthlySummary.title'),
           style: GoogleFonts.inter(
             fontSize: 20,
             fontWeight: FontWeight.w700,
-            color: AppColors.textColor,
+            color: AppColors.onAppBarColor,
           ),
         ),
       ),
@@ -305,7 +308,7 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
                     vertical: 2,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFE2DFFF),
+                    color: AppColors.primaryTintColor,
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
@@ -316,7 +319,7 @@ class _MonthlySummaryScreenState extends ConsumerState<MonthlySummaryScreen> {
                     style: GoogleFonts.inter(
                       fontSize: 10,
                       fontWeight: FontWeight.w500,
-                      color: AppColors.primaryFillColor,
+                      color: AppColors.saffronText,
                     ),
                   ),
                 ),
@@ -1428,14 +1431,14 @@ class _WeeklyChartPainter extends CustomPainter {
       ..style = PaintingStyle.stroke;
 
     final linePaint = Paint()
-      ..color = const Color(0xFF9B6AE8)
+      ..color = AppColors.saffronDeep
       ..strokeWidth = 2
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       ..style = PaintingStyle.stroke;
 
     final pointPaint = Paint()
-      ..color = const Color(0xFF9B6AE8)
+      ..color = AppColors.saffronDeep
       ..style = PaintingStyle.fill;
 
     canvas.drawLine(Offset(left, top), Offset(right, top), gridPaint);

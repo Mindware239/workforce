@@ -644,10 +644,10 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                           ref.tr('completeProfile.termsConditions'),
                           style: GoogleFonts.inter(
                             fontSize: 11.5,
-                            color: AppColors.primaryFillColor,
+                            color: AppColors.saffronText,
                             fontWeight: FontWeight.w500,
                             decoration: TextDecoration.underline,
-                            decorationColor: AppColors.primaryFillColor,
+                            decorationColor: AppColors.saffronText,
                           ),
                         ),
                       ),
@@ -1024,7 +1024,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
             style: GoogleFonts.inter(
               fontSize: 8,
               fontWeight: FontWeight.w600,
-              color: AppColors.primaryFillColor,
+              color: AppColors.saffronText,
               letterSpacing: 0.15,
             ),
           ),
