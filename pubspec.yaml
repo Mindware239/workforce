@@ -39,6 +39,7 @@ dependencies:
   shimmer: ^3.0.0
   record: ^6.1.2
   shared_preferences: ^2.5.3
+  showcaseview: ^5.1.0
   
 
 dev_dependencies:

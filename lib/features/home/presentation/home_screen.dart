@@ -7,6 +7,8 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:showcaseview/showcaseview.dart';
 
 import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/localization/app_localization.dart';
@@ -26,6 +28,50 @@ class HomeScreen extends ConsumerStatefulWidget {
 
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   Timer? _attendanceTimer;
+
+  // Stable targets for the first-launch home screen tour.
+  final GlobalKey _tourGreeting = GlobalKey();
+  final GlobalKey _tourShift = GlobalKey();
+  final GlobalKey _tourAttendance = GlobalKey();
+  final GlobalKey _tourProductivity = GlobalKey();
+  final GlobalKey _tourHistory = GlobalKey();
+  final GlobalKey _tourMonthlySummary = GlobalKey();
+  final GlobalKey _tourLeave = GlobalKey();
+  final GlobalKey _tourNotifications = GlobalKey();
+  final GlobalKey _tourSchedule = GlobalKey();
+
+  static const String _tourCompletedKey = 'workforce_home_tour_completed';
+  bool _tourStarted = false;
+
+  List<GlobalKey> get _tourKeys => [
+        _tourGreeting,
+        _tourShift,
+        _tourAttendance,
+        _tourProductivity,
+        _tourHistory,
+        _tourMonthlySummary,
+        _tourLeave,
+        _tourNotifications,
+        _tourSchedule,
+      ];
+
+  Future<void> _markTourCompleted() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_tourCompletedKey, true);
+  }
+
+  Future<void> _startTourIfNeeded() async {
+    if (_tourStarted || !mounted) return;
+
+    final prefs = await SharedPreferences.getInstance();
+    if (!mounted || (prefs.getBool(_tourCompletedKey) ?? false)) return;
+
+    _tourStarted = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ShowcaseView.get().startShowCase(_tourKeys);
+    });
+  }
 
   Future<void> _startShift(bool isStart) async {
     bool loadingShown = false;
@@ -178,12 +224,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   void initState() {
     super.initState();
 
+    ShowcaseView.register(
+      blurValue: 1.5,
+      globalTooltipActionConfig: const TooltipActionConfig(
+        position: TooltipActionPosition.inside,
+        alignment: MainAxisAlignment.spaceBetween,
+        actionGap: 12,
+      ),
+      globalTooltipActions: [
+        TooltipActionButton(
+          type: TooltipDefaultActionType.previous,
+          name: 'Previous',
+          hideActionWidgetForShowcase: [_tourGreeting],
+          textStyle: const TextStyle(color: Colors.white),
+        ),
+        TooltipActionButton(
+          type: TooltipDefaultActionType.next,
+          name: 'Next',
+          hideActionWidgetForShowcase: [_tourSchedule],
+          textStyle: const TextStyle(color: Colors.white),
+        ),
+        TooltipActionButton(
+          type: TooltipDefaultActionType.skip,
+          name: 'Skip',
+          textStyle: const TextStyle(color: Colors.white),
+        ),
+      ],
+      onDismiss: (key) {
+        _markTourCompleted();
+      },
+      onComplete: (index, key) {
+        if (index == _tourKeys.length - 1) {
+          _markTourCompleted();
+        }
+      },
+    );
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(attendanceProvider.notifier).getDashboard();
 
       ref.read(attendanceProvider.notifier).getTodayAttendance();
 
       ref.read(notificationProvider.notifier).startRealtimeNotifications();
+
+      _startTourIfNeeded();
     });
 
     _attendanceTimer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -204,6 +288,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   @override
   void dispose() {
     _attendanceTimer?.cancel();
+    ShowcaseView.get().unregister();
     super.dispose();
   }
 
@@ -234,16 +319,22 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
         ),
         actions: [
-          IconButton(
-            onPressed: () {
-              context.push(AppRoutes.schedule);
-            },
-            splashRadius: 20,
-            padding: EdgeInsets.zero,
-            icon: const Icon(
-              Icons.calendar_today_outlined,
-              size: 21,
-              color: AppColors.textColor,
+          Showcase(
+            key: _tourSchedule,
+            title: 'Your Schedule',
+            description:
+                'Open your schedule to view your assigned shift details.',
+            child: IconButton(
+              onPressed: () {
+                context.push(AppRoutes.schedule);
+              },
+              splashRadius: 20,
+              padding: EdgeInsets.zero,
+              icon: const Icon(
+                Icons.calendar_today_outlined,
+                size: 21,
+                color: AppColors.textColor,
+              ),
             ),
           ),
         ],
@@ -258,11 +349,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
               const SizedBox(height: 8),
 
-              _buildGreeting(fullName),
+              Showcase(
+                key: _tourGreeting,
+                title: 'Welcome to Workforce',
+                description:
+                    'Your daily workspace for attendance, productivity, '
+                    'shift schedules and employee activities.',
+                child: _buildGreeting(fullName),
+              ),
 
               const SizedBox(height: 16),
 
-              _buildShiftCard(attendanceState),
+              Showcase(
+                key: _tourShift,
+                title: "Today's Shift",
+                description:
+                    'View your shift timings and attendance status. '
+                    'Use the available buttons to start or end your shift '
+                    'and manage your breaks. Location verification and face '
+                    'capture may be required.',
+                child: _buildShiftCard(attendanceState),
+              ),
 
               const SizedBox(height: 16),
 
@@ -682,17 +789,31 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     return Row(
       children: [
         Expanded(
-          child: _AttendanceCard(
-            today: attendanceState.today,
-            schedule: attendanceState.schedule,
-            breakMinutes: attendanceState.breakMinutes,
+          child: Showcase(
+            key: _tourAttendance,
+            title: 'Attendance Overview',
+            description:
+                'Track your working hours, attendance status and progress '
+                'toward your scheduled working time.',
+            child: _AttendanceCard(
+              today: attendanceState.today,
+              schedule: attendanceState.schedule,
+              breakMinutes: attendanceState.breakMinutes,
+            ),
           ),
         ),
-
         const SizedBox(width: 8),
-
         Expanded(
-          child: _ProductivityCard(dashboard: attendanceState.dashboard),
+          child: Showcase(
+            key: _tourProductivity,
+            title: 'Your Productivity',
+            description:
+                'Review your productivity score and see how your '
+                'performance compares with last week.',
+            child: _ProductivityCard(
+              dashboard: attendanceState.dashboard,
+            ),
+          ),
         ),
       ],
     );
@@ -737,39 +858,64 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
           child: Column(
             children: [
-              _QuickAction(
-                icon: 'assets/icons/clock.svg',
-                title: ref.tr('home.attendanceHistory'),
-                onTap: () {
-                  context.push(AppRoutes.attendanceHistory);
-                },
+              Showcase(
+                key: _tourHistory,
+                title: 'Attendance History',
+                description:
+                    'Review your previous attendance records and working hours.',
+                child: _QuickAction(
+                  icon: 'assets/icons/clock.svg',
+                  title: ref.tr('home.attendanceHistory'),
+                  onTap: () {
+                    context.push(AppRoutes.attendanceHistory);
+                  },
+                ),
               ),
 
-              _QuickAction(
-                icon: 'assets/icons/summary.svg',
-                title: ref.tr('home.monthlySummary'),
-                onTap: () {
-                  context.push(AppRoutes.monthlySummary);
-                },
+              Showcase(
+                key: _tourMonthlySummary,
+                title: 'Monthly Summary',
+                description:
+                    'Review your monthly attendance overview and trends.',
+                child: _QuickAction(
+                  icon: 'assets/icons/summary.svg',
+                  title: ref.tr('home.monthlySummary'),
+                  onTap: () {
+                    context.push(AppRoutes.monthlySummary);
+                  },
+                ),
               ),
 
-              _QuickAction(
-                icon: 'assets/icons/leave.svg',
-                title: ref.tr('home.leaveRequests'),
-                onTap: () {
-                  context.push(AppRoutes.leaveRequest);
-                },
+              Showcase(
+                key: _tourLeave,
+                title: 'Leave Requests',
+                description:
+                    'Open this section to access your leave requests.',
+                child: _QuickAction(
+                  icon: 'assets/icons/leave.svg',
+                  title: ref.tr('home.leaveRequests'),
+                  onTap: () {
+                    context.push(AppRoutes.leaveRequest);
+                  },
+                ),
               ),
 
-              _QuickAction(
-                icon: 'assets/icons/notification.svg',
-                title: ref.tr('home.notifications'),
-                subtitle: notificationSubtitle,
-                showNotificationDot: unreadCount > 0,
-                onTap: () {
-                  context.push(AppRoutes.notification);
-                },
-                isLast: true,
+              Showcase(
+                key: _tourNotifications,
+                title: 'Notifications',
+                description:
+                    'Stay informed about important updates and check '
+                    'notifications you have not read yet.',
+                child: _QuickAction(
+                  icon: 'assets/icons/notification.svg',
+                  title: ref.tr('home.notifications'),
+                  subtitle: notificationSubtitle,
+                  showNotificationDot: unreadCount > 0,
+                  onTap: () {
+                    context.push(AppRoutes.notification);
+                  },
+                  isLast: true,
+                ),
               ),
             ],
           ),

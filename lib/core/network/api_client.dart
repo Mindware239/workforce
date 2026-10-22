@@ -11,8 +11,8 @@ class ApiClient {
   }) {
     dio = Dio(
       BaseOptions(
-        baseUrl: 'https://workforce.orkuts.com/api',
-        // baseUrl: 'http://192.168.1.142:5050/api',
+        // baseUrl: 'https://workforce.orkuts.com/api',
+        baseUrl: 'http://192.168.1.142:5050/api',
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
         headers: {

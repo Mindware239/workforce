@@ -9,6 +9,7 @@ import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/services/auth_service.dart';
 import 'package:workforce/core/services/secure_storage.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/features/attendence/services/employee_location_service.dart';
 import 'package:workforce/features/language/presentation/language_selection_screen.dart';
 import 'package:workforce/features/language/providers/language_provider.dart';
 import 'package:workforce/features/notification/presentation/notification.dart';
@@ -31,6 +32,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     await secureStorage.clearAuth();
 
     // Update authentication state
+    await LocationTrackingService.stop();
+
     AuthService.logout();
 
     if (!mounted) return;
@@ -87,8 +90,9 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   _SettingsRow(
                     icon: Icons.language_rounded,
                     title: ref.tr('settings.language'),
-                    trailingText: selectedLanguage == AppLanguage.english? 
-                    selectedLanguage.englishName: selectedLanguage.hindiName,
+                    trailingText: selectedLanguage == AppLanguage.english
+                        ? selectedLanguage.englishName
+                        : selectedLanguage.hindiName,
                     onTap: () {
                       Navigator.of(context).push(
                         MaterialPageRoute(
