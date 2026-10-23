@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/localization/app_localization.dart';
+import 'package:workforce/core/location/precise_location.dart';
 import 'package:workforce/core/network/network_providers.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/widgets/feature_widgets.dart';
@@ -93,11 +94,8 @@ class _DeviceConnectionScreenState
         throw Exception(ref.tr('deviceCheck.permissionDenied'));
       }
 
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-          timeLimit: Duration(seconds: 20),
-        ),
+      final position = await getPrecisePosition(
+        timeout: const Duration(seconds: 20),
       );
 
       final response = await ref

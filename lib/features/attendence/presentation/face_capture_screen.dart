@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:workforce/app/routes/app_routes.dart';
+import 'package:workforce/core/location/precise_location.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/features/attendence/data/attendance_repository.dart';
@@ -93,11 +94,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
 
       debugPrint('📍 Getting current location...');
 
-      final Position position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
+      final Position position = await getPrecisePosition();
 
       debugPrint('📍 Latitude: ${position.latitude}');
 

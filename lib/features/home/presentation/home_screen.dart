@@ -12,6 +12,7 @@ import 'package:showcaseview/showcaseview.dart';
 
 import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/localization/app_localization.dart';
+import 'package:workforce/core/location/precise_location.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/features/attendence/data/attendance_repository.dart';
@@ -113,11 +114,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         return;
       }
 
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
+      final position = await getPrecisePosition();
 
       debugPrint('========================================');
       debugPrint('📍 CURRENT LOCATION');

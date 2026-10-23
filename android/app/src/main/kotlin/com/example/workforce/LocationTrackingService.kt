@@ -56,6 +56,15 @@ class LocationTrackingService : Service() {
         private const val MIN_INTERVAL_MS = 15_000L
         private const val MIN_DISTANCE_M = 25f
 
+        // A fix within this is real GPS. Indoors the fused provider mixes in
+        // cell/Wi-Fi estimates (100-400 m) placed at the tower, which would
+        // move the employee's pin hundreds of metres while they sit still.
+        private const val PRECISE_ACCURACY_M = 30f
+
+        // Coarse fixes are dropped only while GPS is working. After this long
+        // without a precise fix, they are sent so the employee still shows up.
+        private const val COARSE_FALLBACK_MS = 5 * 60_000L
+
         fun hasLocationPermission(context: Context): Boolean =
             ContextCompat.checkSelfPermission(
                 context,
@@ -122,9 +131,28 @@ class LocationTrackingService : Service() {
     private val locationCallback =
         object : LocationCallback() {
             override fun onLocationResult(result: LocationResult) {
-                result.locations.forEach(::sendLocationToBackgroundIsolate)
+                result.locations.forEach(::handleLocation)
             }
         }
+
+    private var lastPreciseFixAt = 0L
+
+    private fun handleLocation(location: Location) {
+        val now = System.currentTimeMillis()
+
+        if (location.hasAccuracy() && location.accuracy <= PRECISE_ACCURACY_M) {
+            lastPreciseFixAt = now
+            sendLocationToBackgroundIsolate(location)
+            return
+        }
+
+        if (now - lastPreciseFixAt < COARSE_FALLBACK_MS) {
+            Log.d(TAG, "Skipping coarse fix (accuracy ${location.accuracy} m).")
+            return
+        }
+
+        sendLocationToBackgroundIsolate(location)
+    }
 
     private var flutterEngine: FlutterEngine? = null
 
@@ -264,6 +292,7 @@ class LocationTrackingService : Service() {
             )
                 .setMinUpdateIntervalMillis(MIN_INTERVAL_MS)
                 .setMinUpdateDistanceMeters(MIN_DISTANCE_M)
+                .setWaitForAccurateLocation(true)
                 .build()
 
         try {

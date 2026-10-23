@@ -4,6 +4,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/app/routes/app_routes.dart';
+import 'package:workforce/core/location/precise_location.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/features/attendence/data/attendance_repository.dart';
@@ -72,11 +73,7 @@ class _LocationVerificationUnsuccessfulScreenState
       // --------------------------------------------------
       // 2. Get current location
       // --------------------------------------------------
-      final position = await Geolocator.getCurrentPosition(
-        locationSettings: const LocationSettings(
-          accuracy: LocationAccuracy.high,
-        ),
-      );
+      final position = await getPrecisePosition();
 
       debugPrint('📍 Latitude: ${position.latitude}');
       debugPrint('📍 Longitude: ${position.longitude}');
