@@ -11,17 +11,13 @@ class ApiClient {
 
   final SecureStorage secureStorage;
 
-  ApiClient({
-    required this.secureStorage,
-  }) {
+  ApiClient({required this.secureStorage}) {
     dio = Dio(
       BaseOptions(
         baseUrl: baseUrl,
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
-        headers: {
-          'Accept': 'application/json',
-        },
+        headers: {'Accept': 'application/json'},
       ),
     );
 
@@ -44,39 +40,18 @@ class ApiClient {
     String endpoint, {
     Map<String, dynamic>? queryParameters,
   }) async {
-    return dio.get(
-      endpoint,
-      queryParameters: queryParameters,
-    );
+    return dio.get(endpoint, queryParameters: queryParameters);
   }
 
-  Future<Response> post(
-    String endpoint, {
-    dynamic data,
-  }) async {
-    return dio.post(
-      endpoint,
-      data: data,
-    );
+  Future<Response> post(String endpoint, {dynamic data}) async {
+    return dio.post(endpoint, data: data);
   }
 
-  Future<Response> put(
-    String endpoint, {
-    dynamic data,
-  }) async {
-    return dio.put(
-      endpoint,
-      data: data,
-    );
+  Future<Response> put(String endpoint, {dynamic data}) async {
+    return dio.put(endpoint, data: data);
   }
 
-  Future<Response> delete(
-    String endpoint, {
-    dynamic data,
-  }) async {
-    return dio.delete(
-      endpoint,
-      data: data,
-    );
+  Future<Response> delete(String endpoint, {dynamic data}) async {
+    return dio.delete(endpoint, data: data);
   }
 }
