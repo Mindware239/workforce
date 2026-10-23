@@ -848,19 +848,19 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final unreadCount = notificationState.unreadCount;
     final operationsFeatures = ref.watch(entitlementsProvider);
 
-    String notificationSubtitle;
+    // String notificationSubtitle;
 
-    if (unreadCount == 0) {
-      notificationSubtitle = ref.tr('home.noUnreadMessages');
-    } else if (unreadCount == 1) {
-      notificationSubtitle = ref
-          .tr('home.unreadMessage')
-          .replaceFirst('{count}', unreadCount.toString());
-    } else {
-      notificationSubtitle = ref
-          .tr('home.unreadMessages')
-          .replaceFirst('{count}', unreadCount.toString());
-    }
+    // if (unreadCount == 0) {
+    //   notificationSubtitle = ref.tr('home.noUnreadMessages');
+    // } else if (unreadCount == 1) {
+    //   notificationSubtitle = ref
+    //       .tr('home.unreadMessage')
+    //       .replaceFirst('{count}', unreadCount.toString());
+    // } else {
+    //   notificationSubtitle = ref
+    //       .tr('home.unreadMessages')
+    //       .replaceFirst('{count}', unreadCount.toString());
+    // }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -927,7 +927,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               _QuickAction(
                 iconData: Icons.receipt_long_outlined,
                 title: ref.tr('home.expenses'),
-                subtitle: ref.tr('home.expensesSubtitle'),
+                // subtitle: ref.tr('home.expensesSubtitle'),
                 onTap: () {
                   context.push(AppRoutes.expenses);
                 },
@@ -936,7 +936,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               _QuickAction(
                 iconData: Icons.directions_walk_rounded,
                 title: ref.tr('home.fieldWork'),
-                subtitle: ref.tr('home.fieldWorkSubtitle'),
+                // subtitle: ref.tr('home.fieldWorkSubtitle'),
                 onTap: () {
                   context.push(AppRoutes.fieldWork);
                 },
@@ -945,7 +945,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               _QuickAction(
                 iconData: Icons.devices_other_outlined,
                 title: ref.tr('home.myAssets'),
-                subtitle: ref.tr('home.myAssetsSubtitle'),
+                // subtitle: ref.tr('home.myAssetsSubtitle'),
                 onTap: () {
                   context.push(AppRoutes.myAssets);
                 },
@@ -957,7 +957,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 _QuickAction(
                   iconData: Icons.precision_manufacturing_outlined,
                   title: ref.tr('home.floor'),
-                  subtitle: ref.tr('home.floorSubtitle'),
+                  // subtitle: ref.tr('home.floorSubtitle'),
                   onTap: () {
                     context.push(AppRoutes.floor);
                   },
@@ -967,7 +967,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 _QuickAction(
                   iconData: Icons.qr_code_scanner_rounded,
                   title: ref.tr('home.warehouse'),
-                  subtitle: ref.tr('home.warehouseSubtitle'),
+                  // subtitle: ref.tr('home.warehouseSubtitle'),
                   onTap: () {
                     context.push(AppRoutes.warehouse);
                   },
@@ -976,7 +976,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               _QuickAction(
                 iconData: Icons.insights_outlined,
                 title: ref.tr('home.performanceReviews'),
-                subtitle: ref.tr('home.performanceReviewsSubtitle'),
+                // subtitle: ref.tr('home.performanceReviewsSubtitle'),
                 onTap: () {
                   context.push(AppRoutes.reviews);
                 },
@@ -985,7 +985,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               _QuickAction(
                 iconData: Icons.payments_outlined,
                 title: ref.tr('home.myPay'),
-                subtitle: ref.tr('home.myPaySubtitle'),
+                // subtitle: ref.tr('home.myPaySubtitle'),
                 onTap: () {
                   context.push(AppRoutes.myPay);
                 },
@@ -994,7 +994,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
               _QuickAction(
                 iconData: Icons.campaign_outlined,
                 title: ref.tr('home.announcements'),
-                subtitle: ref.tr('home.announcementsSubtitle'),
+                // subtitle: ref.tr('home.announcementsSubtitle'),
                 onTap: () {
                   context.push(AppRoutes.announcements);
                 },
@@ -1009,7 +1009,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 child: _QuickAction(
                   icon: 'assets/icons/notification.svg',
                   title: ref.tr('home.notifications'),
-                  subtitle: notificationSubtitle,
+                  // subtitle: notificationSubtitle,
                   showNotificationDot: unreadCount > 0,
                   onTap: () {
                     context.push(AppRoutes.notification);
@@ -1323,7 +1323,6 @@ class _QuickAction extends StatelessWidget {
   final String? icon;
   final IconData? iconData;
   final String title;
-  final String? subtitle;
   final bool showNotificationDot;
   final bool isLast;
   final VoidCallback onTap;
@@ -1333,7 +1332,6 @@ class _QuickAction extends StatelessWidget {
     this.iconData,
     required this.title,
     required this.onTap,
-    this.subtitle,
     this.showNotificationDot = false,
     this.isLast = false,
   });
@@ -1398,17 +1396,6 @@ class _QuickAction extends StatelessWidget {
                       ),
                     ),
 
-                    if (subtitle != null) ...[
-                      const SizedBox(height: 2),
-
-                      Text(
-                        subtitle!,
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          color: AppColors.mutedColor,
-                        ),
-                      ),
-                    ],
                   ],
                 ),
               ),
