@@ -1,10 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
-
-import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/widgets/feature_widgets.dart';
@@ -172,8 +169,8 @@ class _MyPayScreenState extends ConsumerState<MyPayScreen> {
               _buildPeriodBar(state),
               const SizedBox(height: 14),
               ..._buildBody(state),
-              const SizedBox(height: 16),
-              _buildBankLink(),
+              // const SizedBox(height: 16),
+              // _buildBankLink(),
               const SizedBox(height: 8),
               _buildHistory(state),
             ],
@@ -393,44 +390,44 @@ class _MyPayScreenState extends ConsumerState<MyPayScreen> {
     );
   }
 
-  Widget _buildBankLink() {
-    return FeatureCard(
-      onTap: () => context.push(AppRoutes.profile),
-      child: Row(
-        children: [
-          const Icon(
-            Icons.account_balance_outlined,
-            color: AppColors.saffronText,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  ref.tr('pay.bankDetails'),
-                  style: GoogleFonts.inter(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.textColor,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  ref.tr('pay.bankDetailsHint'),
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: AppColors.mutedColor,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const Icon(Icons.chevron_right_rounded, color: AppColors.mutedColor),
-        ],
-      ),
-    );
-  }
+  // Widget _buildBankLink() {
+  //   return FeatureCard(
+  //     onTap: () => context.push(AppRoutes.profile),
+  //     child: Row(
+  //       children: [
+  //         const Icon(
+  //           Icons.account_balance_outlined,
+  //           color: AppColors.saffronText,
+  //         ),
+  //         const SizedBox(width: 12),
+  //         Expanded(
+  //           child: Column(
+  //             crossAxisAlignment: CrossAxisAlignment.start,
+  //             children: [
+  //               Text(
+  //                 ref.tr('pay.bankDetails'),
+  //                 style: GoogleFonts.inter(
+  //                   fontSize: 14,
+  //                   fontWeight: FontWeight.w600,
+  //                   color: AppColors.textColor,
+  //                 ),
+  //               ),
+  //               const SizedBox(height: 2),
+  //               Text(
+  //                 ref.tr('pay.bankDetailsHint'),
+  //                 style: GoogleFonts.inter(
+  //                   fontSize: 12,
+  //                   color: AppColors.mutedColor,
+  //                 ),
+  //               ),
+  //             ],
+  //           ),
+  //         ),
+  //         const Icon(Icons.chevron_right_rounded, color: AppColors.mutedColor),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   // ==========================================================================
   // PREVIOUS MONTHS

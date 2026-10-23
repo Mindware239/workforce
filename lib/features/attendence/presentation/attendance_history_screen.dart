@@ -359,7 +359,7 @@ class _AttendanceHistoryScreenState
           ),
         ),
 
-        const SizedBox(width: 12),
+        const SizedBox(width: 4),
 
         Expanded(
           child: _SummaryCard(
@@ -369,7 +369,7 @@ class _AttendanceHistoryScreenState
           ),
         ),
 
-        const SizedBox(width: 12),
+        const SizedBox(width: 4),
 
         Expanded(
           child: _SummaryCard(
@@ -522,46 +522,7 @@ class _AttendanceHistoryScreenState
   }
 
   Widget _buildLoading() {
-    return Column(
-      children: [
-        Container(
-          width: double.infinity,
-          height: 370,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFEADFE3)),
-          ),
-          child: const Center(child: CircularProgressIndicator()),
-        ),
-
-        const SizedBox(height: 12),
-
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                height: 78,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Container(
-                height: 78,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
+    return const _AttendanceHistoryShimmer();
   }
 
   Widget _buildError(String message) {
@@ -816,8 +777,8 @@ class _SummaryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 78,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      height: 76,
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
@@ -1186,7 +1147,7 @@ class _DateBadge extends ConsumerWidget {
   }
 }
 
-class _StatusBadge extends ConsumerWidget  {
+class _StatusBadge extends ConsumerWidget {
   final String status;
 
   const _StatusBadge({required this.status});
@@ -1218,7 +1179,7 @@ class _StatusBadge extends ConsumerWidget  {
         borderRadius: BorderRadius.circular(20),
       ),
       child: Text(
-       _statusLabel(status, ref).toUpperCase(),
+        _statusLabel(status, ref).toUpperCase(),
         style: GoogleFonts.inter(
           fontSize: 9,
           fontWeight: FontWeight.w700,
@@ -1229,28 +1190,28 @@ class _StatusBadge extends ConsumerWidget  {
   }
 
   String _statusLabel(String value, WidgetRef ref) {
-  switch (value.toLowerCase()) {
-    case 'late':
-      return ref.tr('attendanceHistory.late');
+    switch (value.toLowerCase()) {
+      case 'late':
+        return ref.tr('attendanceHistory.late');
 
-    case 'on_time':
-    case 'on-time':
-      return ref.tr('attendanceHistory.onTime');
+      case 'on_time':
+      case 'on-time':
+        return ref.tr('attendanceHistory.onTime');
 
-    case 'early_exit':
-    case 'early-exit':
-      return ref.tr('attendanceHistory.earlyExit');
+      case 'early_exit':
+      case 'early-exit':
+        return ref.tr('attendanceHistory.earlyExit');
 
-    case 'present':
-      return ref.tr('attendanceHistory.present');
+      case 'present':
+        return ref.tr('attendanceHistory.present');
 
-    case 'absent':
-      return ref.tr('attendanceHistory.absent');
+      case 'absent':
+        return ref.tr('attendanceHistory.absent');
 
-    default:
-      return value.replaceAll('_', ' ');
+      default:
+        return value.replaceAll('_', ' ');
+    }
   }
-}
 }
 
 class _BottomInfo extends StatelessWidget {
@@ -1290,6 +1251,229 @@ class _BottomInfo extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _AttendanceHistoryShimmer extends StatefulWidget {
+  const _AttendanceHistoryShimmer();
+
+  @override
+  State<_AttendanceHistoryShimmer> createState() =>
+      _AttendanceHistoryShimmerState();
+}
+
+class _AttendanceHistoryShimmerState extends State<_AttendanceHistoryShimmer>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1400),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  Widget _placeholder({double? width, double height = 12, double radius = 6}) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE7E7E7),
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+  }
+
+  Widget _calendarSkeleton() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderColor),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _placeholder(width: 35, height: 35, radius: 12),
+              const Spacer(),
+              _placeholder(width: 125, height: 16),
+              const Spacer(),
+              _placeholder(width: 35, height: 35, radius: 12),
+            ],
+          ),
+          const SizedBox(height: 22),
+          Row(
+            children: List.generate(
+              7,
+              (_) => Expanded(
+                child: Center(child: _placeholder(width: 22, height: 9)),
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: 35,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              mainAxisSpacing: 5,
+              crossAxisSpacing: 3,
+              childAspectRatio: 1.15,
+            ),
+            itemBuilder: (context, index) {
+              return Center(
+                child: _placeholder(width: 27, height: 27, radius: 9),
+              );
+            },
+          ),
+          const SizedBox(height: 12),
+          Align(
+            alignment: Alignment.centerRight,
+            child: _placeholder(width: 65, height: 10),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _summarySkeleton() {
+    return Row(
+      children: List.generate(3, (index) {
+        return Expanded(
+          child: Container(
+            height: 76,
+            margin: EdgeInsets.only(right: index == 2 ? 0 : 4),
+            padding: const EdgeInsets.all(9),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.borderColor),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _placeholder(width: 48, height: 11),
+                const SizedBox(height: 9),
+                _placeholder(width: 57, height: 19),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+  }
+
+  Widget _logCardSkeleton() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.borderColor),
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              _placeholder(width: 48, height: 48, radius: 11),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _placeholder(width: 85, height: 12),
+                    const SizedBox(height: 8),
+                    _placeholder(width: 115, height: 10),
+                  ],
+                ),
+              ),
+              _placeholder(width: 65, height: 25, radius: 20),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Container(height: 1, color: const Color(0xFFECE3E6)),
+          const SizedBox(height: 12),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _placeholder(width: 55, height: 25),
+              _placeholder(width: 55, height: 25),
+              _placeholder(width: 65, height: 25),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _shimmerContent() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _calendarSkeleton(),
+        const SizedBox(height: 16),
+        _summarySkeleton(),
+        const SizedBox(height: 20),
+        _placeholder(width: 150, height: 14),
+        const SizedBox(height: 16),
+        _placeholder(width: double.infinity, height: 90, radius: 12),
+        const SizedBox(height: 24),
+        Row(
+          children: [
+            _placeholder(width: 110, height: 14),
+            const Spacer(),
+            _placeholder(width: 75, height: 25, radius: 8),
+          ],
+        ),
+        const SizedBox(height: 16),
+        _logCardSkeleton(),
+        const SizedBox(height: 12),
+        _logCardSkeleton(),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _controller,
+      builder: (context, child) {
+        final progress = _controller.value * 2 - 1;
+
+        return ShaderMask(
+          blendMode: BlendMode.srcATop,
+          shaderCallback: (bounds) {
+            return LinearGradient(
+              begin: Alignment(progress - 1, 0),
+              end: Alignment(progress + 1, 0),
+              colors: const [
+                Color(0xFFE7E7E7),
+                Color(0xFFF7F7F7),
+                Color(0xFFE7E7E7),
+              ],
+              stops: const [0.25, 0.5, 0.75],
+            ).createShader(bounds);
+          },
+          child: child,
+        );
+      },
+      child: _shimmerContent(),
     );
   }
 }

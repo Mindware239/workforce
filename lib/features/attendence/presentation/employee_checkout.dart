@@ -129,7 +129,7 @@ class ConfirmCheckoutPhotoScreen extends StatelessWidget {
 
  
   void _confirmCheckout(BuildContext context) {
-    // TODO:
+  
     // Call checkout API here.
     //
     // Example:

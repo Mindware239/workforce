@@ -1,14 +1,10 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/features/attendence/presentation/attendence_record.dart';
-
 import '../providers/attendance_provider.dart';
 
 class AttendanceScreen extends ConsumerStatefulWidget {
@@ -75,9 +71,9 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
               else ...[
                 _buildAttendanceInfo(attendanceState),
 
-                const SizedBox(height: 12),
+                // const SizedBox(height: 12),
 
-                _buildShortcuts(),
+                // _buildShortcuts(),
 
                 const SizedBox(height: 16),
 
@@ -295,74 +291,74 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   // DEVICE CHECK / FIELD WORK
   // ============================================================
 
-  Widget _buildShortcuts() {
-    Widget tile({
-      required IconData icon,
-      required String title,
-      required String subtitle,
-      required String route,
-    }) {
-      return Expanded(
-        child: Material(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          child: InkWell(
-            borderRadius: BorderRadius.circular(12),
-            onTap: () => context.push(route),
-            child: Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: AppColors.borderColor, width: 1),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(icon, size: 20, color: AppColors.primaryFillColor),
-                  const SizedBox(height: 8),
-                  Text(
-                    title,
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.textColor,
-                    ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.inter(
-                      fontSize: 11,
-                      color: AppColors.mutedColor,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
+  // Widget _buildShortcuts() {
+  //   Widget tile({
+  //     required IconData icon,
+  //     required String title,
+  //     required String subtitle,
+  //     required String route,
+  //   }) {
+  //     return Expanded(
+  //       child: Material(
+  //         color: Colors.white,
+  //         borderRadius: BorderRadius.circular(12),
+  //         child: InkWell(
+  //           borderRadius: BorderRadius.circular(12),
+  //           onTap: () => context.push(route),
+  //           child: Container(
+  //             padding: const EdgeInsets.all(12),
+  //             decoration: BoxDecoration(
+  //               borderRadius: BorderRadius.circular(12),
+  //               border: Border.all(color: AppColors.borderColor, width: 1),
+  //             ),
+  //             child: Column(
+  //               crossAxisAlignment: CrossAxisAlignment.start,
+  //               children: [
+  //                 Icon(icon, size: 20, color: AppColors.primaryFillColor),
+  //                 const SizedBox(height: 8),
+  //                 Text(
+  //                   title,
+  //                   style: GoogleFonts.inter(
+  //                     fontSize: 14,
+  //                     fontWeight: FontWeight.w600,
+  //                     color: AppColors.textColor,
+  //                   ),
+  //                 ),
+  //                 const SizedBox(height: 2),
+  //                 Text(
+  //                   subtitle,
+  //                   style: GoogleFonts.inter(
+  //                     fontSize: 11,
+  //                     color: AppColors.mutedColor,
+  //                   ),
+  //                 ),
+  //               ],
+  //             ),
+  //           ),
+  //         ),
+  //       ),
+  //     );
+  //   }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        tile(
-          icon: Icons.phonelink_lock_outlined,
-          title: ref.tr('attendance.deviceCheck'),
-          subtitle: ref.tr('attendance.deviceCheckSubtitle'),
-          route: AppRoutes.deviceCheck,
-        ),
-        const SizedBox(width: 12),
-        tile(
-          icon: Icons.directions_walk_rounded,
-          title: ref.tr('attendance.fieldWork'),
-          subtitle: ref.tr('attendance.fieldWorkSubtitle'),
-          route: AppRoutes.fieldWork,
-        ),
-      ],
-    );
-  }
+  //   return Row(
+  //     crossAxisAlignment: CrossAxisAlignment.start,
+  //     children: [
+  //       tile(
+  //         icon: Icons.phonelink_lock_outlined,
+  //         title: ref.tr('attendance.deviceCheck'),
+  //         subtitle: ref.tr('attendance.deviceCheckSubtitle'),
+  //         route: AppRoutes.deviceCheck,
+  //       ),
+  //       const SizedBox(width: 12),
+  //       tile(
+  //         icon: Icons.directions_walk_rounded,
+  //         title: ref.tr('attendance.fieldWork'),
+  //         subtitle: ref.tr('attendance.fieldWorkSubtitle'),
+  //         route: AppRoutes.fieldWork,
+  //       ),
+  //     ],
+  //   );
+  // }
 
   Widget _buildStats(AttendanceState attendanceState) {
     final today = attendanceState.today;

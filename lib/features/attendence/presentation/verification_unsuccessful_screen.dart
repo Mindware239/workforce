@@ -179,7 +179,7 @@ class _VerificationUnsuccessfulScreenState
       height: 48,
       child: OutlinedButton(
         onPressed: () {
-          // TODO: Open support
+         
         },
         style: OutlinedButton.styleFrom(
           foregroundColor: AppColors.saffronText,

@@ -12,6 +12,7 @@ import 'package:workforce/features/assets/presentation/my_assets_screen.dart';
 import 'package:workforce/features/expenses/presentation/expense_detail_screen.dart';
 import 'package:workforce/features/expenses/presentation/expenses_screen.dart';
 import 'package:workforce/features/expenses/presentation/new_expense_screen.dart';
+import 'package:workforce/features/profile/presentation/bank_details_widget.dart';
 import 'package:workforce/features/reviews/presentation/review_detail_screen.dart';
 import 'package:workforce/features/reviews/presentation/reviews_screen.dart';
 import 'package:workforce/features/attendence/presentation/face_capture_screen.dart';
@@ -53,6 +54,7 @@ class AppRoutes {
   static const String task = '/dashboard/task';
   static const String schedule = '/dashboard/schedule';
   static const String profile = '/dashboard/profile';
+  static const String bank = '/dashboard/bank';
   static const String document = '/dashboard/document';
   static const String notification = '/dashboard/notification';
 
@@ -261,6 +263,13 @@ class AppRoutes {
       name: 'profile',
       builder: (context, state) {
         return const ProfileScreen();
+      },
+    ),
+    GoRoute(
+      path: bank,
+      name: 'bank',
+      builder: (context, state) {
+        return BankDetailsWidget();
       },
     ),
 
