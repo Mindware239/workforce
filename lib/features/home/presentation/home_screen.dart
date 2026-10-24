@@ -32,6 +32,9 @@ class HomeScreen extends ConsumerStatefulWidget {
 class _HomeScreenState extends ConsumerState<HomeScreen> {
   Timer? _attendanceTimer;
 
+  // Calendar day the attendance was last loaded for; a change means a new day.
+  DateTime _loadedDay = DateUtils.dateOnly(DateTime.now());
+
   // Stable targets for the first-launch home screen tour.
   final GlobalKey _tourGreeting = GlobalKey();
   final GlobalKey _tourShift = GlobalKey();
@@ -273,6 +276,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
     _attendanceTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
+
+      // App left open past midnight: yesterday's record is no longer "today".
+      final day = DateUtils.dateOnly(DateTime.now());
+      if (day != _loadedDay) {
+        _loadedDay = day;
+        ref.read(attendanceProvider.notifier).getDashboard();
+        ref.read(attendanceProvider.notifier).getTodayAttendance();
+        return;
+      }
 
       final attendance = ref.read(attendanceProvider);
 

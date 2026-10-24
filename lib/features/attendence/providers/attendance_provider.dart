@@ -276,6 +276,7 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
         isLoadingToday: false,
 
         today: todayData is Map ? Map<String, dynamic>.from(todayData) : null,
+        clearToday: todayData is! Map,
 
         schedule: scheduleData is Map
             ? Map<String, dynamic>.from(scheduleData)
@@ -341,6 +342,7 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
       state = state.copyWith(
         isLoadingToday: false,
         today: todayData is Map ? Map<String, dynamic>.from(todayData) : null,
+        clearToday: todayData is! Map,
         schedule: scheduleData is Map
             ? Map<String, dynamic>.from(scheduleData)
             : null,
