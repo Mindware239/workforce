@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:workforce/core/push/push_notification_service.dart';
 import 'package:workforce/core/realtime/realtime_service.dart';
 import 'package:workforce/core/services/auth_service.dart';
 import 'package:workforce/features/auth/data/auth_repository.dart';
@@ -230,6 +231,8 @@ class AuthNotifier
   Future<void> logout() async {
     // Close the live connection before the token goes.
     RealtimeService.instance.disconnect();
+    // While the token is still stored: the backend forgets this phone.
+    await PushNotificationService.instance.unregisterDevice();
 
     await repository.secureStorage
         .clearAuth();

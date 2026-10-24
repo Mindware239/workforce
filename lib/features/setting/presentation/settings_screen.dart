@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/localization/app_language.dart';
 import 'package:workforce/core/localization/app_localization.dart';
+import 'package:workforce/core/push/push_notification_service.dart';
 import 'package:workforce/core/realtime/realtime_service.dart';
 import 'package:workforce/core/services/auth_service.dart';
 import 'package:workforce/core/services/secure_storage.dart';
@@ -34,6 +35,8 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
 
     // Close the live connection before the token goes.
     RealtimeService.instance.disconnect();
+    // While the token is still stored: the backend forgets this phone.
+    await PushNotificationService.instance.unregisterDevice();
 
     // Remove JWT and saved employee data
     await secureStorage.clearAuth();

@@ -7,6 +7,9 @@ import UIKit
     _ application: UIApplication,
     didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?
   ) -> Bool {
+    // Lets notifications shown while the app is open (and taps on them) reach
+    // flutter_local_notifications and firebase_messaging.
+    UNUserNotificationCenter.current().delegate = self as UNUserNotificationCenterDelegate
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 
