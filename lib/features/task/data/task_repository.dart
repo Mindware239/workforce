@@ -491,6 +491,11 @@ class TaskRepository {
     if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) {
       return DioMediaType('image', 'jpeg');
     }
+    if (lower.endsWith('.m4a')) return DioMediaType('audio', 'mp4');
+    if (lower.endsWith('.aac')) return DioMediaType('audio', 'aac');
+    if (lower.endsWith('.mp3')) return DioMediaType('audio', 'mpeg');
+    if (lower.endsWith('.wav')) return DioMediaType('audio', 'wav');
+    if (lower.endsWith('.ogg')) return DioMediaType('audio', 'ogg');
     if (lower.endsWith('.txt')) return DioMediaType('text', 'plain');
     if (lower.endsWith('.csv')) return DioMediaType('text', 'csv');
     if (lower.endsWith('.doc')) return DioMediaType('application', 'msword');

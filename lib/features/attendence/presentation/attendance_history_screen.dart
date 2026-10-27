@@ -5,6 +5,7 @@ import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/features/attendence/data/attendance_pdf_service.dart';
+import 'package:workforce/core/widgets/feature_widgets.dart';
 import 'package:workforce/features/attendence/presentation/attendance_history_extras.dart';
 
 import '../providers/attendance_provider.dart';
@@ -120,13 +121,48 @@ class _AttendanceHistoryScreenState
   }
 
   Widget _buildHeader() {
-    return Text(
-      ref.tr('attendanceHistory.title'),
-      style: GoogleFonts.inter(
-        fontSize: 30,
-        fontWeight: FontWeight.bold,
-        color: AppColors.textColor,
-      ),
+    return Row(
+      children: [
+        Expanded(
+          child: Text(
+            ref.tr('attendanceHistory.title'),
+            style: GoogleFonts.inter(
+              fontSize: 26,
+              fontWeight: FontWeight.bold,
+              color: AppColors.textColor,
+            ),
+          ),
+        ),
+        ElevatedButton.icon(
+          onPressed: () async {
+            final sent = await CorrectionSheet.show(context);
+            if (sent == true && mounted) {
+              _loadHistory();
+              showFeatureSnack(
+                context,
+                ref.tr('attendanceHistory.correctionSent'),
+              );
+            }
+          },
+          icon: const Icon(Icons.edit_calendar_outlined, size: 16),
+          label: Text(
+            ref.tr('attendanceHistory.requestCorrection'),
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AppColors.primaryFillColor,
+            foregroundColor: AppColors.white,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -479,7 +515,7 @@ class _AttendanceHistoryScreenState
       children: records.map((record) {
         return Padding(
           padding: const EdgeInsets.only(bottom: 12),
-          child: _AttendanceLogCard(record: record),
+          child: _AttendanceLogCard(record: record, onCorrectionRequested: _loadHistory),
         );
       }).toList(),
     );
@@ -815,8 +851,23 @@ class _SummaryCard extends StatelessWidget {
 
 class _AttendanceLogCard extends ConsumerWidget {
   final Map<String, dynamic> record;
+  final VoidCallback? onCorrectionRequested;
 
-  const _AttendanceLogCard({required this.record});
+  const _AttendanceLogCard({
+    required this.record,
+    this.onCorrectionRequested,
+  });
+
+  TimeOfDay? _parseHhmm(String? str) {
+    if (str == null || str.isEmpty) return null;
+    final parts = str.split(':');
+    if (parts.length >= 2) {
+      final h = int.tryParse(parts[0]);
+      final m = int.tryParse(parts[1]);
+      if (h != null && m != null) return TimeOfDay(hour: h, minute: m);
+    }
+    return null;
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -912,6 +963,46 @@ class _AttendanceLogCard extends ConsumerWidget {
           ),
 
           ..._extraLines(ref),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final sent = await CorrectionSheet.show(
+                    context,
+                    initialDate: date,
+                    initialEntry: _parseHhmm(entryTime),
+                    initialExit: _parseHhmm(exitTime),
+                  );
+                  if (sent == true && context.mounted) {
+                    showFeatureSnack(
+                      context,
+                      ref.tr('attendanceHistory.correctionSent'),
+                    );
+                    onCorrectionRequested?.call();
+                  }
+                },
+                icon: const Icon(Icons.edit_calendar_outlined, size: 14),
+                label: Text(
+                  ref.tr('attendanceHistory.requestCorrection'),
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.saffronText,
+                  side: const BorderSide(color: AppColors.borderColor),
+                  visualDensity: VisualDensity.compact,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ],
       ),
     );

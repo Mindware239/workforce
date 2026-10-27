@@ -302,15 +302,7 @@ class AttendanceHistoryExtras extends ConsumerWidget {
   }
 
   Future<void> _openRequest(BuildContext context, WidgetRef ref) async {
-    final sent = await showModalBottomSheet<bool>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
-      ),
-      builder: (_) => const _CorrectionSheet(),
-    );
+    final sent = await CorrectionSheet.show(context);
 
     if (sent == true) {
       if (context.mounted) {
@@ -322,18 +314,56 @@ class AttendanceHistoryExtras extends ConsumerWidget {
   }
 }
 
-class _CorrectionSheet extends ConsumerStatefulWidget {
-  const _CorrectionSheet();
+class CorrectionSheet extends ConsumerStatefulWidget {
+  final DateTime? initialDate;
+  final TimeOfDay? initialEntry;
+  final TimeOfDay? initialExit;
+
+  const CorrectionSheet({
+    super.key,
+    this.initialDate,
+    this.initialEntry,
+    this.initialExit,
+  });
+
+  static Future<bool?> show(
+    BuildContext context, {
+    DateTime? initialDate,
+    TimeOfDay? initialEntry,
+    TimeOfDay? initialExit,
+  }) {
+    return showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: AppColors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (_) => CorrectionSheet(
+        initialDate: initialDate,
+        initialEntry: initialEntry,
+        initialExit: initialExit,
+      ),
+    );
+  }
 
   @override
-  ConsumerState<_CorrectionSheet> createState() => _CorrectionSheetState();
+  ConsumerState<CorrectionSheet> createState() => _CorrectionSheetState();
 }
 
-class _CorrectionSheetState extends ConsumerState<_CorrectionSheet> {
+class _CorrectionSheetState extends ConsumerState<CorrectionSheet> {
   final _reason = TextEditingController();
-  DateTime _date = DateTime.now();
+  late DateTime _date;
   TimeOfDay? _entry;
   TimeOfDay? _exit;
+
+  @override
+  void initState() {
+    super.initState();
+    _date = widget.initialDate ?? DateTime.now();
+    _entry = widget.initialEntry;
+    _exit = widget.initialExit;
+  }
   bool _sending = false;
   String? _error;
 

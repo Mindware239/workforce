@@ -11,6 +11,7 @@ import 'package:workforce/core/widgets/feature_widgets.dart';
 import 'package:workforce/features/task/data/task_repository.dart';
 import 'package:workforce/features/task/presentation/task_screen.dart';
 import 'package:workforce/features/task/presentation/task_ui.dart';
+import 'package:workforce/features/task/presentation/task_voice_recorder.dart';
 import 'package:workforce/features/task/providers/task_record_provider.dart';
 
 /// One task in full, as the web's task-detail-dialog shows it: the brief,
@@ -77,130 +78,41 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   }
 
   Future<void> _openSubmit(bool evidenceRequired, int proofCount) async {
-    final controller = TextEditingController();
-
-    final note = await showDialog<String>(
+    final result = await showDialog<({String note, VoiceProofResult? voice})>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          ref.tr('taskx.submitForReview'),
-          style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w700),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (evidenceRequired && proofCount == 0) ...[
-              Text(
-                ref.tr('taskx.proofNeeded'),
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: AppColors.saffronText,
-                ),
-              ),
-              const SizedBox(height: 10),
-            ],
-            TextField(
-              controller: controller,
-              maxLines: 3,
-              maxLength: 2000,
-              decoration: featureInputDecoration(ref.tr('taskx.submitNote')),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: Text(ref.tr('common.cancel')),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(controller.text.trim()),
-            child: Text(ref.tr('taskx.send')),
-          ),
-        ],
+      builder: (_) => _SubmitReviewDialog(
+        evidenceRequired: evidenceRequired,
+        proofCount: proofCount,
       ),
     );
 
-    controller.dispose();
+    if (result == null) return;
 
-    if (note == null) return;
+    if (result.voice != null) {
+      await _run(
+        () => _repo.uploadAttachments(
+          _id,
+          files: [(path: result.voice!.path, name: result.voice!.name)],
+          caption: result.voice!.caption ?? (result.note.isNotEmpty ? result.note : 'Completion voice proof'),
+        ),
+      );
+    }
 
     await _run(
       () => _repo.runLifecycleAction(
         _id,
         'submit',
-        data: {if (note.isNotEmpty) 'note': note},
+        data: {if (result.note.isNotEmpty) 'note': result.note},
       ),
       successKey: 'taskx.submittedToast',
     );
   }
 
   Future<void> _openBlock() async {
-    final controller = TextEditingController();
-    String reason = 'waiting_for_client';
-
     final result = await showDialog<({String code, String note})>(
       context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          title: Text(
-            ref.tr('taskx.markBlocked'),
-            style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w700),
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                DropdownButtonFormField<String>(
-                  initialValue: reason,
-                  isExpanded: true,
-                  decoration: featureInputDecoration(
-                    ref.tr('taskx.blockReason'),
-                  ),
-                  items: [
-                    for (final code in taskBlockReasons)
-                      DropdownMenuItem(
-                        value: code,
-                        child: Text(
-                          taskBlockReasonLabel(ref, code),
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(fontSize: 13),
-                        ),
-                      ),
-                  ],
-                  onChanged: (value) {
-                    if (value != null) setDialogState(() => reason = value);
-                  },
-                ),
-                const SizedBox(height: 12),
-                TextField(
-                  controller: controller,
-                  maxLines: 3,
-                  maxLength: 2000,
-                  decoration: featureInputDecoration(
-                    ref.tr('taskx.blockNote'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: Text(ref.tr('common.cancel')),
-            ),
-            ElevatedButton(
-              onPressed: () => Navigator.of(context).pop(
-                (code: reason, note: controller.text.trim()),
-              ),
-              child: Text(ref.tr('taskx.markBlocked')),
-            ),
-          ],
-        ),
-      ),
+      builder: (_) => const _BlockTaskDialog(),
     );
-
-    controller.dispose();
 
     if (result == null) return;
 
@@ -240,6 +152,12 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
               onTap: () => Navigator.of(context).pop('gallery'),
             ),
             ListTile(
+              leading: const Icon(Icons.mic_none_outlined, color: AppColors.primaryFillColor),
+              title: const Text('Record Voice Proof'),
+              subtitle: const Text('Record audio explanation as proof of completion'),
+              onTap: () => Navigator.of(context).pop('voice'),
+            ),
+            ListTile(
               leading: const Icon(Icons.attach_file),
               title: Text(ref.tr('taskx.chooseFiles')),
               onTap: () => Navigator.of(context).pop('file'),
@@ -250,6 +168,21 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     );
 
     if (choice == null || !mounted) return;
+
+    if (choice == 'voice') {
+      final voiceResult = await TaskVoiceRecorderDialog.show(context);
+      if (voiceResult != null && mounted) {
+        await _run(
+          () => _repo.uploadAttachments(
+            _id,
+            files: [(path: voiceResult.path, name: voiceResult.name)],
+            caption: voiceResult.caption,
+          ),
+          successKey: 'taskx.proofAdded',
+        );
+      }
+      return;
+    }
 
     final files = <({String path, String name})>[];
 
@@ -286,51 +219,12 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
 
     if (files.isEmpty || !mounted) return;
 
-    final captionController = TextEditingController();
-
-    final confirmed = await showDialog<bool>(
+    final caption = await showDialog<String>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: Text(
-          ref.tr('taskx.addProof'),
-          style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w700),
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              files.map((f) => f.name).join('\n'),
-              style: GoogleFonts.inter(
-                fontSize: 12,
-                color: AppColors.mutedColor,
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: captionController,
-              maxLength: 200,
-              decoration: featureInputDecoration(ref.tr('taskx.caption')),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(ref.tr('common.cancel')),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(ref.tr('taskx.upload')),
-          ),
-        ],
-      ),
+      builder: (_) => _AddProofCaptionDialog(files: files),
     );
 
-    final caption = captionController.text.trim();
-    captionController.dispose();
-
-    if (confirmed != true) return;
+    if (caption == null) return;
 
     await _run(
       () => _repo.uploadAttachments(_id, files: files, caption: caption),
@@ -967,6 +861,13 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     final attachmentId = toInt(file['id']);
     final isImage = file['isImage'] == true;
     final name = file['originalName']?.toString() ?? '';
+    final mime = file['mimeType']?.toString().toLowerCase() ?? '';
+    final isAudio = mime.startsWith('audio/') ||
+        name.endsWith('.m4a') ||
+        name.endsWith('.aac') ||
+        name.endsWith('.mp3') ||
+        name.endsWith('.wav') ||
+        name.endsWith('.ogg');
     final caption = file['caption']?.toString() ?? '';
     final meta = [
       file['uploadedByName']?.toString() ?? '',
@@ -976,7 +877,17 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     return FeatureCard(
       margin: const EdgeInsets.only(bottom: 8),
       padding: const EdgeInsets.all(10),
-      onTap: isImage ? () => _previewImage(file) : () => _download(file),
+      onTap: isImage
+          ? () => _previewImage(file)
+          : isAudio && attachmentId != null
+              ? () => TaskAudioPlayerDialog.show(
+                    context,
+                    taskId: _id,
+                    attachmentId: attachmentId,
+                    fileName: name,
+                    caption: caption,
+                  )
+              : () => _download(file),
       child: Row(
         children: [
           ClipRRect(
@@ -986,13 +897,21 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
               height: 48,
               child: isImage && attachmentId != null
                   ? _AttachmentImage(taskId: _id, attachmentId: attachmentId)
-                  : Container(
-                      color: AppColors.saffronTint,
-                      child: const Icon(
-                        Icons.insert_drive_file_outlined,
-                        color: AppColors.saffronText,
-                      ),
-                    ),
+                  : isAudio
+                      ? Container(
+                          color: AppColors.saffronTint,
+                          child: const Icon(
+                            Icons.graphic_eq_rounded,
+                            color: AppColors.saffronText,
+                          ),
+                        )
+                      : Container(
+                          color: AppColors.saffronTint,
+                          child: const Icon(
+                            Icons.insert_drive_file_outlined,
+                            color: AppColors.saffronText,
+                          ),
+                        ),
             ),
           ),
           const SizedBox(width: 10),
@@ -1027,6 +946,21 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
               ],
             ),
           ),
+          if (isAudio && attachmentId != null)
+            IconButton(
+              tooltip: 'Play voice note',
+              icon: const Icon(
+                Icons.play_circle_outline_rounded,
+                color: AppColors.primaryFillColor,
+              ),
+              onPressed: () => TaskAudioPlayerDialog.show(
+                context,
+                taskId: _id,
+                attachmentId: attachmentId,
+                fileName: name,
+                caption: caption,
+              ),
+            ),
           IconButton(
             tooltip: ref.tr('taskx.download'),
             icon: const Icon(Icons.download_outlined),
@@ -1476,6 +1410,266 @@ class _AddNoteFieldState extends ConsumerState<_AddNoteField> {
             onPressed: widget.enabled ? _send : null,
             icon: const Icon(Icons.send_rounded),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+// ============================================================================
+// SELF-CONTAINED DIALOG WIDGETS (Disposes TextEditingController properly in State)
+// ============================================================================
+
+class _SubmitReviewDialog extends ConsumerStatefulWidget {
+  final bool evidenceRequired;
+  final int proofCount;
+
+  const _SubmitReviewDialog({
+    required this.evidenceRequired,
+    required this.proofCount,
+  });
+
+  @override
+  ConsumerState<_SubmitReviewDialog> createState() => _SubmitReviewDialogState();
+}
+
+class _SubmitReviewDialogState extends ConsumerState<_SubmitReviewDialog> {
+  final TextEditingController _controller = TextEditingController();
+  VoiceProofResult? _recordedVoice;
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(
+        ref.tr('taskx.submitForReview'),
+        style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w700),
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (widget.evidenceRequired && widget.proofCount == 0 && _recordedVoice == null) ...[
+              Text(
+                'This task asks for proof: add a photo, file, or record a voice explanation below.',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: AppColors.saffronText,
+                ),
+              ),
+              const SizedBox(height: 10),
+            ],
+            TextField(
+              controller: _controller,
+              maxLines: 3,
+              maxLength: 2000,
+              decoration: featureInputDecoration(ref.tr('taskx.submitNote')),
+            ),
+            const SizedBox(height: 10),
+            if (_recordedVoice != null) ...[
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                decoration: BoxDecoration(
+                  color: AppColors.saffronTint,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: AppColors.borderColor),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.graphic_eq_rounded, color: AppColors.saffronText, size: 20),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Voice proof attached',
+                        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 18, color: Colors.redAccent),
+                      onPressed: () => setState(() => _recordedVoice = null),
+                    ),
+                  ],
+                ),
+              ),
+            ] else ...[
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final v = await TaskVoiceRecorderDialog.show(
+                    context,
+                    title: 'Record Completion Voice Note',
+                    subtitle: 'Record audio explanation of work done as proof.',
+                  );
+                  if (v != null && mounted) {
+                    setState(() => _recordedVoice = v);
+                  }
+                },
+                icon: const Icon(Icons.mic_none_outlined, size: 16),
+                label: const Text(
+                  'Record Voice Note / Proof',
+                  style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
+                ),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: AppColors.primaryFillColor,
+                  side: const BorderSide(color: AppColors.primaryFillColor),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(ref.tr('common.cancel')),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.of(context).pop(
+            (note: _controller.text.trim(), voice: _recordedVoice),
+          ),
+          child: Text(ref.tr('taskx.send')),
+        ),
+      ],
+    );
+  }
+}
+
+class _BlockTaskDialog extends ConsumerStatefulWidget {
+  const _BlockTaskDialog();
+
+  @override
+  ConsumerState<_BlockTaskDialog> createState() => _BlockTaskDialogState();
+}
+
+class _BlockTaskDialogState extends ConsumerState<_BlockTaskDialog> {
+  final TextEditingController _controller = TextEditingController();
+  String _reason = 'waiting_for_client';
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(
+        ref.tr('taskx.markBlocked'),
+        style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w700),
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            DropdownButtonFormField<String>(
+              initialValue: _reason,
+              isExpanded: true,
+              decoration: featureInputDecoration(
+                ref.tr('taskx.blockReason'),
+              ),
+              items: [
+                for (final code in taskBlockReasons)
+                  DropdownMenuItem(
+                    value: code,
+                    child: Text(
+                      taskBlockReasonLabel(ref, code),
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(fontSize: 13),
+                    ),
+                  ),
+              ],
+              onChanged: (value) {
+                if (value != null) setState(() => _reason = value);
+              },
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _controller,
+              maxLines: 3,
+              maxLength: 2000,
+              decoration: featureInputDecoration(
+                ref.tr('taskx.blockNote'),
+              ),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(ref.tr('common.cancel')),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.of(context).pop(
+            (code: _reason, note: _controller.text.trim()),
+          ),
+          child: Text(ref.tr('taskx.markBlocked')),
+        ),
+      ],
+    );
+  }
+}
+
+class _AddProofCaptionDialog extends ConsumerStatefulWidget {
+  final List<({String path, String name})> files;
+
+  const _AddProofCaptionDialog({required this.files});
+
+  @override
+  ConsumerState<_AddProofCaptionDialog> createState() =>
+      _AddProofCaptionDialogState();
+}
+
+class _AddProofCaptionDialogState extends ConsumerState<_AddProofCaptionDialog> {
+  final TextEditingController _controller = TextEditingController();
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(
+        ref.tr('taskx.addProof'),
+        style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w700),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.files.map((f) => f.name).join('\n'),
+            style: GoogleFonts.inter(
+              fontSize: 12,
+              color: AppColors.mutedColor,
+            ),
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            controller: _controller,
+            maxLength: 200,
+            decoration: featureInputDecoration(ref.tr('taskx.caption')),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(ref.tr('common.cancel')),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.of(context).pop(_controller.text.trim()),
+          child: Text(ref.tr('taskx.upload')),
         ),
       ],
     );
