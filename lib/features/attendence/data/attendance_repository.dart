@@ -1,3 +1,7 @@
+import 'dart:convert';
+import 'package:geolocator/geolocator.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:workforce/core/offline/offline_sync_service.dart';
 import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -273,7 +277,9 @@ class AttendanceRepository {
 
       return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
-      
+      if (isNetworkError(e)) {
+        rethrow;
+      }
 
       final responseData = e.response?.data;
 
@@ -395,7 +401,9 @@ class AttendanceRepository {
 
       return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
-     
+      if (isNetworkError(e)) {
+        rethrow;
+      }
 
       final responseData = e.response?.data;
 
@@ -440,11 +448,70 @@ class AttendanceRepository {
         },
       );
 
-      
+      final result = Map<String, dynamic>.from(response.data);
 
-      return Map<String, dynamic>.from(response.data);
+      // Cache workplace location for offline geofencing
+      try {
+        final data = result['data'];
+        if (data is Map) {
+          final place = data['place'] ?? data['nearest'];
+          if (place is Map && place['lat'] != null && place['lng'] != null) {
+            final prefs = await SharedPreferences.getInstance();
+            await prefs.setString(
+              'cached_workplace_geofence',
+              jsonEncode({
+                'lat': place['lat'],
+                'lng': place['lng'],
+                'radiusMeters':
+                    place['radiusMeters'] ?? data['allowedRadiusMeters'] ?? 100,
+                'name': place['label'] ?? 'Workplace',
+              }),
+            );
+          }
+        }
+      } catch (_) {}
+
+      return result;
     } on DioException catch (e) {
-      
+      if (isNetworkError(e)) {
+        // Offline calculation using cached workplace geofence
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          final raw = prefs.getString('cached_workplace_geofence');
+          if (raw != null && raw.isNotEmpty) {
+            final cached = jsonDecode(raw) as Map;
+            final targetLat = (cached['lat'] as num).toDouble();
+            final targetLng = (cached['lng'] as num).toDouble();
+            final radius =
+                (cached['radiusMeters'] as num?)?.toDouble() ?? 100.0;
+
+            final distance =
+                Geolocator.distanceBetween(lat, lng, targetLat, targetLng);
+            return {
+              'success': true,
+              'data': {
+                'isWithinFence': distance <= radius,
+                'distanceMeters': distance.round(),
+                'allowedRadiusMeters': radius.round(),
+                'isOfflineCalculated': true,
+              },
+            };
+          }
+        } catch (_) {}
+
+        // Fallback when device is offline without cached workplace yet
+        return {
+          'success': true,
+          'data': {
+            'isWithinFence': true,
+            'distanceMeters': null,
+            'allowedRadiusMeters': null,
+            'isOfflineCalculated': true,
+            'unverifiedOffline': true,
+          },
+        };
+      }
+
       final data = e.response?.data;
 
       if (data is Map<String, dynamic> && data['message'] != null) {

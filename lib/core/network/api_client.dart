@@ -1,4 +1,7 @@
 import 'package:dio/dio.dart';
+import 'package:workforce/app/routes/app_routes.dart';
+import 'package:workforce/core/services/auth_service.dart';
+import 'package:workforce/core/services/navigation_service.dart';
 import 'package:workforce/core/services/secure_storage.dart';
 
 class ApiClient {
@@ -31,6 +34,17 @@ class ApiClient {
           }
 
           handler.next(options);
+        },
+        onError: (DioException error, handler) async {
+          if (error.response?.statusCode == 401) {
+            final path = error.requestOptions.path;
+            if (!path.contains('/auth/login')) {
+              await secureStorage.clearAuth();
+              AuthService.logout();
+              NavigationService.router.go(AppRoutes.login);
+            }
+          }
+          handler.next(error);
         },
       ),
     );

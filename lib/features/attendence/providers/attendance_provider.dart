@@ -1,7 +1,8 @@
 import 'package:flutter/foundation.dart';
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:workforce/core/offline/offline_queue_models.dart';
+import 'package:workforce/core/offline/offline_sync_service.dart';
 import '../data/attendance_repository.dart';
 
 enum AttendanceStatus { initial, loading, success, error }
@@ -46,6 +47,13 @@ class AttendanceState {
   final bool isLoadingDashboard;
   final Map<String, dynamic>? dashboard;
 
+  // ============================================================
+  // OFFLINE QUEUE STATUS
+  // ============================================================
+
+  final bool isOfflinePending;
+  final String? offlinePendingType; // 'check_in' or 'check_out'
+
   const AttendanceState({
     this.status = AttendanceStatus.initial,
     this.message,
@@ -76,6 +84,9 @@ class AttendanceState {
 
     this.isLoadingDashboard = false,
     this.dashboard,
+
+    this.isOfflinePending = false,
+    this.offlinePendingType,
   });
 
   AttendanceState copyWith({
@@ -114,6 +125,10 @@ class AttendanceState {
 
     bool? isLoadingDashboard,
     Map<String, dynamic>? dashboard,
+
+    bool? isOfflinePending,
+    String? offlinePendingType,
+    bool clearOffline = false,
   }) {
     return AttendanceState(
       status: status ?? this.status,
@@ -171,6 +186,9 @@ class AttendanceState {
       isLoadingDashboard: isLoadingDashboard ?? this.isLoadingDashboard,
 
       dashboard: dashboard ?? this.dashboard,
+
+      isOfflinePending: clearOffline ? false : isOfflinePending ?? this.isOfflinePending,
+      offlinePendingType: clearOffline ? null : offlinePendingType ?? this.offlinePendingType,
     );
   }
 }
@@ -221,10 +239,49 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
       state = state.copyWith(
         status: AttendanceStatus.success,
         message: 'Check-in successful',
+        clearOffline: true,
       );
 
       return true;
     } catch (e) {
+      if (isNetworkError(e)) {
+        final now = DateTime.now();
+        await ref.read(offlineSyncProvider.notifier).queueAttendance(
+          AttendanceQueueItem(
+            id: 'att_${now.millisecondsSinceEpoch}',
+            type: 'check_in',
+            attendanceType: attendanceType,
+            photoPath: photoPath,
+            lat: lat,
+            lng: lng,
+            accuracy: accuracy,
+            deviceId: deviceId,
+            challengeId: challengeId,
+            signature: signature,
+            timestamp: now,
+          ),
+        );
+
+        final timeStr =
+            '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+        final mockToday = {
+          'entryTime': timeStr,
+          'status': 'present',
+          'entryPlace': 'Saved Offline',
+          'isOffline': true,
+        };
+
+        state = state.copyWith(
+          status: AttendanceStatus.success,
+          today: mockToday,
+          isOfflinePending: true,
+          offlinePendingType: 'check_in',
+          message: 'Check-in saved offline. It will sync automatically when back online.',
+        );
+
+        return true;
+      }
+
       state = state.copyWith(
         status: AttendanceStatus.error,
         message: _cleanError(e),
@@ -296,6 +353,45 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
         timeline: parsedTimeline,
       );
     } catch (e) {
+      if (isNetworkError(e)) {
+        try {
+          final attQueue =
+              await ref.read(offlineSyncProvider.notifier).getAttendanceQueue();
+          AttendanceQueueItem? pendingCheckIn;
+          AttendanceQueueItem? pendingCheckOut;
+          for (final item in attQueue) {
+            if (item.type == 'check_in') pendingCheckIn = item;
+            if (item.type == 'check_out') pendingCheckOut = item;
+          }
+
+          if (pendingCheckIn != null) {
+            final entryTime =
+                '${pendingCheckIn.timestamp.hour.toString().padLeft(2, '0')}:${pendingCheckIn.timestamp.minute.toString().padLeft(2, '0')}:${pendingCheckIn.timestamp.second.toString().padLeft(2, '0')}';
+            final offlineToday = <String, dynamic>{
+              'entryTime': entryTime,
+              'status': 'present',
+              'entryPlace': 'Saved Offline',
+              'isOffline': true,
+            };
+            if (pendingCheckOut != null) {
+              final exitTime =
+                  '${pendingCheckOut.timestamp.hour.toString().padLeft(2, '0')}:${pendingCheckOut.timestamp.minute.toString().padLeft(2, '0')}:${pendingCheckOut.timestamp.second.toString().padLeft(2, '0')}';
+              offlineToday['exitTime'] = exitTime;
+              offlineToday['exitPlace'] = 'Saved Offline';
+            }
+            state = state.copyWith(
+              isLoadingToday: false,
+              today: offlineToday,
+              isOfflinePending: true,
+              offlinePendingType:
+                  pendingCheckOut != null ? 'check_out' : 'check_in',
+              clearMessage: true,
+            );
+            return;
+          }
+        } catch (_) {}
+      }
+
       state = state.copyWith(
         isLoadingToday: false,
         message: e.toString().replaceFirst('Exception: ', ''),
@@ -614,10 +710,50 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
       state = state.copyWith(
         status: AttendanceStatus.success,
         message: 'Session ended successfully',
+        clearOffline: true,
       );
 
       return true;
     } catch (e) {
+      if (isNetworkError(e)) {
+        final now = DateTime.now();
+        await ref.read(offlineSyncProvider.notifier).queueAttendance(
+          AttendanceQueueItem(
+            id: 'att_${now.millisecondsSinceEpoch}',
+            type: 'check_out',
+            attendanceType: attendanceType,
+            photoPath: photoPath,
+            workAudioPath: workAudioPath,
+            workDescription: workDescription,
+            lat: lat,
+            lng: lng,
+            accuracy: accuracy,
+            deviceId: deviceId,
+            challengeId: challengeId,
+            signature: signature,
+            timestamp: now,
+          ),
+        );
+
+        final exitTime =
+            '${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}:${now.second.toString().padLeft(2, '0')}';
+        final currentToday = Map<String, dynamic>.from(state.today ?? {});
+        currentToday['exitTime'] = exitTime;
+        currentToday['exitPlace'] = 'Saved Offline';
+        currentToday['isOffline'] = true;
+
+        state = state.copyWith(
+          status: AttendanceStatus.success,
+          today: currentToday,
+          isOfflinePending: true,
+          offlinePendingType: 'check_out',
+          message:
+              'Check-out saved offline. It will sync automatically when back online.',
+        );
+
+        return true;
+      }
+
       state = state.copyWith(
         status: AttendanceStatus.error,
         message: _cleanError(e),

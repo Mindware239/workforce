@@ -18,6 +18,7 @@ import 'package:workforce/features/language/providers/language_provider.dart';
 import 'package:workforce/features/notification/presentation/notification.dart';
 import 'package:workforce/features/setting/presentation/help_support_screen.dart';
 import 'package:workforce/features/account/providers/account_provider.dart';
+import 'package:workforce/core/offline/offline_sync_service.dart';
 import 'package:workforce/features/field_work/services/field_work_tracker.dart';
 
 class SettingsScreen extends ConsumerStatefulWidget {
@@ -44,6 +45,7 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     // Update authentication state
     await LocationTrackingService.stop();
     await FieldWorkTracker.clear();
+    await ref.read(offlineSyncProvider.notifier).clearAll();
 
     AuthService.logout();
 

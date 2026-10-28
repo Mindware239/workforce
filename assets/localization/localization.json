@@ -1777,7 +1777,11 @@
     "call.errNoMic": "No microphone was found on this device.",
     "call.errNoCamera": "No camera or microphone was found on this device.",
     "call.errDeviceBusy": "The camera or microphone is being used by another app.",
-    "call.errMedia": "Could not start the camera or microphone."
+    "call.errMedia": "Could not start the camera or microphone.",
+    "home.locationPermissionRequired": "Location permission is required to verify your attendance.",
+    "home.workforce": "WorkForce Pro",
+    "home.shiftScheduleUnavailable": "No shift schedule available for today.",
+    "settings.dark_mode": "Dark Mode"
   },
   "hi": {
     "app.name": "वर्कफोर्स प्रो",
@@ -3554,6 +3558,10 @@
     "call.errNoMic": "इस डिवाइस पर कोई माइक्रोफ़ोन नहीं मिला।",
     "call.errNoCamera": "इस डिवाइस पर कोई कैमरा या माइक्रोफ़ोन नहीं मिला।",
     "call.errDeviceBusy": "कैमरा या माइक्रोफ़ोन किसी दूसरे ऐप द्वारा उपयोग में है।",
-    "call.errMedia": "कैमरा या माइक्रोफ़ोन शुरू नहीं हो सका।"
+    "call.errMedia": "कैमरा या माइक्रोफ़ोन शुरू नहीं हो सका।",
+    "home.locationPermissionRequired": "उपस्थिति सत्यापित करने के लिए लोकेशन की अनुमति आवश्यक है।",
+    "home.workforce": "वर्कफ़ोर्स प्रो",
+    "home.shiftScheduleUnavailable": "आज के लिए कोई शिफ्ट शेड्यूल उपलब्ध नहीं है।",
+    "settings.dark_mode": "डार्क मोड"
   }
 }

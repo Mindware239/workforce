@@ -13,6 +13,7 @@ import 'package:showcaseview/showcaseview.dart';
 import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/location/precise_location.dart';
+import 'package:workforce/core/offline/offline_sync_service.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/features/attendence/data/attendance_repository.dart';
@@ -148,55 +149,74 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         debugPrint('$stackTrace');
       }
 
-      final response = await ref
-          .read(attendanceRepositoryProvider)
-          .checkGeofence(
-            lat: position.latitude,
-            lng: position.longitude,
-            accuracy: position.accuracy,
-          );
+      bool isOffline = false;
+      try {
+        final response = await ref
+            .read(attendanceRepositoryProvider)
+            .checkGeofence(
+              lat: position.latitude,
+              lng: position.longitude,
+              accuracy: position.accuracy,
+            );
 
-      debugPrint('========================================');
-      debugPrint('📍 ATTENDANCE GEOFENCE RESULT');
-      debugPrint('$response');
-      debugPrint('========================================');
+        debugPrint('========================================');
+        debugPrint('📍 ATTENDANCE GEOFENCE RESULT');
+        debugPrint('$response');
+        debugPrint('========================================');
+
+        if (!mounted) return;
+
+        if (loadingShown && mounted) {
+          Navigator.of(context).pop();
+          loadingShown = false;
+        }
+
+        final data = response['data'];
+
+        if (data == null) {
+          if (mounted) context.push(AppRoutes.locationVerificationUnsuccessful);
+          return;
+        }
+
+        if (data['isOfflineCalculated'] == true) {
+          isOffline = true;
+        }
+
+        final isWithinFence = data['isWithinFence'] == true;
+        final distanceMeters = data['distanceMeters'];
+        final allowedRadiusMeters = data['allowedRadiusMeters'];
+
+        debugPrint('📍 Within fence: $isWithinFence');
+        debugPrint('📏 Distance: $distanceMeters m');
+        debugPrint('⭕ Allowed radius: $allowedRadiusMeters m');
+
+        if (!isWithinFence) {
+          debugPrint('❌ User is outside office geofence');
+          if (mounted) {
+            context.push(
+              AppRoutes.locationVerificationUnsuccessful,
+              extra: distanceMeters is num ? distanceMeters.toDouble() : null,
+            );
+          }
+          return;
+        }
+      } catch (e) {
+        if (loadingShown && mounted) {
+          Navigator.of(context).pop();
+          loadingShown = false;
+        }
+
+        if (isNetworkError(e)) {
+          isOffline = true;
+          debugPrint('ℹ️ Network offline during geofence check. Proceeding in offline mode.');
+        } else {
+          rethrow;
+        }
+      }
 
       if (!mounted) return;
 
-      if (loadingShown) {
-        Navigator.of(context).pop();
-        loadingShown = false;
-      }
-
-      final data = response['data'];
-
-      if (data == null) {
-        context.push(AppRoutes.locationVerificationUnsuccessful);
-        return;
-      }
-
-      final isWithinFence = data['isWithinFence'] == true;
-
-      final distanceMeters = data['distanceMeters'];
-
-      final allowedRadiusMeters = data['allowedRadiusMeters'];
-
-      debugPrint('📍 Within fence: $isWithinFence');
-      debugPrint('📏 Distance: $distanceMeters m');
-      debugPrint('⭕ Allowed radius: $allowedRadiusMeters m');
-
-      if (!isWithinFence) {
-        debugPrint('❌ User is outside office geofence');
-
-        context.push(
-          AppRoutes.locationVerificationUnsuccessful,
-          extra: distanceMeters is num ? distanceMeters.toDouble() : null,
-        );
-
-        return;
-      }
-
-      debugPrint('✅ User is inside office geofence');
+      debugPrint('✅ Proceeding to face capture (Offline: $isOffline)');
 
       context.push(
         AppRoutes.faceCapture,

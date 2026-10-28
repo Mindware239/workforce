@@ -40,6 +40,34 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     ref.invalidate(taskCommentsProvider(_id));
   }
 
+  Future<bool> _runAction(
+    Future<TaskActionResult> Function() action, {
+    String? successKey,
+  }) async {
+    if (_busy) return false;
+
+    setState(() => _busy = true);
+
+    final result = await action();
+
+    if (!mounted) return false;
+
+    setState(() => _busy = false);
+
+    if (result.error != null) {
+      showFeatureSnack(context, result.error!);
+      return false;
+    }
+
+    if (successKey != null) {
+      showFeatureSnack(context, ref.tr(successKey));
+    }
+
+    _refresh();
+
+    return true;
+  }
+
   Future<bool> _run(
     Future<void> Function() action, {
     String? successKey,
@@ -71,8 +99,8 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   // ==========================================================================
 
   Future<void> _lifecycle(String action, {String? successKey}) {
-    return _run(
-      () => _repo.runLifecycleAction(_id, action),
+    return _runAction(
+      () => ref.read(taskActionsProvider).runLifecycle(_id, action),
       successKey: successKey ?? 'taskx.updated',
     );
   }
@@ -89,8 +117,8 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     if (result == null) return;
 
     if (result.voice != null) {
-      await _run(
-        () => _repo.uploadAttachments(
+      await _runAction(
+        () => ref.read(taskActionsProvider).uploadAttachments(
           _id,
           files: [(path: result.voice!.path, name: result.voice!.name)],
           caption: result.voice!.caption ?? (result.note.isNotEmpty ? result.note : 'Completion voice proof'),
@@ -98,8 +126,8 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
       );
     }
 
-    await _run(
-      () => _repo.runLifecycleAction(
+    await _runAction(
+      () => ref.read(taskActionsProvider).runLifecycle(
         _id,
         'submit',
         data: {if (result.note.isNotEmpty) 'note': result.note},
@@ -121,8 +149,8 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
       return;
     }
 
-    await _run(
-      () => _repo.runLifecycleAction(
+    await _runAction(
+      () => ref.read(taskActionsProvider).runLifecycle(
         _id,
         'block',
         data: {
@@ -172,8 +200,8 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     if (choice == 'voice') {
       final voiceResult = await TaskVoiceRecorderDialog.show(context);
       if (voiceResult != null && mounted) {
-        await _run(
-          () => _repo.uploadAttachments(
+        await _runAction(
+          () => ref.read(taskActionsProvider).uploadAttachments(
             _id,
             files: [(path: voiceResult.path, name: voiceResult.name)],
             caption: voiceResult.caption,
@@ -226,8 +254,8 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
 
     if (caption == null) return;
 
-    await _run(
-      () => _repo.uploadAttachments(_id, files: files, caption: caption),
+    await _runAction(
+      () => ref.read(taskActionsProvider).uploadAttachments(_id, files: files, caption: caption),
       successKey: 'taskx.proofAdded',
     );
   }
@@ -752,8 +780,8 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
 
                           if (itemId == null) return;
 
-                          _run(
-                            () => _repo.tickChecklist(
+                          _runAction(
+                            () => ref.read(taskActionsProvider).tickChecklist(
                               _id,
                               itemId,
                               value ?? false,
@@ -1008,7 +1036,9 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
                 ? null
                 : (next) => setState(() => _progressDraft = next),
             onChangeEnd: (next) async {
-              await _run(() => _repo.setProgress(_id, next.round()));
+              await _runAction(
+                () => ref.read(taskActionsProvider).setProgress(_id, next.round()),
+              );
 
               if (mounted) setState(() => _progressDraft = null);
             },
@@ -1304,8 +1334,8 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
         const SizedBox(height: 6),
         _AddNoteField(
           enabled: !_busy,
-          onSend: (body) => _run(
-            () => _repo.addTaskComment(taskId: _id, body: body),
+          onSend: (body) => _runAction(
+            () => ref.read(taskActionsProvider).addTaskComment(_id, body),
           ),
         ),
       ],

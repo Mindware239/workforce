@@ -680,6 +680,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   /// The day's verdict as the web Today page derives it: not started, on a
   /// break, shift completed, late (any late minutes), else on time.
   String? _dayStatus(AttendanceState attendanceState) {
+    if (attendanceState.isOfflinePending) return 'offline_pending';
+
     final today = attendanceState.today;
 
     if (today?['entryTime'] == null) return null;
