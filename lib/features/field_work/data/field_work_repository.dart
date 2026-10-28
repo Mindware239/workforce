@@ -86,4 +86,78 @@ class FieldWorkRepository {
       throw apiException(e, 'Unable to load the workplace location.');
     }
   }
+
+  // GET /api/visits (list assigned customer visits for field employee)
+  Future<List<Map<String, dynamic>>> myVisits({String? status, String? date}) async {
+    try {
+      final queryParams = <String, dynamic>{};
+      if (status != null) queryParams['status'] = status;
+      if (date != null) queryParams['date'] = date;
+
+      final response = await apiClient.get('/visits', queryParameters: queryParams);
+      final data = unwrapData(response.data);
+      if (data is Map && data['items'] is List) {
+        return asMapList(data['items']);
+      }
+      return asMapList(data);
+    } catch (e) {
+      throw apiException(e, 'Unable to load customer visits.');
+    }
+  }
+
+  // POST /api/visits/:id/check-in (with geofence validation and coordinates)
+  Future<Map<String, dynamic>> checkInVisit(
+    int id, {
+    required double lat,
+    required double lng,
+    double? accuracy,
+    String? notes,
+    String? photoUrl,
+  }) async {
+    try {
+      final response = await apiClient.post(
+        '/visits/$id/check-in',
+        data: {
+          'lat': lat,
+          'lng': lng,
+          'accuracy': ?accuracy,
+          'notes': ?notes,
+          'photoUrl': ?photoUrl,
+        },
+      );
+      return asMap(unwrapData(response.data));
+    } catch (e) {
+      throw apiException(e, 'Could not complete customer visit check-in.');
+    }
+  }
+
+  // POST /api/visits/:id/check-out (with outcome notes and order collection)
+  Future<Map<String, dynamic>> checkOutVisit(
+    int id, {
+    double? lat,
+    double? lng,
+    String? outcomeNotes,
+    double? orderAmount,
+    String? orderReference,
+    double? paymentCollected,
+    String? paymentMethod,
+  }) async {
+    try {
+      final response = await apiClient.post(
+        '/visits/$id/check-out',
+        data: {
+          'lat': ?lat,
+          'lng': ?lng,
+          'outcomeNotes': ?outcomeNotes,
+          'orderAmount': ?orderAmount,
+          'orderReference': ?orderReference,
+          'paymentCollected': ?paymentCollected,
+          'paymentMethod': ?paymentMethod,
+        },
+      );
+      return asMap(unwrapData(response.data));
+    } catch (e) {
+      throw apiException(e, 'Could not complete customer visit check-out.');
+    }
+  }
 }

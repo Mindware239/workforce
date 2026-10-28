@@ -13,6 +13,7 @@ import 'package:workforce/core/widgets/feature_widgets.dart';
 import 'package:workforce/features/attendence/services/employee_location_service.dart';
 import 'package:workforce/features/field_work/providers/field_work_provider.dart';
 import 'package:workforce/features/field_work/services/field_work_tracker.dart';
+import 'customer_visits_view.dart';
 
 /// Field work, as the web's employee/field-work page: request a day out of
 /// the workplace, see each request's status, and — once a session is approved
@@ -43,6 +44,7 @@ class _FieldWorkScreenState extends ConsumerState<FieldWorkScreen> {
 
   /// null = fine; otherwise why no fix can be had.
   String? _locationProblem;
+  int _activeTab = 0;
 
   @override
   void initState() {
@@ -293,41 +295,117 @@ class _FieldWorkScreenState extends ConsumerState<FieldWorkScreen> {
       backgroundColor: AppColors.whiteBackgroundColor,
       appBar: featureAppBar(title: ref.tr('fieldWork.title')),
       body: SafeArea(
-        child: RefreshIndicator(
-          onRefresh: () async {
-            await ref.read(fieldWorkProvider.notifier).load();
-            await _syncWatch();
-          },
-          child: ListView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-            children: [
-              FeatureHeading(
-                title: ref.tr('fieldWork.title'),
-                subtitle: ref.tr('fieldWork.subtitle'),
+        child: Column(
+          children: [
+            Container(
+              margin: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              padding: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade100,
+                borderRadius: BorderRadius.circular(10),
               ),
-              if (current != null) ...[
-                const SizedBox(height: 20),
-                SectionTitle(ref.tr('fieldWork.locationTracking')),
-                const SizedBox(height: 10),
-                _buildCurrent(state, current),
-              ],
-              const SizedBox(height: 22),
-              SectionTitle(ref.tr('fieldWork.submitRequest')),
-              const SizedBox(height: 10),
-              _buildForm(state),
-              const SizedBox(height: 22),
-              SectionTitle(ref.tr('fieldWork.myFieldWork')),
-              const SizedBox(height: 10),
-              ..._buildList(state),
-            ],
-          ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => setState(() => _activeTab = 0),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: _activeTab == 0 ? Colors.white : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: _activeTab == 0
+                              ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)]
+                              : null,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          'Sessions & GPS',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: _activeTab == 0 ? FontWeight.w600 : FontWeight.w500,
+                            color: _activeTab == 0 ? AppColors.saffronDeep : Colors.grey.shade600,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: InkWell(
+                      onTap: () => setState(() => _activeTab = 1),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        decoration: BoxDecoration(
+                          color: _activeTab == 1 ? Colors.white : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                          boxShadow: _activeTab == 1
+                              ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4)]
+                              : null,
+                        ),
+                        alignment: Alignment.center,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.navigation, size: 14),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Customer Visits',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: _activeTab == 1 ? FontWeight.w600 : FontWeight.w500,
+                                color: _activeTab == 1 ? AppColors.saffronDeep : Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Expanded(
+              child: _activeTab == 1
+                  ? const CustomerVisitsView()
+                  : RefreshIndicator(
+                      onRefresh: () async {
+                        await ref.read(fieldWorkProvider.notifier).load();
+                        await _syncWatch();
+                      },
+                      child: ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+                        children: [
+                          FeatureHeading(
+                            title: ref.tr('fieldWork.title'),
+                            subtitle: ref.tr('fieldWork.subtitle'),
+                          ),
+                          if (current != null) ...[
+                            const SizedBox(height: 20),
+                            SectionTitle(ref.tr('fieldWork.locationTracking')),
+                            const SizedBox(height: 10),
+                            _buildCurrent(state, current),
+                          ],
+                          const SizedBox(height: 22),
+                          SectionTitle(ref.tr('fieldWork.submitRequest')),
+                          const SizedBox(height: 10),
+                          _buildForm(state),
+                          const SizedBox(height: 22),
+                          SectionTitle(ref.tr('fieldWork.myFieldWork')),
+                          const SizedBox(height: 10),
+                          ..._buildList(state),
+                        ],
+                      ),
+                    ),
+            ),
+          ],
         ),
       ),
     );
   }
 
   // ------------------------------------------------------------
+
   // Current session
   // ------------------------------------------------------------
 

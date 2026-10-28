@@ -49,6 +49,7 @@ dependencies:
   flutter_webrtc: ^1.6.2+hotfix.4
   wakelock_plus: ^1.8.0
   audio_session: ^0.2.4
+  url_launcher: ^6.3.0
   
 
 dev_dependencies:
