@@ -9,6 +9,7 @@ class ApiClient {
   /// pointing the app at another server stays a one-line change here.
   // static const String baseUrl = 'https://workforce.orkuts.com/api';
   static const String baseUrl = 'http://192.168.1.142:5050/api';
+  // static const String baseUrl = 'https://workforce.mindwareinfotech.com/api';
 
   late final Dio dio;
 

@@ -28,6 +28,8 @@
 		<string>The camera is used for face check-in and to scan warehouse barcodes and QR codes, and for video calls.</string>
 		<key>NSMicrophoneUsageDescription</key>
 		<string>The microphone is used for voice and video calls and for voice messages in chat.</string>
+		<key>NSFaceIDUsageDescription</key>
+		<string>Biometrics are used for secure attendance check-in and check-out.</string>
 		<key>UIBackgroundModes</key>
 		<array>
 			<string>audio</string>

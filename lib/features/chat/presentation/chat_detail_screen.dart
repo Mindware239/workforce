@@ -2616,7 +2616,14 @@ class _VoicePlayerState extends State<_VoicePlayer> {
             File(widget.localPath).existsSync()) {
           await _player.setFilePath(widget.localPath);
         } else if (widget.url.isNotEmpty) {
-          await _player.setUrl(widget.url, headers: widget.headers);
+          Map<String, String> reqHeaders = Map<String, String>.from(widget.headers);
+          if (!reqHeaders.containsKey('Authorization')) {
+            final token = await SecureStorage().getToken();
+            if (token != null && token.isNotEmpty) {
+              reqHeaders['Authorization'] = 'Bearer $token';
+            }
+          }
+          await _player.setUrl(widget.url, headers: reqHeaders);
         } else {
           if (mounted) {
             setState(() {

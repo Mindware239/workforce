@@ -51,17 +51,22 @@ Future<String> saveStoredFile(
 }) async {
   final bytes = await fetchStoredFile(apiClient, path);
 
-  Directory directory = Directory('/storage/emulated/0/Download');
+  final safeName = fileName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
 
-  if (!Platform.isAndroid || !await directory.exists()) {
-    directory = await getApplicationDocumentsDirectory();
+  if (Platform.isAndroid) {
+    try {
+      final downloadDir = Directory('/storage/emulated/0/Download');
+      if (await downloadDir.exists()) {
+        final downloadFile = File('${downloadDir.path}/$safeName');
+        await downloadFile.writeAsBytes(bytes, flush: true);
+        return downloadFile.path;
+      }
+    } catch (_) {}
   }
 
-  final safeName = fileName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
-  final file = File('${directory.path}/$safeName');
-
+  final fallbackDir = await getApplicationDocumentsDirectory();
+  final file = File('${fallbackDir.path}/$safeName');
   await file.writeAsBytes(bytes, flush: true);
-
   return file.path;
 }
 

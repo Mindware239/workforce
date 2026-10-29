@@ -107,6 +107,14 @@ class BackgroundLocationHandler {
         return;
       }
 
+      // Filter out inaccurate fixes (e.g. indoor cell tower jumps > 120m)
+      if (accuracy > 120.0) {
+        debugPrint(
+          '⚠️ Discarding inaccurate indoor GPS fix (accuracy: ${accuracy}m > 120m)',
+        );
+        return;
+      }
+
       final timestamp =
           recordedAt ??
           DateTime.now().toUtc().toIso8601String();

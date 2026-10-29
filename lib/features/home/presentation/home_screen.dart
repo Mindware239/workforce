@@ -219,7 +219,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       debugPrint('✅ Proceeding to face capture (Offline: $isOffline)');
 
       context.push(
-        AppRoutes.faceCapture,
+        AppRoutes.attendanceMethod,
         extra: {
           'latitude': position.latitude,
           'longitude': position.longitude,

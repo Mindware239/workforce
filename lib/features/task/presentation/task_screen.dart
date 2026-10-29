@@ -7,9 +7,12 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio/just_audio.dart';
 
 import 'package:workforce/app/routes/app_routes.dart';
+import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/widgets/feature_widgets.dart';
+import 'package:workforce/core/network/audio_cache_service.dart';
+import 'package:workforce/core/network/network_providers.dart';
 import 'package:workforce/features/task/presentation/task_ui.dart';
 import 'package:workforce/features/task/providers/task_provider.dart';
 
@@ -702,18 +705,16 @@ class _DetailsButton extends ConsumerWidget {
   }
 }
 
-class TaskVoiceNotePlayer extends StatefulWidget {
+class TaskVoiceNotePlayer extends ConsumerStatefulWidget {
   final String audioUrl;
 
   const TaskVoiceNotePlayer({super.key, required this.audioUrl});
 
   @override
-  State<TaskVoiceNotePlayer> createState() => _TaskVoiceNotePlayerState();
+  ConsumerState<TaskVoiceNotePlayer> createState() => _TaskVoiceNotePlayerState();
 }
 
-class _TaskVoiceNotePlayerState extends State<TaskVoiceNotePlayer> {
-  static const String _uploadBaseUrl = 'https://workforce.orkuts.com/uploads/';
-
+class _TaskVoiceNotePlayerState extends ConsumerState<TaskVoiceNotePlayer> {
   late final AudioPlayer _player;
 
   Duration _duration = Duration.zero;
@@ -723,39 +724,17 @@ class _TaskVoiceNotePlayerState extends State<TaskVoiceNotePlayer> {
   bool _hasError = false;
   bool _isPlaying = false;
 
-  String _resolvedAudioUrl = '';
   String _errorText = '';
 
   StreamSubscription<Duration>? _positionSubscription;
   StreamSubscription<Duration?>? _durationSubscription;
   StreamSubscription<PlayerState>? _playerStateSubscription;
 
-  String _resolveAudioUrl(String value) {
-    final trimmed = value.trim();
-
-    if (trimmed.isEmpty) return '';
-
-    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-      return trimmed;
-    }
-
-    if (trimmed.startsWith('//')) {
-      return 'https:$trimmed';
-    }
-
-    final normalized = trimmed.replaceFirst(RegExp(r'^/+'), '');
-    return '$_uploadBaseUrl$normalized';
-  }
-
   @override
   void initState() {
     super.initState();
 
     _player = AudioPlayer();
-    _resolvedAudioUrl = _resolveAudioUrl(widget.audioUrl);
-
-    debugPrint('🎵 ORIGINAL AUDIO PATH: ${widget.audioUrl}');
-    debugPrint('🎵 RESOLVED AUDIO URL: $_resolvedAudioUrl');
 
     _positionSubscription = _player
         .createPositionStream(
@@ -786,11 +765,6 @@ class _TaskVoiceNotePlayerState extends State<TaskVoiceNotePlayer> {
     _playerStateSubscription = _player.playerStateStream.listen((playerState) {
       if (!mounted) return;
 
-      debugPrint(
-        '🎵 playing=${playerState.playing}, '
-        'state=${playerState.processingState}',
-      );
-
       if (playerState.processingState == ProcessingState.completed) {
         setState(() {
           _isPlaying = false;
@@ -806,14 +780,18 @@ class _TaskVoiceNotePlayerState extends State<TaskVoiceNotePlayer> {
     _initializeAudio();
   }
 
+  @override
+  void didUpdateWidget(covariant TaskVoiceNotePlayer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.audioUrl != widget.audioUrl) {
+      _initializeAudio();
+    }
+  }
+
   Future<void> _initializeAudio() async {
-    final url = _resolveAudioUrl(widget.audioUrl);
-
-    if (url.isEmpty) {
-      debugPrint('❌ AUDIO URL IS EMPTY');
-
+    final raw = widget.audioUrl.trim();
+    if (raw.isEmpty) {
       if (!mounted) return;
-
       setState(() {
         _isLoading = false;
         _hasError = true;
@@ -821,8 +799,6 @@ class _TaskVoiceNotePlayerState extends State<TaskVoiceNotePlayer> {
       });
       return;
     }
-
-    _resolvedAudioUrl = url;
 
     if (mounted) {
       setState(() {
@@ -833,25 +809,12 @@ class _TaskVoiceNotePlayerState extends State<TaskVoiceNotePlayer> {
     }
 
     try {
-      debugPrint('🎵 INITIALIZING AUDIO');
-      debugPrint('🎵 Original path: ${widget.audioUrl}');
-      debugPrint('🎵 Resolved URL: $url');
-
       await _player.stop();
+      final apiClient = ref.read(apiClientProvider);
+      final localPath = await AudioCacheService.prepareAudio(apiClient, raw);
 
-      final uri = Uri.parse(url);
-
-      if (!uri.hasScheme || (uri.scheme != 'http' && uri.scheme != 'https')) {
-        throw Exception('Invalid resolved audio URL: $url');
-      }
-
-      final duration = await _player.setAudioSource(AudioSource.uri(uri));
-
+      final duration = await _player.setFilePath(localPath);
       final finalDuration = duration ?? _player.duration ?? Duration.zero;
-
-      debugPrint('✅ AUDIO LOADED SUCCESSFULLY');
-      debugPrint('🎵 Duration: $finalDuration');
-      debugPrint('🎵 Final URL: $url');
 
       if (!mounted) return;
 
@@ -863,11 +826,7 @@ class _TaskVoiceNotePlayerState extends State<TaskVoiceNotePlayer> {
         _errorText = '';
       });
     } catch (e, stackTrace) {
-      debugPrint('❌ AUDIO INITIALIZATION FAILED');
-      debugPrint('❌ Original path: ${widget.audioUrl}');
-      debugPrint('❌ Resolved URL: $url');
-      debugPrint('❌ ERROR: $e');
-      debugPrint('❌ ERROR TYPE: ${e.runtimeType}');
+      debugPrint('❌ AUDIO INITIALIZATION FAILED: $e');
       debugPrint('❌ STACK TRACE: $stackTrace');
 
       if (!mounted) return;
@@ -876,38 +835,27 @@ class _TaskVoiceNotePlayerState extends State<TaskVoiceNotePlayer> {
         _isLoading = false;
         _hasError = true;
         _isPlaying = false;
-        _errorText = e.toString();
+        _errorText = cleanErrorMessage(e);
       });
     }
   }
 
   Future<void> _togglePlay() async {
-    if (_isLoading) {
-      debugPrint('⏳ Player is still loading...');
-      return;
-    }
+    if (_isLoading) return;
 
     if (_hasError) {
-      debugPrint('🔄 Player failed previously. Retrying...');
       await _initializeAudio();
-
-      if (!mounted || _hasError) {
-        debugPrint('❌ Audio still could not be initialized');
-        return;
-      }
+      if (!mounted || _hasError) return;
     }
 
     try {
       if (_player.playing) {
-        debugPrint('⏸ Pausing audio');
         await _player.pause();
         return;
       }
 
       if (_player.processingState == ProcessingState.completed) {
-        debugPrint('🔁 Audio completed. Restarting from beginning');
         await _player.seek(Duration.zero);
-
         if (mounted) {
           setState(() {
             _position = Duration.zero;
@@ -915,21 +863,9 @@ class _TaskVoiceNotePlayerState extends State<TaskVoiceNotePlayer> {
         }
       }
 
-      debugPrint('▶️ Starting audio');
-      debugPrint('🎵 Playing URL: $_resolvedAudioUrl');
-
       await _player.play();
-
-      debugPrint('✅ Play command completed');
-    } catch (e, stackTrace) {
-      debugPrint('❌ PLAYBACK ERROR');
-      debugPrint('❌ URL: $_resolvedAudioUrl');
-      debugPrint('❌ ERROR: $e');
-      debugPrint('❌ ERROR TYPE: ${e.runtimeType}');
-      debugPrint('❌ STACK TRACE: $stackTrace');
-
+    } catch (e) {
       if (!mounted) return;
-
       setState(() {
         _isPlaying = false;
         _hasError = true;
@@ -966,7 +902,7 @@ class _TaskVoiceNotePlayerState extends State<TaskVoiceNotePlayer> {
     return Tooltip(
       message: _hasError && _errorText.isNotEmpty
           ? _errorText
-          : _resolvedAudioUrl,
+          : widget.audioUrl,
       child: Container(
         width: 224,
         height: 35,

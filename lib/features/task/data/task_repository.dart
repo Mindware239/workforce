@@ -390,6 +390,21 @@ class TaskRepository {
     }
   }
 
+  /// Caches an attachment locally in the temporary directory for in-app audio/preview playback.
+  Future<String> cacheAttachmentLocally(
+    int taskId,
+    int attachmentId,
+    String fileName,
+  ) async {
+    final bytes = await downloadAttachment(taskId, attachmentId);
+    final tempDir = await getTemporaryDirectory();
+    final safeName = fileName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    final file = File('${tempDir.path}/task_${taskId}_${attachmentId}_$safeName');
+
+    await file.writeAsBytes(bytes, flush: true);
+    return file.path;
+  }
+
   /// Saves an attachment to Downloads (Android) or the app documents folder
   /// and returns the saved path.
   Future<String> saveAttachment(
@@ -398,18 +413,22 @@ class TaskRepository {
     String fileName,
   ) async {
     final bytes = await downloadAttachment(taskId, attachmentId);
+    final safeName = fileName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
 
-    Directory directory = Directory('/storage/emulated/0/Download');
-
-    if (!Platform.isAndroid || !await directory.exists()) {
-      directory = await getApplicationDocumentsDirectory();
+    if (Platform.isAndroid) {
+      try {
+        final d = Directory('/storage/emulated/0/Download');
+        if (await d.exists()) {
+          final testFile = File('${d.path}/$safeName');
+          await testFile.writeAsBytes(bytes, flush: true);
+          return testFile.path;
+        }
+      } catch (_) {}
     }
 
-    final safeName = fileName.replaceAll(RegExp(r'[\\/:*?"<>|]'), '_');
+    final directory = await getApplicationDocumentsDirectory();
     final file = File('${directory.path}/$safeName');
-
     await file.writeAsBytes(bytes, flush: true);
-
     return file.path;
   }
 

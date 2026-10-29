@@ -704,7 +704,7 @@ class _LeaveVoiceNotePlayerState extends ConsumerState<_LeaveVoiceNotePlayer> {
             .getVoiceNote(widget.leaveId);
 
         final directory = await getTemporaryDirectory();
-        final file = File('${directory.path}/leave_${widget.leaveId}_note');
+        final file = File('${directory.path}/leave_${widget.leaveId}_note.m4a');
 
         await file.writeAsBytes(bytes, flush: true);
 

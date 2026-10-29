@@ -15,6 +15,7 @@ import 'package:workforce/features/expenses/presentation/new_expense_screen.dart
 import 'package:workforce/features/profile/presentation/bank_details_widget.dart';
 import 'package:workforce/features/reviews/presentation/review_detail_screen.dart';
 import 'package:workforce/features/reviews/presentation/reviews_screen.dart';
+import 'package:workforce/features/attendence/presentation/attendance_method_screen.dart';
 import 'package:workforce/features/attendence/presentation/face_capture_screen.dart';
 import 'package:workforce/features/attendence/presentation/photo_preview_screen.dart';
 import 'package:workforce/features/attendence/presentation/verification_unsuccessful_screen.dart';
@@ -60,6 +61,7 @@ class AppRoutes {
 
   static const String chat = '/dashboard/chat';
 
+  static const String attendanceMethod = '/dashboard/attendanceMethod';
   static const String faceCapture = '/dashboard/faceCapture';
   static const String photoPreview = '/dashboard/photo-preview';
   static const String verificationUnsuccessful =
@@ -128,11 +130,29 @@ class AppRoutes {
       },
     ),
     GoRoute(
+      path: attendanceMethod,
+      name: 'attendanceMethod',
+      builder: (context, state) {
+        final data = state.extra as Map<String, dynamic>? ?? {};
+        return AttendanceMethodScreen(
+          isStart: data['isStart'] as bool?,
+          latitude: data['latitude'] as double?,
+          longitude: data['longitude'] as double?,
+          accuracy: data['accuracy'] as double?,
+        );
+      },
+    ),
+    GoRoute(
       path: faceCapture,
       name: 'faceCapture',
       builder: (context, state) {
-        final data = state.extra as Map<String, dynamic>;
-        return FaceCaptureScreen(isStart: data['isStart'] as bool?);
+        final data = state.extra as Map<String, dynamic>? ?? {};
+        return FaceCaptureScreen(
+          isStart: data['isStart'] as bool?,
+          latitude: data['latitude'] as double?,
+          longitude: data['longitude'] as double?,
+          accuracy: data['accuracy'] as double?,
+        );
       },
     ),
     GoRoute(

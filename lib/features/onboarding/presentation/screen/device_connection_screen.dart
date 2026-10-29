@@ -146,7 +146,7 @@ class _DeviceConnectionScreenState
     final position = _position;
 
     context.push(
-      AppRoutes.faceCapture,
+      AppRoutes.attendanceMethod,
       extra: {
         'latitude': position?.latitude,
         'longitude': position?.longitude,

@@ -1,7 +1,27 @@
+import 'dart:io';
+
 import 'package:biometric_signature/biometric_signature.dart';
+import 'package:flutter/foundation.dart';
 import 'package:uuid/uuid.dart';
 import 'package:workforce/core/services/secure_storage.dart';
 
+class BiometricAvailabilityResult {
+  final bool canProceed;
+  final bool canAuthenticate;
+  final bool hasEnrolledBiometrics;
+  final List<String> availableBiometrics;
+  final String? reason;
+  final String? errorMessage;
+
+  BiometricAvailabilityResult({
+    required this.canProceed,
+    required this.canAuthenticate,
+    required this.hasEnrolledBiometrics,
+    required this.availableBiometrics,
+    this.reason,
+    this.errorMessage,
+  });
+}
 
 class FingerprintService {
   final SecureStorage storage;
@@ -10,11 +30,9 @@ class FingerprintService {
     required this.storage,
   });
 
-  final BiometricSignature _biometricSignature =
-      BiometricSignature();
+  final BiometricSignature _biometricSignature = BiometricSignature();
 
-  static const String _deviceIdKey =
-      'fingerprint_device_id';
+  static const String _deviceIdKey = 'fingerprint_device_id';
 
   // =========================================================
   // Get or create stable device ID
@@ -41,14 +59,76 @@ class FingerprintService {
   }
 
   // =========================================================
-  // Check biometric availability
+  // Detailed biometric availability check
   // =========================================================
 
-  Future<bool> isBiometricAvailable() async {
-    final result =
-        await _biometricSignature.biometricAuthAvailable();
+  Future<BiometricAvailabilityResult> checkBiometricAvailability() async {
+    try {
+      final keyExists = await biometricKeyExists();
+      final availability = await _biometricSignature.biometricAuthAvailable();
 
-    return result.canAuthenticate == true;
+      final canAuth = availability.canAuthenticate == true;
+      final hasEnrolled = availability.hasEnrolledBiometrics == true;
+      final types = availability.availableBiometrics
+              ?.map((t) => t.toString())
+              .toList() ??
+          <String>[];
+      final reason = availability.reason;
+
+      debugPrint(
+        '👆 Biometric details: canAuth=$canAuth, hasEnrolled=$hasEnrolled, keyExists=$keyExists, types=$types, reason=$reason',
+      );
+
+      // Determine if we can proceed:
+      // 1. canAuthenticate is true
+      // 2. OR key already exists in Keystore
+      // 3. OR user has enrolled biometrics
+      // 4. OR device has biometric hardware detected
+      bool canProceed = canAuth || keyExists || hasEnrolled || types.isNotEmpty;
+
+      String? errorMsg;
+      if (!canProceed) {
+        if (reason == 'BIOMETRIC_ERROR_NONE_ENROLLED') {
+          errorMsg =
+              'No fingerprint enrolled. Please register your fingerprint in phone Settings > Passwords & Security > Fingerprint Unlock.';
+        } else if (reason == 'BIOMETRIC_ERROR_NO_HARDWARE') {
+          errorMsg = 'Fingerprint hardware is not available on this device.';
+        } else if (reason == 'BIOMETRIC_ERROR_HW_UNAVAILABLE') {
+          errorMsg =
+              'Fingerprint sensor is currently busy or unavailable. Please try again.';
+        } else {
+          // In MIUI / custom OEM ROMs where BiometricManager.canAuthenticate(BIOMETRIC_STRONG)
+          // returns false due to strict Class 3 requirements, attempt key creation anyway
+          // rather than hard-blocking the employee.
+          canProceed = true;
+        }
+      }
+
+      return BiometricAvailabilityResult(
+        canProceed: canProceed,
+        canAuthenticate: canAuth,
+        hasEnrolledBiometrics: hasEnrolled,
+        availableBiometrics: types,
+        reason: reason,
+        errorMessage: errorMsg,
+      );
+    } catch (e) {
+      debugPrint('⚠️ biometricAuthAvailable error: $e');
+      final keyExists = await biometricKeyExists();
+      return BiometricAvailabilityResult(
+        canProceed: keyExists,
+        canAuthenticate: false,
+        hasEnrolledBiometrics: false,
+        availableBiometrics: [],
+        reason: e.toString(),
+        errorMessage: keyExists ? null : 'Biometric check error: $e',
+      );
+    }
+  }
+
+  Future<bool> isBiometricAvailable() async {
+    final result = await checkBiometricAvailability();
+    return result.canProceed;
   }
 
   // =========================================================
@@ -56,7 +136,11 @@ class FingerprintService {
   // =========================================================
 
   Future<bool> biometricKeyExists() async {
-    return await _biometricSignature.biometricKeyExists();
+    try {
+      return await _biometricSignature.biometricKeyExists();
+    } catch (_) {
+      return false;
+    }
   }
 
   // =========================================================
@@ -65,8 +149,7 @@ class FingerprintService {
 
   Future<String?> getPublicKey() async {
     try {
-      final keyInfo =
-          await _biometricSignature.getKeyInfo(
+      final keyInfo = await _biometricSignature.getKeyInfo(
         checkValidity: true,
         keyFormat: KeyFormat.pem,
       );
@@ -87,55 +170,54 @@ class FingerprintService {
 
       return publicKey;
     } catch (e) {
-      throw Exception(
-        'Unable to read biometric public key: $e',
-      );
+      return null;
     }
   }
 
   // =========================================================
   // Create ES256 biometric key if needed
-  //
-  // Returns:
-  //   public key when a key is created
-  //   existing public key when already available
   // =========================================================
 
-  Future<String?> createKeyIfNeeded() async {
-    final exists =
-        await _biometricSignature.biometricKeyExists();
+  Future<String?> createKeyIfNeeded({bool force = false}) async {
+    if (!force) {
+      final exists = await _biometricSignature.biometricKeyExists();
 
-    // Existing key → don't create another one.
-    if (exists) {
-      return await getPublicKey();
+      if (exists) {
+        final key = await getPublicKey();
+        if (key != null && key.isNotEmpty) {
+          return key;
+        }
+      }
     }
 
+    try {
+      await _biometricSignature.deleteKeys();
+    } catch (_) {}
+
     // Create ECDSA P-256 / ES256 key.
-    final result =
-        await _biometricSignature.createKeys(
+    // useDeviceCredentials: true ensures devices where biometric is paired with
+    // screen lock or Class 2 sensors (e.g. Xiaomi MIUI) can generate and use the key.
+    final result = await _biometricSignature.createKeys(
       keyFormat: KeyFormat.pem,
       promptMessage: 'Register your fingerprint',
       config: CreateKeysConfig(
-        useDeviceCredentials: false,
+        useDeviceCredentials: true,
         signatureType: SignatureType.ecdsa,
-        setInvalidatedByBiometricEnrollment: true,
+        setInvalidatedByBiometricEnrollment: false,
         enforceBiometric: true,
       ),
     );
 
     if (result.code != BiometricError.success) {
       throw Exception(
-        result.error ??
-            'Unable to create biometric key.',
+        result.error ?? 'Unable to create biometric key.',
       );
     }
 
     final publicKey = result.publicKey;
 
     if (publicKey == null || publicKey.isEmpty) {
-      throw Exception(
-        'Biometric key created but public key was not returned.',
-      );
+      return await getPublicKey();
     }
 
     return publicKey;
@@ -154,8 +236,7 @@ class FingerprintService {
       );
     }
 
-    final keyExists =
-        await _biometricSignature.biometricKeyExists();
+    final keyExists = await _biometricSignature.biometricKeyExists();
 
     if (!keyExists) {
       throw Exception(
@@ -163,22 +244,19 @@ class FingerprintService {
       );
     }
 
-    final result =
-        await _biometricSignature.createSignature(
+    final result = await _biometricSignature.createSignature(
       payload: challenge,
       signatureFormat: SignatureFormat.base64,
       keyFormat: KeyFormat.pem,
-      promptMessage:
-          'Verify your fingerprint to mark attendance',
+      promptMessage: 'Verify your fingerprint to mark attendance',
       config: CreateSignatureConfig(
-        allowDeviceCredentials: false,
+        allowDeviceCredentials: true,
       ),
     );
 
     if (result.code != BiometricError.success) {
       throw Exception(
-        result.error ??
-            'Fingerprint authentication failed.',
+        result.error ?? 'Fingerprint authentication failed.',
       );
     }
 
@@ -198,6 +276,8 @@ class FingerprintService {
   // =========================================================
 
   Future<String> getDeviceName() async {
-    return 'Android Device';
+    if (Platform.isAndroid) return 'Android Device';
+    if (Platform.isIOS) return 'iOS Device';
+    return 'Mobile Device';
   }
 }

@@ -462,7 +462,7 @@ class _TaskAudioPlayerDialogState
   Future<void> _initAudio() async {
     try {
       final repo = ref.read(taskRepositoryProvider);
-      final path = await repo.saveAttachment(
+      final path = await repo.cacheAttachmentLocally(
         widget.taskId,
         widget.attachmentId,
         widget.fileName,

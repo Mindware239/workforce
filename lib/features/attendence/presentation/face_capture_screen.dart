@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geolocator/geolocator.dart';
@@ -12,14 +14,24 @@ import 'package:workforce/features/attendence/data/attendance_repository.dart';
 import 'package:workforce/features/attendence/presentation/blink_capture_screen.dart';
 import 'package:workforce/features/attendence/providers/attendance_provider.dart';
 import 'package:workforce/features/attendence/providers/fingerprint_provider.dart';
+import 'package:workforce/features/attendence/services/employee_location_service.dart';
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 import 'package:workforce/features/onboarding/presentation/widget/workforce_brand.dart';
 import 'package:workforce/features/profile/providers/profile_provider.dart';
 
 class FaceCaptureScreen extends ConsumerStatefulWidget {
   final bool? isStart;
+  final double? latitude;
+  final double? longitude;
+  final double? accuracy;
 
-  const FaceCaptureScreen({super.key, this.isStart});
+  const FaceCaptureScreen({
+    super.key,
+    this.isStart,
+    this.latitude,
+    this.longitude,
+    this.accuracy,
+  });
 
   @override
   ConsumerState<FaceCaptureScreen> createState() => _FaceCaptureScreenState();
@@ -29,115 +41,110 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
   bool _isLoading = false;
 
   // ============================================================
-  // TAKE ATTENDANCE
+  // RESOLVE GPS POSITION
+  // ============================================================
+
+  Future<Position> _resolvePosition() async {
+    if (widget.latitude != null &&
+        widget.longitude != null &&
+        widget.latitude != 0.0 &&
+        widget.longitude != 0.0) {
+      return Position(
+        latitude: widget.latitude!,
+        longitude: widget.longitude!,
+        timestamp: DateTime.now(),
+        accuracy: widget.accuracy ?? 15.0,
+        altitude: 0.0,
+        altitudeAccuracy: 0.0,
+        heading: 0.0,
+        headingAccuracy: 0.0,
+        speed: 0.0,
+        speedAccuracy: 0.0,
+      );
+    }
+
+    final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      _showMessage(ref.tr('faceCapture.locationServicesRequired'));
+      throw Exception('Location service disabled');
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    if (permission == LocationPermission.denied) {
+      permission = await Geolocator.requestPermission();
+    }
+    if (permission == LocationPermission.denied ||
+        permission == LocationPermission.deniedForever) {
+      _showMessage(ref.tr('faceCapture.locationPermissionRequired'));
+      throw Exception('Location permission denied');
+    }
+
+    return await getPrecisePosition();
+  }
+
+  // ============================================================
+  // TAKE ATTENDANCE (FACE CAPTURE)
   // ============================================================
 
   Future<void> _takePhoto() async {
     if (_isLoading) return;
-
-    final String? attendanceType = await _showAttendanceTypeBottomSheet(
-      widget.isStart ?? false,
-    );
-
-    if (!mounted || attendanceType == null) {
-      return;
-    }
 
     setState(() {
       _isLoading = true;
     });
 
     try {
-      // ========================================================
-      // LOCATION SERVICE
-      // ========================================================
+      final position = await _resolvePosition();
+      await _openBlinkCamera(position: position);
+    } catch (e, stackTrace) {
+      debugPrint('❌ FACE CAPTURE ERROR: $e\n$stackTrace');
+      if (!mounted) return;
+      _showMessage(e.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
 
+  // ============================================================
+  // DIRECT FINGERPRINT VERIFICATION
+  // ============================================================
+
+  Future<void> _authenticateWithFingerprintDirectly() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
       final bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
-
-      debugPrint('📍 Location service enabled: $serviceEnabled');
-
       if (!serviceEnabled) {
         _showMessage(ref.tr('faceCapture.locationServicesRequired'));
         return;
       }
 
-      // ========================================================
-      // LOCATION PERMISSION
-      // ========================================================
-
       LocationPermission permission = await Geolocator.checkPermission();
-
-      debugPrint('📍 Location permission: $permission');
-
       if (permission == LocationPermission.denied) {
         permission = await Geolocator.requestPermission();
-
-        debugPrint(
-          '📍 Location permission after request: '
-          '$permission',
-        );
       }
-
       if (permission == LocationPermission.denied) {
         _showMessage(ref.tr('faceCapture.locationPermissionRequired'));
         return;
       }
-
       if (permission == LocationPermission.deniedForever) {
         _showMessage(ref.tr('faceCapture.locationPermissionDenied'));
         return;
       }
 
-      // ========================================================
-      // GET CURRENT LOCATION
-      // ========================================================
-
-      debugPrint('📍 Getting current location...');
-
       final Position position = await getPrecisePosition();
-
-      debugPrint('📍 Latitude: ${position.latitude}');
-
-      debugPrint('📍 Longitude: ${position.longitude}');
-
-      debugPrint('📍 Accuracy: ${position.accuracy}');
-
-      // ========================================================
-      // FACE ATTENDANCE
-      // ========================================================
-
-      if (attendanceType == 'face') {
-        await _openBlinkCamera(position: position);
-
-        return;
-      }
-
-      // ========================================================
-      // FINGERPRINT ATTENDANCE
-      // ========================================================
-
-      if (attendanceType == 'fingerprint') {
-        debugPrint('👆 Attendance type: fingerprint');
-
-        await _authenticateFingerprint(position: position);
-
-        return;
-      }
-
-      _showMessage(ref.tr('faceCapture.invalidAttendanceMethod'));
+      await _authenticateFingerprint(position: position);
     } catch (e, stackTrace) {
-      debugPrint('========================================');
-
-      debugPrint('❌ ATTENDANCE CAPTURE ERROR');
-
-      debugPrint('❌ ERROR: $e');
-
-      debugPrint('❌ STACK TRACE: $stackTrace');
-
-      debugPrint('========================================');
-
+      debugPrint('❌ FINGERPRINT DIRECT ERROR: $e\n$stackTrace');
       if (!mounted) return;
-
       _showMessage(e.toString().replaceFirst('Exception: ', ''));
     } finally {
       if (mounted) {
@@ -239,14 +246,19 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
       // 1. CHECK BIOMETRIC AVAILABILITY
       // ========================================================
 
-      final isAvailable = await fingerprintService.isBiometricAvailable();
+      final availability = await fingerprintService.checkBiometricAvailability();
 
-      debugPrint('👆 Biometric availability: $isAvailable');
+      debugPrint(
+        '👆 Biometric check: canProceed=${availability.canProceed}, canAuth=${availability.canAuthenticate}, hasEnrolled=${availability.hasEnrolledBiometrics}, types=${availability.availableBiometrics}, reason=${availability.reason}',
+      );
 
-      if (!isAvailable) {
+      if (!availability.canProceed) {
         if (!mounted) return;
 
-        _showMessage(ref.tr('faceCapture.fingerprintUnavailable'));
+        _showMessage(
+          availability.errorMessage ??
+              ref.tr('faceCapture.fingerprintUnavailable'),
+        );
 
         return;
       }
@@ -260,35 +272,22 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
       debugPrint('📱 Device ID: $deviceId');
 
       // ========================================================
-      // 3. GET EXISTING PUBLIC KEY
+      // 3. GET OR CREATE PUBLIC KEY
       // ========================================================
 
-      final existingPublicKey = await fingerprintService.getPublicKey();
-
-      bool shouldRegisterDevice = false;
-
-      String? publicKey = existingPublicKey;
-
-      // ========================================================
-      // 4. CREATE BIOMETRIC KEY IF REQUIRED
-      // ========================================================
+      String? publicKey = await fingerprintService.getPublicKey();
 
       if (publicKey == null || publicKey.isEmpty) {
         debugPrint('🔐 No valid biometric key found.');
-
         debugPrint('🔐 Creating ES256 biometric key...');
-
         publicKey = await fingerprintService.createKeyIfNeeded();
-
-        shouldRegisterDevice = true;
-
         debugPrint('✅ New ES256 biometric key created.');
       } else {
         debugPrint('✅ Existing biometric public key found.');
       }
 
       // ========================================================
-      // 5. VALIDATE PUBLIC KEY
+      // 4. VALIDATE PUBLIC KEY
       // ========================================================
 
       if (publicKey == null || publicKey.isEmpty) {
@@ -300,54 +299,51 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
       }
 
       // ========================================================
-      // 6. REGISTER DEVICE
+      // 5. REGISTER DEVICE (Idempotent: ensures device is active on backend)
       // ========================================================
 
-      if (shouldRegisterDevice) {
-        debugPrint('📡 Registering biometric device...');
+      final platform = Platform.isAndroid ? 'android' : (Platform.isIOS ? 'ios' : 'android');
 
-        final registerResponse = await fingerprintRepository.registerDevice(
+      debugPrint('📡 Ensuring biometric device is registered on server...');
+      try {
+        await fingerprintRepository.registerDevice(
           deviceId: deviceId,
           deviceName: await fingerprintService.getDeviceName(),
-          platform: 'android',
+          platform: platform,
           publicKey: publicKey,
           algorithm: 'ES256',
         );
-
-        debugPrint(
-          '📡 Register response: '
-          '$registerResponse',
-        );
-
-        if (registerResponse['success'] != true) {
-          if (!mounted) return;
-
-          _showMessage(
-            registerResponse['message']?.toString() ??
-                ref.tr('faceCapture.unableRegisterFingerprint'),
-          );
-
-          return;
-        }
-
-        debugPrint('✅ Fingerprint device registered.');
-      } else {
-        debugPrint(
-          'ℹ️ Existing biometric device. '
-          'Skipping registration.',
-        );
+        debugPrint('✅ Fingerprint device registration verified.');
+      } catch (regError) {
+        debugPrint('⚠️ Device registration check: $regError');
       }
 
       // ========================================================
-      // 7. CREATE CHALLENGE
+      // 6. CREATE CHALLENGE
       // ========================================================
 
       debugPrint('🎯 Requesting fingerprint challenge...');
 
-      final challengeResponse = await fingerprintRepository.createChallenge(
-        deviceId: deviceId,
-        purpose: challengePurpose,
-      );
+      Map<String, dynamic> challengeResponse;
+      try {
+        challengeResponse = await fingerprintRepository.createChallenge(
+          deviceId: deviceId,
+          purpose: challengePurpose,
+        );
+      } catch (challengeError) {
+        debugPrint('⚠️ Challenge error ($challengeError). Re-registering device and retrying...');
+        await fingerprintRepository.registerDevice(
+          deviceId: deviceId,
+          deviceName: await fingerprintService.getDeviceName(),
+          platform: platform,
+          publicKey: publicKey,
+          algorithm: 'ES256',
+        );
+        challengeResponse = await fingerprintRepository.createChallenge(
+          deviceId: deviceId,
+          purpose: challengePurpose,
+        );
+      }
 
       debugPrint(
         '🎯 Challenge response: '
@@ -398,9 +394,35 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
 
       debugPrint('✍️ Requesting biometric signature...');
 
-      final signature = await fingerprintService.signChallenge(
-        challenge.toString(),
-      );
+      int challengeIdToSign = parsedChallengeId;
+      String? signature;
+      try {
+        signature = await fingerprintService.signChallenge(
+          challenge.toString(),
+        );
+      } catch (signError) {
+        debugPrint('⚠️ Biometric signature error: $signError. Attempting key reset and retry...');
+        final newKey = await fingerprintService.createKeyIfNeeded(force: true);
+        if (newKey != null && newKey.isNotEmpty) {
+          await fingerprintRepository.registerDevice(
+            deviceId: deviceId,
+            deviceName: await fingerprintService.getDeviceName(),
+            platform: platform,
+            publicKey: newKey,
+            algorithm: 'ES256',
+          );
+          final freshChallengeRes = await fingerprintRepository.createChallenge(
+            deviceId: deviceId,
+            purpose: challengePurpose,
+          );
+          final freshChallengeData = freshChallengeRes['data'] as Map;
+          challengeIdToSign = int.parse(freshChallengeData['challengeId'].toString());
+          final freshChallenge = freshChallengeData['challenge'].toString();
+          signature = await fingerprintService.signChallenge(freshChallenge);
+        } else {
+          rethrow;
+        }
+      }
 
       if (signature == null || signature.isEmpty) {
         if (!mounted) return;
@@ -414,13 +436,6 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
 
       // ========================================================
       // 10. PERFORM ATTENDANCE
-      //
-      // The generic attendance entry/exit APIs receive:
-      // deviceId + challengeId + signature.
-      //
-      // Do NOT call fingerprintRepository.verify()
-      // here if /attendance/entry and /attendance/exit
-      // are responsible for consuming the biometric proof.
       // ========================================================
 
       debugPrint(
@@ -438,7 +453,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
           lng: position.longitude,
           accuracy: position.accuracy,
           deviceId: deviceId,
-          challengeId: parsedChallengeId,
+          challengeId: challengeIdToSign,
           signature: signature,
         );
       } else {
@@ -448,7 +463,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
           lng: position.longitude,
           accuracy: position.accuracy,
           deviceId: deviceId,
-          challengeId: parsedChallengeId,
+          challengeId: challengeIdToSign,
           signature: signature,
         );
       }
@@ -476,7 +491,19 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
               : ref.tr('faceCapture.sessionEndedSuccessful'),
         );
 
-        context.pop(true);
+        if (widget.isStart == true) {
+          final localization = ref.read(appLocalizationProvider);
+          if (mounted) {
+            await LocationTrackingService.requestAlwaysPermission(
+              context,
+              localization.tr,
+            );
+          }
+        }
+
+        if (mounted) {
+          context.go(AppRoutes.dashboard);
+        }
 
         return;
       }
@@ -589,15 +616,15 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
                 const SizedBox(height: 12),
 
                 // FINGERPRINT
-                // _buildAttendanceMethodTile(
-                //   icon: Icons.fingerprint,
-                //   title: ref.tr('faceCapture.fingerprint'),
-                //   subtitle: ref.tr('faceCapture.useDeviceFingerprint'),
-                //   value: 'fingerprint',
-                //   onTap: () {
-                //     Navigator.pop(context, 'fingerprint');
-                //   },
-                // ),
+                _buildAttendanceMethodTile(
+                  icon: Icons.fingerprint,
+                  title: ref.tr('faceCapture.fingerprint'),
+                  subtitle: ref.tr('faceCapture.useDeviceFingerprint'),
+                  value: 'fingerprint',
+                  onTap: () {
+                    Navigator.pop(context, 'fingerprint');
+                  },
+                ),
               ],
             ),
           ),
@@ -723,6 +750,38 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
               ),
 
               const SizedBox(height: 12),
+
+              // SizedBox(
+              //   width: double.infinity,
+              //   height: 48,
+              //   child: OutlinedButton.icon(
+              //     icon: const Icon(
+              //       Icons.fingerprint,
+              //       color: AppColors.primaryFillColor,
+              //       size: 22,
+              //     ),
+              //     label: Text(
+              //       ref.tr('faceCapture.fingerprint'),
+              //       style: GoogleFonts.inter(
+              //         fontSize: 14,
+              //         fontWeight: FontWeight.w600,
+              //         color: AppColors.primaryFillColor,
+              //       ),
+              //     ),
+              //     style: OutlinedButton.styleFrom(
+              //       side: const BorderSide(
+              //         color: AppColors.primaryFillColor,
+              //         width: 1.5,
+              //       ),
+              //       shape: RoundedRectangleBorder(
+              //         borderRadius: BorderRadius.circular(12),
+              //       ),
+              //     ),
+              //     onPressed: _isLoading ? null : _authenticateWithFingerprintDirectly,
+              //   ),
+              // ),
+
+              // const SizedBox(height: 12),
 
               _buildCancelButton(),
             ],
