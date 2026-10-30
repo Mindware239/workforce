@@ -21,6 +21,7 @@ import 'package:workforce/features/attendence/providers/attendance_provider.dart
 import 'package:workforce/features/auth/providers/auth_provider.dart';
 import 'package:workforce/features/home/presentation/widget/current_date_text.dart';
 import 'package:workforce/features/notification/providers/notification_provider.dart';
+import 'package:workforce/features/task/providers/task_provider.dart';
 import 'package:workforce/features/operations/providers/entitlements_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -208,7 +209,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
         if (isNetworkError(e)) {
           isOffline = true;
-          debugPrint('ℹ️ Network offline during geofence check. Proceeding in offline mode.');
+          debugPrint(
+            'ℹ️ Network offline during geofence check. Proceeding in offline mode.',
+          );
         } else {
           rethrow;
         }
@@ -291,6 +294,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
       ref.read(notificationProvider.notifier).startRealtimeNotifications();
 
+      ref.read(taskProvider.notifier).fetchSummary();
+
       _startTourIfNeeded();
     });
 
@@ -316,6 +321,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         setState(() {});
       }
     });
+  }
+
+  Future<void> _onRefresh() async {
+    await Future.wait([
+      ref.read(attendanceProvider.notifier).getDashboard(),
+      ref.read(attendanceProvider.notifier).getTodayAttendance(),
+      ref.read(notificationProvider.notifier).fetchNotifications(),
+      ref.read(taskProvider.notifier).fetchSummary(),
+    ]);
   }
 
   @override
@@ -346,7 +360,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         backgroundColor: AppColors.appBarColor,
         title: Text(
           // ref.tr('home.workforce'),
-          'WorkForce Pro',
+          'WorkForce',
           style: GoogleFonts.inter(
             fontSize: 24,
             fontWeight: FontWeight.bold,
@@ -396,45 +410,50 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CurrentDateText(),
+        child: RefreshIndicator(
+          color: AppColors.primaryFillColor,
+          onRefresh: _onRefresh,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                CurrentDateText(),
 
-              const SizedBox(height: 8),
+                const SizedBox(height: 8),
 
-              Showcase(
-                key: _tourGreeting,
-                title: 'Welcome to Workforce',
-                description:
-                    'Your daily workspace for attendance, productivity, '
-                    'shift schedules and employee activities.',
-                child: _buildGreeting(fullName),
-              ),
+                Showcase(
+                  key: _tourGreeting,
+                  title: 'Welcome to Workforce',
+                  description:
+                      'Your daily workspace for attendance, productivity, '
+                      'shift schedules and employee activities.',
+                  child: _buildGreeting(fullName),
+                ),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              Showcase(
-                key: _tourShift,
-                title: "Today's Shift",
-                description:
-                    'View your shift timings and attendance status. '
-                    'Use the available buttons to start or end your shift '
-                    'and manage your breaks. Location verification and face '
-                    'capture may be required.',
-                child: _buildShiftCard(attendanceState),
-              ),
+                Showcase(
+                  key: _tourShift,
+                  title: "Today's Shift",
+                  description:
+                      'View your shift timings and attendance status. '
+                      'Use the available buttons to start or end your shift '
+                      'and manage your breaks. Location verification and face '
+                      'capture may be required.',
+                  child: _buildShiftCard(attendanceState),
+                ),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              _buildStats(attendanceState),
+                _buildStats(attendanceState),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              _buildQuickActions(notificationState),
-            ],
+                _buildQuickActions(notificationState),
+              ],
+            ),
           ),
         ),
       ),
@@ -1039,6 +1058,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   icon: 'assets/icons/notification.svg',
                   title: ref.tr('home.notifications'),
                   // subtitle: notificationSubtitle,
+                  badgeCount: unreadCount,
                   showNotificationDot: unreadCount > 0,
                   onTap: () {
                     context.push(AppRoutes.notification);
@@ -1352,6 +1372,7 @@ class _QuickAction extends StatelessWidget {
   final String? icon;
   final IconData? iconData;
   final String title;
+  final int? badgeCount;
   final bool showNotificationDot;
   final bool isLast;
   final VoidCallback onTap;
@@ -1361,6 +1382,7 @@ class _QuickAction extends StatelessWidget {
     this.iconData,
     required this.title,
     required this.onTap,
+    this.badgeCount,
     this.showNotificationDot = false,
     this.isLast = false,
   });
@@ -1424,12 +1446,31 @@ class _QuickAction extends StatelessWidget {
                         color: AppColors.textColor,
                       ),
                     ),
-
                   ],
                 ),
               ),
 
-              if (showNotificationDot)
+             if (badgeCount != null && badgeCount! > 0)
+  Container(
+    width: 22,
+    height: 22,
+    margin: const EdgeInsets.only(right: 6),
+    alignment: Alignment.center,
+    decoration: const BoxDecoration(
+      color: Color(0xFFBA1A1A),
+      shape: BoxShape.circle,
+    ),
+    child: Text(
+      badgeCount! > 99 ? '99+' : badgeCount.toString(),
+      style: GoogleFonts.inter(
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+        color: Colors.white,
+        height: 1,
+      ),
+    ),
+  )
+              else if (showNotificationDot)
                 Container(
                   width: 8,
                   height: 8,

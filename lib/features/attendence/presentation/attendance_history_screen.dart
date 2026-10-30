@@ -133,35 +133,35 @@ class _AttendanceHistoryScreenState
             ),
           ),
         ),
-        ElevatedButton.icon(
-          onPressed: () async {
-            final sent = await CorrectionSheet.show(context);
-            if (sent == true && mounted) {
-              _loadHistory();
-              showFeatureSnack(
-                context,
-                ref.tr('attendanceHistory.correctionSent'),
-              );
-            }
-          },
-          icon: const Icon(Icons.edit_calendar_outlined, size: 16),
-          label: Text(
-            ref.tr('attendanceHistory.requestCorrection'),
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryFillColor,
-            foregroundColor: AppColors.white,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-        ),
+        // ElevatedButton.icon(
+        //   onPressed: () async {
+        //     final sent = await CorrectionSheet.show(context);
+        //     if (sent == true && mounted) {
+        //       _loadHistory();
+        //       showFeatureSnack(
+        //         context,
+        //         ref.tr('attendanceHistory.correctionSent'),
+        //       );
+        //     }
+        //   },
+        //   icon: const Icon(Icons.edit_calendar_outlined, size: 16),
+        //   label: Text(
+        //     ref.tr('attendanceHistory.requestCorrection'),
+        //     style: GoogleFonts.inter(
+        //       fontSize: 12,
+        //       fontWeight: FontWeight.w600,
+        //     ),
+        //   ),
+        //   style: ElevatedButton.styleFrom(
+        //     backgroundColor: AppColors.primaryFillColor,
+        //     foregroundColor: AppColors.white,
+        //     elevation: 0,
+        //     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        //     shape: RoundedRectangleBorder(
+        //       borderRadius: BorderRadius.circular(10),
+        //     ),
+        //   ),
+        // ),
       ],
     );
   }

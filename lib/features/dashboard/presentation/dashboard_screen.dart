@@ -13,6 +13,7 @@ import 'package:workforce/features/home/presentation/home_screen.dart';
 // import 'package:workforce/features/profile/presentation/profile_screen.dart';
 
 import 'package:workforce/features/task/presentation/task_screen.dart';
+import 'package:workforce/features/task/providers/task_provider.dart';
 
 class DashboardPage extends ConsumerWidget {
   final int index;
@@ -47,6 +48,21 @@ class DashboardPage extends ConsumerWidget {
     final unreadCount =
         ref.watch(chatProvider.select((s) => s.unreadCount));
 
+    // Watch task count for the bottom navigation badge.
+    final taskCount = ref.watch(taskProvider.select((s) {
+      final active = s.pendingCount + s.inProgressCount;
+      if (active > 0) return active;
+      if (s.pendingCount > 0) return s.pendingCount;
+      return s.tasks.where((t) {
+        final status = t['status']?.toString().toLowerCase();
+        return status == 'pending' || status == 'in_progress';
+      }).length;
+    }));
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.read(taskProvider.notifier).fetchSummary();
+    });
+
     if (index != 0 && selectedIndex == 0) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         ref
@@ -64,6 +80,7 @@ class DashboardPage extends ConsumerWidget {
       bottomNavigationBar: _DashboardBottomNav(
         currentIndex: selectedIndex,
         unreadCount: unreadCount,
+        taskCount: taskCount,
         onTap: (index) {
           ref
               .read(dashboardTabProvider.notifier)
@@ -89,11 +106,13 @@ class DashboardPage extends ConsumerWidget {
 class _DashboardBottomNav extends StatelessWidget {
   final int currentIndex;
   final int unreadCount;
+  final int taskCount;
   final ValueChanged<int> onTap;
 
   const _DashboardBottomNav({
     required this.currentIndex,
     required this.unreadCount,
+    this.taskCount = 0,
     required this.onTap,
   });
 
@@ -143,6 +162,9 @@ class _DashboardBottomNav extends StatelessWidget {
 
               final bool isSelected =
                   currentIndex == index;
+
+              // Task is index 2.
+              final bool isTask = index == 2;
 
               // Chat is index 3.
               final bool isChat =
@@ -202,6 +224,18 @@ class _DashboardBottomNav extends StatelessWidget {
                                       BlendMode.srcIn,
                                     ),
                                   ),
+
+                                  if (isTask &&
+                                      taskCount > 0)
+                                    Positioned(
+                                      top: -5,
+                                      right: -3,
+                                      child:
+                                          _UnreadBadge(
+                                        count:
+                                            taskCount,
+                                      ),
+                                    ),
 
                                   if (isChat &&
                                       unreadCount > 0)

@@ -30,6 +30,13 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     });
   }
 
+  Future<void> _onRefresh() async {
+    await Future.wait([
+      ref.read(attendanceProvider.notifier).getTodayAttendance(),
+      ref.read(attendanceProvider.notifier).getDashboard(),
+    ]);
+  }
+
   void _startWorkingTimeTimer() {
     _workingTimeTimer?.cancel();
 
@@ -53,10 +60,13 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
       body: SafeArea(
-        child: SingleChildScrollView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: const EdgeInsets.all(16),
-          child: Column(
+        child: RefreshIndicator(
+          color: AppColors.primaryFillColor,
+          onRefresh: _onRefresh,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(16),
+            child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildHeader(attendanceState),
@@ -87,7 +97,8 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           ),
         ),
       ),
-    );
+    ),
+  );
   }
 
   // ============================================================
