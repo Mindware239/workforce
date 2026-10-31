@@ -221,8 +221,13 @@ class AppRoutes {
         }
 
         final title = state.uri.queryParameters['title'] ?? 'Chat';
+        final isGroup = state.uri.queryParameters['isGroup'] == 'true';
 
-        return ChatDetailScreen(conversationId: conversationId, title: title);
+        return ChatDetailScreen(
+          conversationId: conversationId,
+          title: title,
+          initialIsGroup: isGroup,
+        );
       },
     ),
 

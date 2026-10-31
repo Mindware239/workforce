@@ -11,6 +11,8 @@ import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/features/chat/providers/chat_provider.dart';
 import 'package:workforce/features/chat/providers/chat_realtime.dart';
 
+enum ChatFilterType { all, direct, group }
+
 class ChatListScreen extends ConsumerStatefulWidget {
   const ChatListScreen({super.key});
 
@@ -22,6 +24,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   final TextEditingController _searchController = TextEditingController();
 
   String _searchQuery = '';
+  ChatFilterType _selectedFilter = ChatFilterType.all;
 
   @override
   void initState() {
@@ -57,8 +60,16 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   List<Map<String, dynamic>> _getFilteredConversations(
     List<Map<String, dynamic>> conversations,
   ) {
+    var filtered = conversations;
+
+    if (_selectedFilter == ChatFilterType.direct) {
+      filtered = filtered.where((c) => c['type']?.toString() != 'group').toList();
+    } else if (_selectedFilter == ChatFilterType.group) {
+      filtered = filtered.where((c) => c['type']?.toString() == 'group').toList();
+    }
+
     if (_searchQuery.isEmpty) {
-      return conversations;
+      return filtered;
     }
 
     return conversations.where((conversation) {
@@ -232,7 +243,147 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
               ),
             ),
           ),
+
+          const SizedBox(height: 12),
+
+          _buildFilterChips(state),
         ],
+      ),
+    );
+  }
+
+  // ============================================================
+  // FILTER CHIPS (DIRECT VS GROUP)
+  // ============================================================
+
+  Widget _buildFilterChips(ChatState state) {
+    int unreadFor(Map<String, dynamic> c) =>
+        int.tryParse(c['unreadCount']?.toString() ?? '0') ?? 0;
+
+    final allUnread = state.conversations.fold<int>(
+      0,
+      (sum, c) => sum + unreadFor(c),
+    );
+    final directUnread = state.conversations
+        .where((c) => c['type']?.toString() != 'group')
+        .fold<int>(0, (sum, c) => sum + unreadFor(c));
+    final groupUnread = state.conversations
+        .where((c) => c['type']?.toString() == 'group')
+        .fold<int>(0, (sum, c) => sum + unreadFor(c));
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _buildFilterChip(
+            label: ref.tr('chat.all'),
+            filter: ChatFilterType.all,
+            count: allUnread,
+            icon: Icons.chat_bubble_outline_rounded,
+          ),
+          const SizedBox(width: 8),
+          _buildFilterChip(
+            label: ref.tr('chat.direct'),
+            filter: ChatFilterType.direct,
+            count: directUnread,
+            icon: Icons.person_outline_rounded,
+          ),
+          const SizedBox(width: 8),
+          _buildFilterChip(
+            label: ref.tr('chat.groups'),
+            filter: ChatFilterType.group,
+            count: groupUnread,
+            icon: Icons.groups_rounded,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFilterChip({
+    required String label,
+    required ChatFilterType filter,
+    required int count,
+    required IconData icon,
+  }) {
+    final selected = _selectedFilter == filter;
+    final isGroup = filter == ChatFilterType.group;
+    final activeColor = isGroup ? AppColors.navy : AppColors.primaryFillColor;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(20),
+      onTap: () {
+        if (_selectedFilter != filter) {
+          setState(() {
+            _selectedFilter = filter;
+          });
+        }
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected ? activeColor : Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? activeColor : AppColors.borderColor,
+            width: selected ? 1.5 : 1,
+          ),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: activeColor.withValues(alpha: 0.22),
+                    blurRadius: 6,
+                    offset: const Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              size: 15,
+              color: selected
+                  ? Colors.white
+                  : (isGroup ? AppColors.navy : AppColors.mutedColor),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+                color: selected ? Colors.white : AppColors.textColor,
+              ),
+            ),
+            if (count > 0) ...[
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? Colors.white.withValues(alpha: 0.25)
+                      : (isGroup
+                          ? AppColors.navyLight
+                          : AppColors.primaryFillColor.withValues(alpha: 0.10)),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  count.toString(),
+                  style: GoogleFonts.inter(
+                    fontSize: 10,
+                    fontWeight: FontWeight.w700,
+                    color: selected
+                        ? Colors.white
+                        : (isGroup ? AppColors.navy : AppColors.saffronText),
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
   }
@@ -364,7 +515,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
             Stack(
               clipBehavior: Clip.none,
               children: [
-                _buildAvatar(title, size: 48),
+                _buildAvatar(title, size: 48, isGroup: group),
                 if (online)
                   Positioned(
                     right: 0,
@@ -391,15 +542,57 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
                   Row(
                     children: [
                       Expanded(
-                        child: Text(
-                          title,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.textColor,
-                          ),
+                        child: Row(
+                          children: [
+                            Flexible(
+                              child: Text(
+                                title,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.inter(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.textColor,
+                                ),
+                              ),
+                            ),
+                            if (group) ...[
+                              const SizedBox(width: 6),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: AppColors.navyLight,
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: AppColors.navy.withValues(alpha: 0.20),
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(
+                                      Icons.groups_rounded,
+                                      size: 11,
+                                      color: AppColors.navy,
+                                    ),
+                                    const SizedBox(width: 3),
+                                    Text(
+                                      ref.tr('chat.group'),
+                                      style: GoogleFonts.inter(
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w700,
+                                        color: AppColors.navy,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
                         ),
                       ),
 
@@ -492,7 +685,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
       foregroundColor: Colors.white,
       elevation: 3,
       onPressed: _showContactsSheet,
-      icon: const Icon(Icons.edit_rounded, size: 18),
+      // icon: const Icon(Icons.edit_rounded, size: 18),
       label: Text(
         ref.tr('chat.newMessage'),
         style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
@@ -659,7 +852,24 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
   // AVATAR
   // ============================================================
 
-  Widget _buildAvatar(String name, {double size = 48}) {
+  Widget _buildAvatar(String name, {double size = 48, bool isGroup = false}) {
+    if (isGroup) {
+      return Container(
+        width: size,
+        height: size,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: AppColors.navyLight,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          Icons.groups_rounded,
+          size: size * .52,
+          color: AppColors.navy,
+        ),
+      );
+    }
+
     final trimmedName = name.trim();
 
     final first = trimmedName.isEmpty

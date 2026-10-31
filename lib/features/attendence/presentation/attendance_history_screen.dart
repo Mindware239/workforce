@@ -253,6 +253,7 @@ class _AttendanceHistoryScreenState
               );
 
               final record = _recordForDate(records, date);
+              final holiday = _holidayForDate(state.historyHolidays, date);
 
               final now = DateTime.now();
 
@@ -262,23 +263,23 @@ class _AttendanceHistoryScreenState
                 DateTime(now.year, now.month, now.day),
               );
 
-              final isWorkingDay = date.weekday != DateTime.sunday;
+              final isWorkingDay =
+                  date.weekday != DateTime.sunday && holiday == null;
 
               // API doesn't return a record for absent days.
-              // Therefore: past working day + no record = absent.
+              // Therefore: past working day + no holiday + no record = absent.
               final isAbsent = isPast && isWorkingDay && record == null;
 
               return _CalendarDay(
                 date: date,
                 record: record,
+                holiday: holiday,
                 isSelected: _isSameDate(selectedDate, date),
                 isToday: isToday,
                 isAbsent: isAbsent,
                 onTap: () {
-                  if (!isToday) return;
-
                   setState(() {
-                    selectedDate = DateTime.now();
+                    selectedDate = date;
                   });
                 },
               );
@@ -356,7 +357,10 @@ class _AttendanceHistoryScreenState
   Widget _buildCalendarLegend() {
     return Row(
       children: [
-        // _LegendItem(color: const Color(0xFFE33D59), text: 'Absent'),
+        _LegendItem(
+          color: AppColors.saffronDeep,
+          text: ref.tr('attendanceHistory.holiday'),
+        ),
 
         const Spacer(),
 
@@ -364,8 +368,6 @@ class _AttendanceHistoryScreenState
           color: const Color(0xFFE33D59),
           text: ref.tr('attendanceHistory.absent'),
         ),
-
-        // _LegendItem(color: const Color(0xFFF2A21B), text: 'Exception'),
       ],
     );
   }
@@ -495,6 +497,9 @@ class _AttendanceHistoryScreenState
 
   Widget _buildLogEntries(AttendanceState state) {
     var records = state.historyRecords;
+    final selectedHoliday = selectedDate != null
+        ? _holidayForDate(state.historyHolidays, selectedDate!)
+        : null;
 
     if (selectedDate != null) {
       final selectedRecord = _recordForDate(records, selectedDate!);
@@ -508,16 +513,78 @@ class _AttendanceHistoryScreenState
     }
 
     if (records.isEmpty) {
+      if (selectedHoliday != null) {
+        return _buildHolidayBanner(selectedHoliday);
+      }
       return _buildEmptyLogs();
     }
 
     return Column(
-      children: records.map((record) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: _AttendanceLogCard(record: record, onCorrectionRequested: _loadHistory),
-        );
-      }).toList(),
+      children: [
+        if (selectedHoliday != null) _buildHolidayBanner(selectedHoliday),
+        ...records.map((record) {
+          return Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _AttendanceLogCard(
+              record: record,
+              onCorrectionRequested: _loadHistory,
+            ),
+          );
+        }),
+      ],
+    );
+  }
+
+  Widget _buildHolidayBanner(Map<String, dynamic> holiday) {
+    final name = holiday['name']?.toString() ?? 'Holiday';
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.saffronTint,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.saffronLight),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.saffronLight,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: const Icon(
+              Icons.celebration_rounded,
+              color: AppColors.saffronDeep,
+              size: 20,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  name,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textColor,
+                  ),
+                ),
+                Text(
+                  ref.tr('attendanceHistory.companyHoliday'),
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    color: AppColors.saffronText,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -618,6 +685,25 @@ class _AttendanceHistoryScreenState
     return null;
   }
 
+  Map<String, dynamic>? _holidayForDate(
+    List<Map<String, dynamic>> holidays,
+    DateTime date,
+  ) {
+    for (final holiday in holidays) {
+      final value = holiday['date']?.toString();
+      if (value == null) continue;
+
+      final parsed = DateTime.tryParse(value);
+      if (parsed == null) continue;
+
+      if (_isSameDate(parsed, date)) {
+        return holiday;
+      }
+    }
+
+    return null;
+  }
+
   bool _isSameDate(DateTime? a, DateTime? b) {
     if (a == null || b == null) {
       return false;
@@ -676,6 +762,7 @@ class _AttendanceHistoryScreenState
 class _CalendarDay extends StatelessWidget {
   final DateTime date;
   final Map<String, dynamic>? record;
+  final Map<String, dynamic>? holiday;
   final bool isSelected;
   final bool isToday;
   final bool isAbsent;
@@ -684,6 +771,7 @@ class _CalendarDay extends StatelessWidget {
   const _CalendarDay({
     required this.date,
     required this.record,
+    this.holiday,
     required this.isSelected,
     required this.isToday,
     required this.isAbsent,
@@ -697,23 +785,44 @@ class _CalendarDay extends StatelessWidget {
     final status = record?['status']?.toString();
 
     final isException = status == 'late' || status == 'early_exit';
+    final isHoliday = holiday != null;
+
+    final Color bgColor;
+    final Color textColor;
+
+    if (isSelected) {
+      bgColor = Colors.white;
+      textColor = isAbsent
+          ? const Color(0xFFD32F2F)
+          : isHoliday
+              ? AppColors.saffronText
+              : AppColors.textColor;
+    } else if (isAbsent) {
+      bgColor = const Color(0xFFFFEBEE);
+      textColor = const Color(0xFFD32F2F);
+    } else if (isHoliday) {
+      bgColor = AppColors.saffronTint;
+      textColor = AppColors.saffronText;
+    } else if (isException && hasRecord) {
+      bgColor = const Color(0xFFFFF3DB);
+      textColor = AppColors.textColor;
+    } else {
+      bgColor = Colors.transparent;
+      textColor = AppColors.textColor;
+    }
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
         margin: const EdgeInsets.all(2),
         decoration: BoxDecoration(
-          color: isSelected
-              ? Colors.white
-              : isAbsent
-              ? const Color(0xFFFFEBEE)
-              : isException && hasRecord
-              ? const Color(0xFFFFF3DB)
-              : Colors.transparent,
+          color: bgColor,
           borderRadius: BorderRadius.circular(9),
           border: isSelected
               ? Border.all(color: const Color(0xFF29262B), width: 2)
-              : null,
+              : isHoliday
+                  ? Border.all(color: AppColors.saffronLight, width: 1)
+                  : null,
         ),
         child: Stack(
           alignment: Alignment.center,
@@ -722,12 +831,24 @@ class _CalendarDay extends StatelessWidget {
               '${date.day}',
               style: GoogleFonts.inter(
                 fontSize: 12,
-                fontWeight: isSelected || isToday
+                fontWeight: isSelected || isToday || isHoliday
                     ? FontWeight.w700
                     : FontWeight.w400,
-                color: isAbsent ? const Color(0xFFD32F2F) : AppColors.textColor,
+                color: textColor,
               ),
             ),
+            if (isHoliday)
+              Positioned(
+                bottom: 2,
+                child: Container(
+                  width: 4,
+                  height: 4,
+                  decoration: const BoxDecoration(
+                    color: AppColors.saffronDeep,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
           ],
         ),
       ),

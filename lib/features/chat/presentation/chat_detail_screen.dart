@@ -28,11 +28,13 @@ import 'package:workforce/features/chat/providers/chat_realtime.dart';
 class ChatDetailScreen extends ConsumerStatefulWidget {
   final int conversationId;
   final String title;
+  final bool? initialIsGroup;
 
   const ChatDetailScreen({
     super.key,
     required this.conversationId,
     required this.title,
+    this.initialIsGroup,
   });
 
   @override
@@ -71,6 +73,8 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   /// The other person of a direct conversation, for online / last seen.
   int? _partnerId;
   bool _isGroup = false;
+  int? _memberCount;
+  List<Map<String, dynamic>> _members = const [];
 
   /// Who I am, to tell the calls I placed from the ones I was rung for.
   int? _myId;
@@ -175,9 +179,19 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     final group = row['type']?.toString() == 'group';
     final partner =
         group ? null : int.tryParse(row['partnerId']?.toString() ?? '');
+    final count = int.tryParse(row['memberCount']?.toString() ?? '');
+    final membersList = row['members'] is List
+        ? (row['members'] as List)
+            .whereType<Map>()
+            .map((m) => Map<String, dynamic>.from(m))
+            .toList()
+        : const <Map<String, dynamic>>[];
+
     setState(() {
       _isGroup = group;
       _partnerId = partner;
+      _memberCount = count ?? (membersList.isNotEmpty ? membersList.length : null);
+      _members = membersList;
     });
     // Calls happen only in direct conversations; their history joins the thread.
     if (!group) {
@@ -197,8 +211,182 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     if (error != null && mounted) _showMessage(error);
   }
 
+  void _showGroupInfo() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Row(
+                children: [
+                  Container(
+                    width: 52,
+                    height: 52,
+                    decoration: BoxDecoration(
+                      color: AppColors.navyLight,
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: AppColors.navy.withValues(alpha: 0.20),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: const Icon(
+                      Icons.groups_rounded,
+                      size: 28,
+                      color: AppColors.navy,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.title,
+                          style: GoogleFonts.inter(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.textColor,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.navyLight,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                ref.tr('chat.groupChat'),
+                                style: GoogleFonts.inter(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.navy,
+                                ),
+                              ),
+                            ),
+                            if (_memberCount != null) ...[
+                              const SizedBox(width: 8),
+                              Text(
+                                ' ',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: AppColors.mutedColor,
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              if (_members.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Text(
+                  ref.tr('chat.members'),
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.mutedColor,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                ConstrainedBox(
+                  constraints: BoxConstraints(
+                    maxHeight: MediaQuery.of(ctx).size.height * 0.4,
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: _members.length,
+                    separatorBuilder: (_, _) => const Divider(height: 1),
+                    itemBuilder: (_, index) {
+                      final m = _members[index];
+                      final name = m['fullName']?.toString() ?? 'Member';
+                      final role = m['role']?.toString() ?? '';
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          radius: 18,
+                          backgroundColor:
+                              AppColors.primaryFillColor.withValues(alpha: 0.12),
+                          child: Text(
+                            name.isNotEmpty ? name[0].toUpperCase() : '?',
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.saffronText,
+                            ),
+                          ),
+                        ),
+                        title: Text(
+                          name,
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.textColor,
+                          ),
+                        ),
+                        subtitle: role.isNotEmpty
+                            ? Text(
+                                role,
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  color: AppColors.mutedColor,
+                                ),
+                              )
+                            : null,
+                      );
+                    },
+                  ),
+                ),
+              ],
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   List<Widget> _buildCallActions() {
-    if (_isGroup || _partnerId == null) return const [];
+    if (_isGroup) {
+      return [
+        IconButton(
+          tooltip: ref.tr('chat.groupInfo'),
+          onPressed: _showGroupInfo,
+          icon: const Icon(Icons.info_outline_rounded),
+          color: AppColors.onAppBarColor,
+        ),
+      ];
+    }
+    if (_partnerId == null) return const [];
     final live = (ref.watch(realtimeStatusProvider).valueOrNull ??
             ref.read(realtimeServiceProvider).status) ==
         RealtimeStatus.connected;
@@ -269,6 +457,94 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   }
 
   /// "4:05 PM", "Yesterday 4:05 PM" or a date with the time.
+  Widget _buildAppBarAvatar() {
+    if (_isGroup) {
+      return Container(
+        width: 36,
+        height: 36,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.22),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.40),
+            width: 1.2,
+          ),
+        ),
+        child: const Icon(
+          Icons.groups_rounded,
+          size: 20,
+          color: Colors.white,
+        ),
+      );
+    }
+
+    final partner = _partnerId;
+    final online = partner != null &&
+        ref.watch(chatPresenceProvider)[partner]?.online == true;
+
+    final trimmed = widget.title.trim();
+    final first = trimmed.isEmpty ? '?' : trimmed[0].toUpperCase();
+
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: 36,
+          height: 36,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.22),
+            shape: BoxShape.circle,
+            border: Border.all(
+              color: Colors.white.withValues(alpha: 0.40),
+              width: 1.2,
+            ),
+          ),
+          child: Text(
+            first,
+            style: GoogleFonts.inter(
+              fontSize: 15,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        if (online)
+          Positioned(
+            right: -1,
+            bottom: -1,
+            child: Container(
+              width: 11,
+              height: 11,
+              decoration: BoxDecoration(
+                color: AppColors.indiaGreen,
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildSenderLabel(Map<String, dynamic> message) {
+    final senderName = message['senderName']?.toString().trim() ?? '';
+    if (senderName.isEmpty) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 3),
+      child: Text(
+        senderName,
+        style: GoogleFonts.inter(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: AppColors.navy,
+        ),
+      ),
+    );
+  }
+
   String _lastSeenLabel(DateTime seen) {
     final local = seen.toLocal();
     final now = DateTime.now();
@@ -859,21 +1135,60 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
           ),
         ),
         titleSpacing: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              widget.title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppColors.onAppBarColor,
+        title: InkWell(
+          onTap: _isGroup ? _showGroupInfo : null,
+          child: Row(
+            children: [
+              _buildAppBarAvatar(),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            widget.title,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: GoogleFonts.inter(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.onAppBarColor,
+                            ),
+                          ),
+                        ),
+                        if (_isGroup) ...[
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 5,
+                              vertical: 1.5,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.22),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'GROUP',
+                              style: GoogleFonts.inter(
+                                fontSize: 8.5,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: 0.5,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                    _buildSubtitle(),
+                  ],
+                ),
               ),
-            ),
-            _buildSubtitle(),
-          ],
+            ],
+          ),
         ),
         actions: _buildCallActions(),
       ),
@@ -1127,8 +1442,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       ),
       child: Column(
         mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.end,
+        crossAxisAlignment: mine ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         children: [
+          if (!mine && _isGroup) _buildSenderLabel(message),
           Text(
             message['body']?.toString() ?? '',
             style: GoogleFonts.inter(

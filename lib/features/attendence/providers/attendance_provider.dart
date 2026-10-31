@@ -32,6 +32,7 @@ class AttendanceState {
   final int? historyMonth;
   final int standardWorkingHoursMinutes;
   final List<Map<String, dynamic>> historyRecords;
+  final List<Map<String, dynamic>> historyHolidays;
   final Map<String, dynamic>? historySummary;
 
   /// The rest of GET /attendance/me/history: `latePolicy`, `compOff` and
@@ -73,6 +74,7 @@ class AttendanceState {
     this.historyMonth,
     this.standardWorkingHoursMinutes = 0,
     this.historyRecords = const [],
+    this.historyHolidays = const [],
     this.historySummary,
     this.historyExtras,
 
@@ -112,6 +114,7 @@ class AttendanceState {
     int? historyMonth,
     int? standardWorkingHoursMinutes,
     List<Map<String, dynamic>>? historyRecords,
+    List<Map<String, dynamic>>? historyHolidays,
     Map<String, dynamic>? historySummary,
     Map<String, dynamic>? historyExtras,
     bool clearHistory = false,
@@ -164,6 +167,10 @@ class AttendanceState {
       historyRecords: clearHistory
           ? const []
           : historyRecords ?? this.historyRecords,
+
+      historyHolidays: clearHistory
+          ? const []
+          : historyHolidays ?? this.historyHolidays,
 
       historySummary: clearHistory
           ? null
@@ -487,6 +494,7 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
       }
 
       final recordsData = data['records'];
+      final holidaysData = data['holidays'];
       final summaryData = data['summary'];
 
       final records = <Map<String, dynamic>>[];
@@ -495,6 +503,16 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
         for (final item in recordsData) {
           if (item is Map) {
             records.add(Map<String, dynamic>.from(item));
+          }
+        }
+      }
+
+      final holidays = <Map<String, dynamic>>[];
+
+      if (holidaysData is List) {
+        for (final item in holidaysData) {
+          if (item is Map) {
+            holidays.add(Map<String, dynamic>.from(item));
           }
         }
       }
@@ -519,6 +537,8 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
             : 0,
 
         historyRecords: records,
+
+        historyHolidays: holidays,
 
         historySummary: summary,
 

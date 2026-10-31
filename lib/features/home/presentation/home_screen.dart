@@ -22,7 +22,7 @@ import 'package:workforce/features/auth/providers/auth_provider.dart';
 import 'package:workforce/features/home/presentation/widget/current_date_text.dart';
 import 'package:workforce/features/notification/providers/notification_provider.dart';
 import 'package:workforce/features/task/providers/task_provider.dart';
-import 'package:workforce/features/operations/providers/entitlements_provider.dart';
+// import 'package:workforce/features/operations/providers/entitlements_provider.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
   const HomeScreen({super.key});
@@ -894,7 +894,60 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
 
   Widget _buildQuickActions(NotificationState notificationState) {
     final unreadCount = notificationState.unreadCount;
-    final operationsFeatures = ref.watch(entitlementsProvider);
+    // final operationsFeatures = ref.watch(entitlementsProvider);
+    final user = ref.watch(authProvider).user;
+    final dept = (user?['department']?.toString() ?? '').trim().toLowerCase();
+    final desig = (user?['designation']?.toString() ?? '').trim().toLowerCase();
+    final role = user?['role']?.toString().toLowerCase();
+    final isSuperAdmin = role == 'superadmin';
+    final jobFunctions = (user?['jobFunctions'] is List
+        ? (user!['jobFunctions'] as List).map((e) => e.toString().toUpperCase()).toList()
+        : <String>[]);
+    final isLeadership = isSuperAdmin ||
+        dept.contains('management') ||
+        dept.contains('admin') ||
+        dept.contains('director') ||
+        dept.contains('executive') ||
+        desig.contains('plant head') ||
+        desig.contains('general manager');
+
+    // 1. Field Work: strictly Sales & Field representatives
+    final bool showFieldWork = isLeadership ||
+        dept.contains('sale') ||
+        dept.contains('market') ||
+        dept.contains('bd') ||
+        dept.contains('commercial') ||
+        dept.contains('field') ||
+        dept.contains('delivery') ||
+        jobFunctions.contains('SALES');
+
+    // 2. Production Floor: strictly Production, Assembly, Quality & Maintenance
+    final bool showFloor = isLeadership ||
+        (dept.contains('production') ||
+            dept.contains('manufactur') ||
+            dept.contains('assembly') ||
+            dept.contains('maintenan') ||
+            dept.contains('plant') ||
+            dept.contains('quality') ||
+            dept.contains('qc') ||
+            dept.contains('operator') ||
+            dept.contains('fabricat') ||
+            jobFunctions.contains('PRODUCTION_MANAGER') ||
+            jobFunctions.contains('FACTORY_SUPERVISOR') ||
+            jobFunctions.contains('OPERATOR') ||
+            jobFunctions.contains('QC_INSPECTOR'));
+
+    // 3. Warehouse Scanner: strictly Stores, Dispatch & Operations
+    final bool showWarehouse = isLeadership ||
+        (dept.contains('store') ||
+            dept.contains('dispatch') ||
+            dept.contains('operat') ||
+            dept.contains('warehouse') ||
+            dept.contains('inventory') ||
+            dept.contains('logistics') ||
+            dept.contains('supply') ||
+            jobFunctions.contains('WAREHOUSE_MANAGER') ||
+            jobFunctions.contains('STOREKEEPER'));
 
     // String notificationSubtitle;
 
@@ -981,14 +1034,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 },
               ),
 
-              _QuickAction(
-                iconData: Icons.directions_walk_rounded,
-                title: ref.tr('home.fieldWork'),
-                // subtitle: ref.tr('home.fieldWorkSubtitle'),
-                onTap: () {
-                  context.push(AppRoutes.fieldWork);
-                },
-              ),
+              if (showFieldWork)
+                _QuickAction(
+                  iconData: Icons.directions_walk_rounded,
+                  title: ref.tr('home.fieldWork'),
+                  // subtitle: ref.tr('home.fieldWorkSubtitle'),
+                  onTap: () {
+                    context.push(AppRoutes.fieldWork);
+                  },
+                ),
 
               _QuickAction(
                 iconData: Icons.devices_other_outlined,
@@ -999,9 +1053,8 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                 },
               ),
 
-              // The floor and the warehouse exist only where the plan
-              // includes production / inventory (same rule as the web).
-              if (featureEnabled(operationsFeatures, productionFeature))
+              // Operational actions strictly scoped by department:
+              if (showFloor)
                 _QuickAction(
                   iconData: Icons.precision_manufacturing_outlined,
                   title: ref.tr('home.floor'),
@@ -1011,7 +1064,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                   },
                 ),
 
-              if (featureEnabled(operationsFeatures, inventoryFeature))
+              if (showWarehouse)
                 _QuickAction(
                   iconData: Icons.qr_code_scanner_rounded,
                   title: ref.tr('home.warehouse'),
