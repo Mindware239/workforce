@@ -7,7 +7,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:just_audio/just_audio.dart';
 
 import 'package:workforce/app/routes/app_routes.dart';
-import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/widgets/feature_widgets.dart';

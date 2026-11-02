@@ -1,7 +1,5 @@
 import 'package:dio/dio.dart';
 
-import 'package:dio/dio.dart';
-
 /// Checks if an error string contains raw server responses, database errors,
 /// stack traces, or technical library jargon that should not be shown to users.
 bool isTechnicalMessage(String text) {

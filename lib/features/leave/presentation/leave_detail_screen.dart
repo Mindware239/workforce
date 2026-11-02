@@ -7,7 +7,6 @@ import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'package:workforce/core/localization/app_localization.dart';
-import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/widgets/feature_widgets.dart';
 import 'package:workforce/features/leave/providers/leave_provider.dart';

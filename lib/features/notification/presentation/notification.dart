@@ -9,7 +9,6 @@ import 'package:just_audio/just_audio.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:record/record.dart';
 
-import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/core/network/network_providers.dart';
 import 'package:workforce/core/network/stored_file.dart';
 import 'package:workforce/core/styles/app_colors.dart';
