@@ -999,7 +999,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            authError ?? e.toString(),
+            cleanErrorMessage(authError ?? e),
             style: GoogleFonts.inter(fontSize: 12),
           ),
           behavior: SnackBarBehavior.floating,

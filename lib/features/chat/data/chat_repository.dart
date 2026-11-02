@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/core/network/network_providers.dart';
 import 'package:workforce/core/network/api_client.dart';
 
@@ -406,36 +407,7 @@ class ChatRepository {
   }
 
   Exception _apiException(DioException error) {
-    final statusCode = error.response?.statusCode;
-
-    final data = error.response?.data;
-
-    if (data is Map) {
-      final message = data['message'];
-
-      if (message != null &&
-          message.toString().trim().isNotEmpty) {
-        return Exception(message.toString());
-      }
-    }
-
-    if (statusCode == 401) {
-      return Exception('Invalid or expired token');
-    }
-
-    if (statusCode == 403) {
-      return Exception(
-        'You do not have permission to perform this action',
-      );
-    }
-
-    if (statusCode == 404) {
-      return Exception('Resource not found');
-    }
-
-    return Exception(
-      error.message ?? 'Something went wrong.',
-    );
+    return apiException(error, 'Unable to complete request.');
   }
 }
 

@@ -204,7 +204,12 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
 
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(message)));
+      ..showSnackBar(
+        SnackBar(
+          content: Text(cleanErrorMessage(message)),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
   }
 
   // ============================================================

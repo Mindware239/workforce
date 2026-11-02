@@ -245,7 +245,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
         if (_recordingDuration.inSeconds >= 120) _stopRecording();
       });
     } catch (e) {
-      _showMessage(e.toString().replaceFirst('Exception: ', ''));
+      _showMessage(cleanErrorMessage(e));
     }
   }
 
@@ -268,7 +268,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
             : null;
       });
     } catch (e) {
-      _showMessage(e.toString().replaceFirst('Exception: ', ''));
+      _showMessage(cleanErrorMessage(e));
     }
   }
 
@@ -1322,7 +1322,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
     } catch (e) {
       if (!mounted) return;
 
-      _showMessage(e.toString().replaceFirst('Exception: ', ''));
+      _showMessage(cleanErrorMessage(e));
     }
   }
 
@@ -1379,7 +1379,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
       ..showSnackBar(
         SnackBar(
           content: Text(
-            message,
+            isError ? cleanErrorMessage(message) : message,
             style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500),
           ),
           behavior: SnackBarBehavior.floating,

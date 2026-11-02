@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/features/task/data/task_repository.dart';
 
 enum TaskStatus { initial, loading, success, error }
@@ -349,7 +350,7 @@ class TaskNotifier extends Notifier<TaskState> {
   }
 
   String _cleanError(Object error) {
-    return error.toString().replaceFirst('Exception: ', '');
+    return cleanErrorMessage(error);
   }
 }
 

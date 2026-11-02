@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'package:workforce/core/localization/app_localization.dart';
+import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/features/profile/data/bank_details_repository.dart';
 
@@ -428,9 +429,10 @@ class _BankDetailsWidgetState
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            errorMessage,
+            cleanErrorMessage(errorMessage, fallback: ref.tr('bankDetails.saveError')),
             style: GoogleFonts.inter(),
           ),
+          behavior: SnackBarBehavior.floating,
         ),
       );
     } finally {

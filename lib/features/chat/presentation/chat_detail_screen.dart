@@ -13,6 +13,7 @@ import 'package:record/record.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/core/localization/app_localization.dart';
+import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/core/network/stored_file.dart';
 import 'package:workforce/core/realtime/realtime_service.dart';
 import 'package:workforce/core/services/secure_storage.dart';
@@ -2789,13 +2790,14 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       ..hideCurrentSnackBar()
       ..showSnackBar(
         SnackBar(
-          content: Text(message, style: GoogleFonts.inter(fontSize: 12)),
+          content: Text(cleanErrorMessage(message), style: GoogleFonts.inter(fontSize: 12)),
+          behavior: SnackBarBehavior.floating,
         ),
       );
   }
 
   String _cleanError(Object error) {
-    return error.toString().replaceFirst('Exception: ', '');
+    return cleanErrorMessage(error);
   }
 
   Widget _buildEmptyState() {

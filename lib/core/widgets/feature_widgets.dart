@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
+import 'package:workforce/core/network/api_error.dart';
+export 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/styles/tricolour_strip.dart';
 
@@ -256,6 +258,7 @@ class ErrorBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final clean = cleanErrorMessage(message);
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -265,7 +268,7 @@ class ErrorBanner extends StatelessWidget {
         border: Border.all(color: const Color(0xFFF5C2C0)),
       ),
       child: Text(
-        message,
+        clean,
         style: GoogleFonts.inter(
           fontSize: 12,
           color: const Color(0xFFB3261E),
@@ -314,9 +317,11 @@ class LoadErrorView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final clean = cleanErrorMessage(message);
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 8),
       child: Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(
             Icons.error_outline_rounded,
@@ -325,7 +330,7 @@ class LoadErrorView extends StatelessWidget {
           ),
           const SizedBox(height: 10),
           Text(
-            message,
+            clean,
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(fontSize: 14, color: AppColors.textColor),
           ),
@@ -451,8 +456,14 @@ Future<bool> confirmAction(
   return result == true;
 }
 
-void showFeatureSnack(BuildContext context, String message) {
+void showFeatureSnack(BuildContext context, dynamic messageOrError) {
+  final clean = cleanErrorMessage(messageOrError);
   ScaffoldMessenger.of(context)
     ..hideCurrentSnackBar()
-    ..showSnackBar(SnackBar(content: Text(message)));
+    ..showSnackBar(
+      SnackBar(
+        content: Text(clean),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
 }

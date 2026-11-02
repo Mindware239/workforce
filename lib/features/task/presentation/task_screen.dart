@@ -382,7 +382,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
           const Icon(Icons.error_outline, size: 42, color: Color(0xFFB7AFC0)),
           const SizedBox(height: 10),
           Text(
-            message ?? ref.tr('tasks.unableToLoadTasks'),
+            cleanErrorMessage(message, fallback: ref.tr('tasks.unableToLoadTasks')),
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(
               fontSize: 14,
@@ -869,7 +869,7 @@ class _TaskVoiceNotePlayerState extends ConsumerState<TaskVoiceNotePlayer> {
       setState(() {
         _isPlaying = false;
         _hasError = true;
-        _errorText = e.toString();
+        _errorText = cleanErrorMessage(e);
       });
     }
   }

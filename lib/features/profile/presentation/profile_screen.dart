@@ -626,7 +626,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
             const SizedBox(height: 12),
 
             Text(
-              message,
+              cleanErrorMessage(message),
               textAlign: TextAlign.center,
               style: GoogleFonts.inter(
                 fontSize: 14,

@@ -7,6 +7,7 @@ import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/location/precise_location.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/localization/app_localization.dart';
+import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/features/attendence/data/attendance_repository.dart';
 import 'package:workforce/features/attendence/providers/attendance_provider.dart';
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
@@ -164,12 +165,8 @@ class _LocationVerificationUnsuccessfulScreenState
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            e.toString().replaceFirst(
-              'Exception: ',
-              '',
-            ),
-          ),
+          content: Text(cleanErrorMessage(e)),
+          behavior: SnackBarBehavior.floating,
         ),
       );
     } finally {

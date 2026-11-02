@@ -7,6 +7,7 @@ import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/location/precise_location.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/localization/app_localization.dart';
+import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/features/attendence/presentation/blink_capture_screen.dart';
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 import 'package:workforce/features/onboarding/presentation/widget/workforce_brand.dart';
@@ -92,7 +93,7 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
     } catch (e, stackTrace) {
       debugPrint('❌ FACE CAPTURE ERROR: $e\n$stackTrace');
       if (!mounted) return;
-      _showMessage(e.toString().replaceFirst('Exception: ', ''));
+      _showMessage(cleanErrorMessage(e));
     } finally {
       if (mounted) {
         setState(() {
@@ -171,8 +172,12 @@ class _FaceCaptureScreenState extends ConsumerState<FaceCaptureScreen> {
   void _showMessage(String message) {
     if (!mounted) return;
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(SnackBar(content: Text(message)));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(cleanErrorMessage(message)),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
  

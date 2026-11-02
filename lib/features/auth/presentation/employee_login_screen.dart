@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/localization/app_localization.dart';
+import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/features/attendence/services/employee_location_service.dart';
 import 'package:workforce/features/auth/providers/auth_provider.dart';
@@ -44,9 +45,14 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
 
       // Show error.
       if (next.error != null && next.error != previous?.error) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(next.error!)),
-        );
+        ScaffoldMessenger.of(context)
+          ..hideCurrentSnackBar()
+          ..showSnackBar(
+            SnackBar(
+              content: Text(cleanErrorMessage(next.error!)),
+              behavior: SnackBarBehavior.floating,
+            ),
+          );
       }
     });
 

@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/core/realtime/realtime_service.dart';
 import 'package:workforce/features/chat/data/chat_repository.dart';
 
@@ -1776,9 +1777,7 @@ class ChatNotifier extends StateNotifier<ChatState> {
   }
 
   String _cleanError(Object error) {
-    return error
-        .toString()
-        .replaceFirst('Exception: ', '');
+    return cleanErrorMessage(error);
   }
 }
 

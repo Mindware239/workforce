@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/core/offline/offline_queue_models.dart';
 import 'package:workforce/core/offline/offline_sync_service.dart';
 import '../data/attendance_repository.dart';
@@ -401,7 +402,7 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
 
       state = state.copyWith(
         isLoadingToday: false,
-        message: e.toString().replaceFirst('Exception: ', ''),
+        message: _cleanError(e),
       );
     }
   }
@@ -551,7 +552,7 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
     } catch (e) {
       state = state.copyWith(
         isLoadingHistory: false,
-        message: e.toString().replaceFirst('Exception: ', ''),
+        message: _cleanError(e),
       );
     }
   }
@@ -578,7 +579,7 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
     } catch (e) {
       state = state.copyWith(
         isLoadingMonthlyReport: false,
-        message: e.toString().replaceFirst('Exception: ', ''),
+        message: _cleanError(e),
       );
     }
   }
@@ -602,7 +603,7 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
     } catch (e) {
       state = state.copyWith(
         isLoadingSalary: false,
-        message: e.toString().replaceFirst('Exception: ', ''),
+        message: _cleanError(e),
       );
     }
   }
@@ -626,7 +627,7 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
     } catch (e) {
       state = state.copyWith(
         isLoadingDashboard: false,
-        message: e.toString().replaceFirst('Exception: ', ''),
+        message: _cleanError(e),
       );
     }
   }
@@ -656,7 +657,7 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
     } catch (e) {
       state = state.copyWith(
         status: AttendanceStatus.error,
-        message: e.toString().replaceFirst('Exception: ', ''),
+        message: _cleanError(e),
       );
 
       return false;
@@ -684,7 +685,7 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
     } catch (e) {
       state = state.copyWith(
         status: AttendanceStatus.error,
-        message: e.toString().replaceFirst('Exception: ', ''),
+        message: _cleanError(e),
       );
 
       return false;
@@ -784,7 +785,7 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
   }
 
   String _cleanError(Object error) {
-    return error.toString().replaceFirst('Exception: ', '').trim();
+    return cleanErrorMessage(error);
   }
 
   // ============================================================

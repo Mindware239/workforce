@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:geocoding/geocoding.dart';
 
 import 'package:workforce/core/localization/app_localization.dart';
+import 'package:workforce/core/network/api_error.dart';
 import 'package:flutter_svg/svg.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -199,8 +200,12 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            attendanceState.message ?? ref.tr('photoPreview.unableCheckIn'),
+            cleanErrorMessage(
+              attendanceState.message,
+              fallback: ref.tr('photoPreview.unableCheckIn'),
+            ),
           ),
+          behavior: SnackBarBehavior.floating,
         ),
       );
     } catch (e) {
@@ -209,7 +214,10 @@ class _PhotoPreviewScreenState extends ConsumerState<PhotoPreviewScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        SnackBar(
+          content: Text(cleanErrorMessage(e)),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     } finally {
       if (mounted) {

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/localization/app_localization.dart';
+import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/features/attendence/presentation/attendence_record.dart';
 import '../providers/attendance_provider.dart';
 
@@ -650,7 +651,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
           const SizedBox(height: 10),
 
           Text(
-            message,
+            cleanErrorMessage(message),
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(fontSize: 14, color: AppColors.textColor),
           ),

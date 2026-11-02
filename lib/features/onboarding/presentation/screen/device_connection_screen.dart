@@ -120,7 +120,7 @@ class _DeviceConnectionScreenState
       if (!mounted) return;
 
       setState(() {
-        _error = e.toString().replaceFirst('Exception: ', '');
+        _error = cleanErrorMessage(e);
         _checking = false;
       });
     }

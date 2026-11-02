@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/core/network/network_providers.dart';
 import 'package:workforce/features/profile/data/profile_repository.dart';
 
@@ -63,7 +64,7 @@ class ProfileNotifier extends StateNotifier<ProfileState> {
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: e.toString(),
+        error: cleanErrorMessage(e, fallback: 'Unable to load profile. Please try again.'),
       );
     }
   }

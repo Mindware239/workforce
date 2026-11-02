@@ -13,6 +13,7 @@ import 'package:showcaseview/showcaseview.dart';
 import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/location/precise_location.dart';
+import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/core/offline/offline_sync_service.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/styles/tricolour_strip.dart';
@@ -242,7 +243,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
       if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString().replaceFirst('Exception: ', ''))),
+        SnackBar(
+          content: Text(cleanErrorMessage(e)),
+          behavior: SnackBarBehavior.floating,
+        ),
       );
     }
   }

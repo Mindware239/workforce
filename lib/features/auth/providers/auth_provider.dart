@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/core/push/push_notification_service.dart';
 import 'package:workforce/core/realtime/realtime_service.dart';
 import 'package:workforce/core/services/auth_service.dart';
@@ -86,7 +87,7 @@ class AuthNotifier
   } catch (e) {
     state = state.copyWith(
       isLoading: false,
-      error: e.toString(),
+      error: cleanErrorMessage(e, fallback: 'Unable to restore your session.'),
     );
   }
 }
@@ -133,7 +134,7 @@ class AuthNotifier
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: e.toString(),
+        error: cleanErrorMessage(e, fallback: 'Unable to sign in. Please verify your mobile number.'),
       );
 
       rethrow;
@@ -217,7 +218,7 @@ class AuthNotifier
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
-        error: e.toString(),
+        error: cleanErrorMessage(e, fallback: 'Unable to submit onboarding details.'),
       );
 
       rethrow;

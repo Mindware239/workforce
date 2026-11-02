@@ -461,7 +461,7 @@ class _AttendanceHistoryScreenState
                   content: Text(
                     ref
                         .tr('attendanceHistory.exportError')
-                        .replaceFirst('{error}', e.toString()),
+                        .replaceFirst('{error}', cleanErrorMessage(e)),
                   ),
                 ),
               );

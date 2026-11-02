@@ -545,18 +545,7 @@ class TaskRepository {
     DioException e,
     String fallback,
   ) {
-    final data = e.response?.data;
-
-    if (data is Map) {
-      final message = data['message'];
-
-      if (message != null &&
-          message.toString().isNotEmpty) {
-        return message.toString();
-      }
-    }
-
-    return e.message ?? fallback;
+    return cleanErrorMessage(apiException(e, fallback), fallback: fallback);
   }
 }
 

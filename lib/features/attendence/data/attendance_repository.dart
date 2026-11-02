@@ -262,39 +262,15 @@ class AttendanceRepository {
 
       final formData = FormData.fromMap(fields);
 
-      // ----------------------------------------------------------
-      // DEBUG
-      // ----------------------------------------------------------
-
-      
-
       final response = await apiClient.dio.post(
         '/attendance/exit',
         data: formData,
       );
 
-  
-
       return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
       if (isNetworkError(e)) {
         rethrow;
-      }
-
-      final responseData = e.response?.data;
-
-      if (responseData is Map) {
-        final message = responseData['message'];
-
-        if (message != null && message.toString().trim().isNotEmpty) {
-          throw Exception(message.toString());
-        }
-
-        final error = responseData['error'];
-
-        if (error != null && error.toString().trim().isNotEmpty) {
-          throw Exception(error.toString());
-        }
       }
 
       if (e.response?.statusCode == 400) {
@@ -309,10 +285,9 @@ class AttendanceRepository {
         throw Exception('You have already checked out today.');
       }
 
-      throw Exception(
-        e.message ??
-            'Unable to end the attendance session. '
-                'Please try again.',
+      throw apiException(
+        e,
+        'Unable to end the attendance session. Please try again.',
       );
     }
   }
@@ -392,33 +367,15 @@ class AttendanceRepository {
 
       final formData = FormData.fromMap(fields);
 
-
       final response = await apiClient.dio.post(
         '/attendance/entry',
         data: formData,
       );
 
-
       return Map<String, dynamic>.from(response.data);
     } on DioException catch (e) {
       if (isNetworkError(e)) {
         rethrow;
-      }
-
-      final responseData = e.response?.data;
-
-      if (responseData is Map) {
-        final message = responseData['message'];
-
-        if (message != null && message.toString().trim().isNotEmpty) {
-          throw Exception(message.toString());
-        }
-
-        final error = responseData['error'];
-
-        if (error != null && error.toString().trim().isNotEmpty) {
-          throw Exception(error.toString());
-        }
       }
 
       if (e.response?.statusCode == 400) {
@@ -429,7 +386,7 @@ class AttendanceRepository {
         throw Exception('You have already checked in today.');
       }
 
-      throw Exception(e.message ?? 'Unable to check in. Please try again.');
+      throw apiException(e, 'Unable to check in. Please try again.');
     }
   }
 
@@ -512,13 +469,7 @@ class AttendanceRepository {
         };
       }
 
-      final data = e.response?.data;
-
-      if (data is Map<String, dynamic> && data['message'] != null) {
-        throw Exception(data['message'].toString());
-      }
-
-      throw Exception(e.message ?? 'Unable to verify office location.');
+      throw apiException(e, 'Unable to verify office location.');
     }
   }
 }

@@ -142,7 +142,7 @@ class _MyPayScreenState extends ConsumerState<MyPayScreen> {
 
       showFeatureSnack(
         context,
-        e.toString().replaceFirst('Exception: ', ''),
+        cleanErrorMessage(e),
       );
     }
   }
