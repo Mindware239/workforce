@@ -8,6 +8,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/localization/app_localization.dart';
+import 'package:workforce/core/widgets/shimmer_loading.dart';
 import 'package:workforce/features/chat/providers/chat_provider.dart';
 import 'package:workforce/features/chat/providers/chat_realtime.dart';
 
@@ -394,12 +395,16 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
 
   Widget _buildConversationList(ChatState state) {
     if (state.isLoadingConversations && state.conversations.isEmpty) {
-      return ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        children: const [
-          SizedBox(height: 180),
-          Center(child: CircularProgressIndicator()),
-        ],
+      return ShimmerLoading(
+        child: ListView.builder(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          itemCount: 6,
+          itemBuilder: (_, __) => const ShimmerListTile(
+            leadingSize: 44,
+            isCircleLeading: true,
+          ),
+        ),
       );
     }
 

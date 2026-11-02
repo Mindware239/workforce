@@ -57,7 +57,7 @@ class ExpenseDetailScreen extends ConsumerWidget {
             await ref.read(expenseDetailProvider(claimId).future);
           },
           child: detail.when(
-            loading: () => const Center(child: CircularProgressIndicator()),
+            loading: () => const ShimmerDetailView(),
             error: (error, _) => ListView(
               children: [
                 LoadErrorView(

@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/core/localization/app_localization.dart';
+import 'package:workforce/core/widgets/shimmer_loading.dart';
 import 'package:workforce/features/attendence/providers/attendance_provider.dart';
 import 'package:workforce/features/schedule/presentation/monthly_summary.dart';
 
@@ -117,12 +118,7 @@ class _ScheduleScreenState extends ConsumerState<ScheduleScreen> {
               const SizedBox(height: 16),
 
               if (state.isLoadingSalary && salary == null)
-                const Center(
-                  child: Padding(
-                    padding: EdgeInsets.all(40),
-                    child: CircularProgressIndicator(),
-                  ),
-                )
+                const ShimmerCardList(count: 3, cardHeight: 120)
               else if (state.message != null && salary == null)
                 _buildError(state.message!)
               else if (salary != null) ...[

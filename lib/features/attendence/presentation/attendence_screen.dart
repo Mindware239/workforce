@@ -5,6 +5,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/network/api_error.dart';
+import 'package:workforce/core/widgets/shimmer_loading.dart';
 import 'package:workforce/features/attendence/presentation/attendence_record.dart';
 import '../providers/attendance_provider.dart';
 
@@ -599,32 +600,7 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
   // ============================================================
 
   Widget _buildLoading() {
-    return Column(
-      children: [
-        Container(
-          width: double.infinity,
-          height: 130,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.borderColor),
-          ),
-          child: const Center(child: CircularProgressIndicator()),
-        ),
-
-        const SizedBox(height: 16),
-
-        Container(
-          width: double.infinity,
-          height: 120,
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: AppColors.borderColor),
-          ),
-        ),
-      ],
-    );
+    return const ShimmerCardList(count: 3, cardHeight: 120);
   }
 
   // ============================================================

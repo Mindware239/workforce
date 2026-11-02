@@ -148,10 +148,7 @@ class _MyAssetsScreenState extends ConsumerState<MyAssetsScreen> {
     Widget content;
 
     if (state.isLoading && !state.loaded) {
-      content = const Padding(
-        padding: EdgeInsets.symmetric(vertical: 40),
-        child: Center(child: CircularProgressIndicator()),
-      );
+      content = const ShimmerCardList(count: 3, cardHeight: 120);
     } else if (state.error != null && !state.loaded) {
       content = LoadErrorView(
         message: state.error!,

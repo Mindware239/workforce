@@ -1442,16 +1442,7 @@ class _LeaveRequestScreenState extends ConsumerState<LeaveRequestScreen> {
     // ----------------------------------------------------------
 
     if (leaveState.isLoadingRequests) {
-      return const Padding(
-        padding: EdgeInsets.all(24),
-        child: Center(
-          child: SizedBox(
-            width: 22,
-            height: 22,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
-      );
+      return const ShimmerCardList(count: 3, cardHeight: 120);
     }
 
     // ----------------------------------------------------------

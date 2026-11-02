@@ -9,6 +9,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:workforce/core/localization/app_localization.dart';
 import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/widgets/shimmer_loading.dart';
 import 'package:workforce/features/profile/data/bank_details_repository.dart';
 
 class BankDetailsWidget extends ConsumerStatefulWidget {
@@ -451,18 +452,21 @@ class _BankDetailsWidgetState
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(40),
-        decoration: BoxDecoration(
-          color: AppColors.whiteBackgroundColor,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: AppColors.borderColor,
+      return ShimmerLoading(
+        child: ShimmerCard(
+          height: 180,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              ShimmerBox(width: 140, height: 16, borderRadius: 4),
+              SizedBox(height: 16),
+              ShimmerBox(width: double.infinity, height: 14, borderRadius: 4),
+              SizedBox(height: 12),
+              ShimmerBox(width: double.infinity, height: 14, borderRadius: 4),
+              SizedBox(height: 12),
+              ShimmerBox(width: 180, height: 14, borderRadius: 4),
+            ],
           ),
-        ),
-        child: const Center(
-          child: CircularProgressIndicator(),
         ),
       );
     }

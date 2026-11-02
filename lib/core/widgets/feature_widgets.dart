@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import 'package:workforce/core/network/api_error.dart';
 export 'package:workforce/core/network/api_error.dart';
+export 'package:workforce/core/widgets/shimmer_loading.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/styles/tricolour_strip.dart';
 

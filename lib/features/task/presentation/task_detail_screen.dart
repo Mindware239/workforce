@@ -349,7 +349,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
       backgroundColor: AppColors.whiteBackgroundColor,
       appBar: featureAppBar(title: ref.tr('taskx.detailTitle')),
       body: detail.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const ShimmerDetailView(),
         error: (error, _) => ListView(
           padding: const EdgeInsets.all(16),
           children: [

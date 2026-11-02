@@ -166,10 +166,7 @@ class _ExpensesScreenState extends ConsumerState<ExpensesScreen> {
   ) {
     if (state.isLoading && state.claims.isEmpty) {
       return const [
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: 32),
-          child: Center(child: CircularProgressIndicator()),
-        ),
+        ShimmerCardList(count: 3, cardHeight: 110),
       ];
     }
 

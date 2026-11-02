@@ -58,10 +58,7 @@ class _LineList extends StatelessWidget {
   }
 }
 
-Widget _loading() => const Padding(
-      padding: EdgeInsets.symmetric(vertical: 24),
-      child: Center(child: CircularProgressIndicator()),
-    );
+Widget _loading() => const ShimmerCardList(count: 2, cardHeight: 90);
 
 Widget _statusLine(String status, ChipTone tone, String text) {
   return Wrap(

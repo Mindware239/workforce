@@ -777,10 +777,7 @@ class _FieldWorkScreenState extends ConsumerState<FieldWorkScreen> {
   List<Widget> _buildList(FieldWorkState state) {
     if (state.isLoading && state.sessions.isEmpty) {
       return const [
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
-          child: Center(child: CircularProgressIndicator()),
-        ),
+        ShimmerCardList(count: 3, cardHeight: 100),
       ];
     }
 

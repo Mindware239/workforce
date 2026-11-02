@@ -729,16 +729,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
                     final terms = ref.watch(organizationTermsProvider);
 
                     return terms.when(
-                      loading: () => const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24),
-                        child: Center(
-                          child: SizedBox(
-                            width: 22,
-                            height: 22,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                        ),
-                      ),
+                      loading: () => const ShimmerCard(height: 120),
                       error: (error, _) => Padding(
                         padding: const EdgeInsets.symmetric(vertical: 8),
                         child: ErrorBanner(cleanErrorMessage(error)),

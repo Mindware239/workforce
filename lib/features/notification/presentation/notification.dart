@@ -127,7 +127,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
   Widget _buildBody(NotificationState state) {
     if (state.status == NotificationStatus.loading &&
         state.notifications.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return const ShimmerCardList(count: 4, cardHeight: 90, padding: EdgeInsets.all(16));
     }
 
     if (state.status == NotificationStatus.error &&

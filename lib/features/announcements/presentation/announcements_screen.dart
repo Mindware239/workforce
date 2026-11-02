@@ -59,10 +59,7 @@ class _AnnouncementsScreenState extends ConsumerState<AnnouncementsScreen> {
   List<Widget> _buildBody(AnnouncementState state) {
     if (state.isLoading && state.isEmpty) {
       return const [
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: 32),
-          child: Center(child: CircularProgressIndicator()),
-        ),
+        ShimmerCardList(count: 3, cardHeight: 110),
       ];
     }
 

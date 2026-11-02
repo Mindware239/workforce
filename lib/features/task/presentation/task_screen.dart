@@ -109,10 +109,7 @@ class _TasksScreenState extends ConsumerState<TasksScreen> {
 
               if (taskState.status == TaskStatus.loading &&
                   taskState.tasks.isEmpty)
-                const SizedBox(
-                  height: 220,
-                  child: Center(child: CircularProgressIndicator()),
-                )
+                const ShimmerCardList(count: 3, cardHeight: 120)
               else if (taskState.status == TaskStatus.error &&
                   taskState.tasks.isEmpty)
                 _buildErrorState(taskState.message)

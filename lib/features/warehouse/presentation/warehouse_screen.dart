@@ -262,10 +262,7 @@ class _WarehouseScreenState extends ConsumerState<WarehouseScreen> {
       OpsCaption(ref.tr('wh.openWork')),
       const SizedBox(height: 8),
       if (state.loadingWork && work.isEmpty)
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 24),
-          child: Center(child: CircularProgressIndicator()),
-        )
+        const ShimmerCardList(count: 3, cardHeight: 80)
       else if (work.isEmpty)
         EmptyNote(ref.tr('wh.nothingOpen'), icon: Icons.qr_code_2_outlined)
       else

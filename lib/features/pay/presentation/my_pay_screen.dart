@@ -236,10 +236,7 @@ class _MyPayScreenState extends ConsumerState<MyPayScreen> {
   List<Widget> _buildBody(PayState state) {
     if (state.isLoading && state.data == null) {
       return const [
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: 40),
-          child: Center(child: CircularProgressIndicator()),
-        ),
+        ShimmerCardList(count: 3, cardHeight: 130),
       ];
     }
 

@@ -32,7 +32,7 @@ class ReviewDetailScreen extends ConsumerWidget {
     Widget body;
 
     if (view == null && state.isLoading) {
-      body = const Center(child: CircularProgressIndicator());
+      body = const ShimmerDetailView();
     } else if (view == null) {
       body = ListView(
         children: [

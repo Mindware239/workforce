@@ -113,10 +113,7 @@ class _FloorScreenState extends ConsumerState<FloorScreen> {
   List<Widget> _buildBody(FloorState state) {
     if (!state.loaded || (state.isLoading && state.tasks.isEmpty)) {
       return const [
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: 32),
-          child: Center(child: CircularProgressIndicator()),
-        ),
+        ShimmerCardList(count: 3, cardHeight: 110),
       ];
     }
 

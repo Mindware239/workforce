@@ -98,10 +98,7 @@ class _ReviewsScreenState extends ConsumerState<ReviewsScreen> {
   ) {
     if (state.isLoading && !state.loaded) {
       return const [
-        Padding(
-          padding: EdgeInsets.symmetric(vertical: 32),
-          child: Center(child: CircularProgressIndicator()),
-        ),
+        ShimmerCardList(count: 3, cardHeight: 110),
       ];
     }
 

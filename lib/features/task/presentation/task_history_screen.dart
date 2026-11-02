@@ -96,10 +96,7 @@ class _TaskHistoryScreenState extends ConsumerState<TaskHistoryScreen> {
             const SizedBox(height: 14),
             ...history.when(
               loading: () => [
-                const Padding(
-                  padding: EdgeInsets.all(40),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
+                const ShimmerCardList(count: 3, cardHeight: 110),
               ],
               error: (error, _) => [
                 LoadErrorView(

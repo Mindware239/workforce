@@ -71,10 +71,7 @@ class _TaskPerformanceScreenState extends ConsumerState<TaskPerformanceScreen> {
             const SizedBox(height: 16),
             ...report.when(
               loading: () => [
-                const Padding(
-                  padding: EdgeInsets.all(40),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
+                const ShimmerCardList(count: 3, cardHeight: 120),
               ],
               error: (error, _) => [
                 LoadErrorView(

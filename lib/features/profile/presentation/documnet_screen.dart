@@ -310,15 +310,8 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
     Widget body;
 
     if (state.isLoadingNda && state.nda == null) {
-      body = const Padding(
-        padding: EdgeInsets.symmetric(vertical: 12),
-        child: Center(
-          child: SizedBox(
-            width: 22,
-            height: 22,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
-        ),
+      body = const ShimmerLoading(
+        child: ShimmerBox(width: double.infinity, height: 40, borderRadius: 8),
       );
     } else if (state.ndaError != null && state.nda == null) {
       body = ErrorBanner(state.ndaError!);
@@ -602,10 +595,7 @@ class _DocumentsScreenState extends ConsumerState<DocumentsScreen> {
 
   Widget _buildDocumentsList(DocumentState state) {
     if (state.status == DocumentStatus.loading && state.documents.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(vertical: 24),
-        child: Center(child: CircularProgressIndicator()),
-      );
+      return const ShimmerCardList(count: 3, cardHeight: 70);
     }
 
     if (state.status == DocumentStatus.error && state.documents.isEmpty) {

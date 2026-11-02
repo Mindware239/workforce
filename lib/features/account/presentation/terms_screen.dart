@@ -35,10 +35,7 @@ class TermsScreen extends ConsumerWidget {
               ),
               const SizedBox(height: 16),
               terms.when(
-                loading: () => const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 48),
-                  child: Center(child: CircularProgressIndicator()),
-                ),
+                loading: () => const ShimmerCardList(count: 2, cardHeight: 140),
                 error: (error, _) => LoadErrorView(
                   message: cleanErrorMessage(error),
                   retryLabel: ref.tr('common.retry'),

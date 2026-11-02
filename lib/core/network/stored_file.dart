@@ -10,6 +10,7 @@ import 'package:workforce/core/network/api_client.dart';
 import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/core/network/network_providers.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/widgets/shimmer_loading.dart';
 
 /// Uploaded files (receipts, asset photos, ...) served by the signed-in
 /// `GET /api/files/<relative path>` endpoint, which checks who may see each
@@ -105,15 +106,11 @@ class StoredFileImage extends ConsumerWidget {
         fit: fit,
         errorBuilder: (_, _, _) => _fallback(),
       ),
-      loading: () => SizedBox(
-        width: width,
-        height: height,
-        child: const Center(
-          child: SizedBox(
-            width: 22,
-            height: 22,
-            child: CircularProgressIndicator(strokeWidth: 2),
-          ),
+      loading: () => ShimmerLoading(
+        child: ShimmerBox(
+          width: width,
+          height: height ?? 100,
+          borderRadius: 8,
         ),
       ),
       error: (_, _) => _fallback(),

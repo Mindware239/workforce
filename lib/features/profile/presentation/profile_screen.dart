@@ -114,9 +114,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         ),
         body: SafeArea(
           child: profileState.isLoading && profileState.profile == null
-              ? const Center(
-                  child: CircularProgressIndicator(),
-                )
+              ? const ShimmerProfileView()
               : profileState.error != null &&
                       profileState.profile == null
                   ? _buildError(profileState.error!)

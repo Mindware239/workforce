@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:workforce/core/location/navigation_launcher.dart';
 import 'package:workforce/core/styles/app_colors.dart';
+import 'package:workforce/core/widgets/shimmer_loading.dart';
 import '../providers/customer_visits_provider.dart';
 
 class CustomerVisitsView extends ConsumerStatefulWidget {
@@ -27,7 +28,7 @@ class _CustomerVisitsViewState extends ConsumerState<CustomerVisitsView> {
     final state = ref.watch(customerVisitsProvider);
 
     if (state.isLoading) {
-      return const Center(child: CircularProgressIndicator());
+      return const ShimmerCardList(count: 4, cardHeight: 100, padding: EdgeInsets.all(16));
     }
 
     if (state.error != null) {

@@ -97,7 +97,7 @@ class _LeaveDetailScreenState extends ConsumerState<LeaveDetailScreen> {
       appBar: featureAppBar(title: ref.tr('leavex.requestTitle')),
       body: SafeArea(
         child: detail.when(
-          loading: () => const Center(child: CircularProgressIndicator()),
+          loading: () => const ShimmerDetailView(),
           error: (error, _) => SingleChildScrollView(
             padding: const EdgeInsets.all(16),
             child: LoadErrorView(
