@@ -54,7 +54,8 @@ class _TaskHistoryScreenState extends ConsumerState<TaskHistoryScreen> {
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
       appBar: featureAppBar(title: ref.tr('taskx.historyTitle')),
-      body: RefreshIndicator(
+      body: SafeArea(
+        child: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(taskHistoryProvider(query));
           await ref.read(taskHistoryProvider(query).future).catchError(
@@ -110,7 +111,8 @@ class _TaskHistoryScreenState extends ConsumerState<TaskHistoryScreen> {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 
   List<Widget> _list(Map<String, dynamic> data) {

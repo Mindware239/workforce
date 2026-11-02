@@ -400,7 +400,7 @@ class _ChatListScreenState extends ConsumerState<ChatListScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           itemCount: 6,
-          itemBuilder: (_, __) => const ShimmerListTile(
+          itemBuilder: (_, _) => const ShimmerListTile(
             leadingSize: 44,
             isCircleLeading: true,
           ),

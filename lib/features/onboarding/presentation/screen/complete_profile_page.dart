@@ -674,6 +674,7 @@ class _CompleteProfilePageState extends ConsumerState<CompleteProfilePage> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      useSafeArea: true,
       builder: (context) {
         return SafeArea(
           top: false,

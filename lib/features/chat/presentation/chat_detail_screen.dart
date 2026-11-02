@@ -217,6 +217,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
+      useSafeArea: true,
       builder: (ctx) {
         return Container(
           decoration: const BoxDecoration(
@@ -224,7 +225,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
           padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
-          child: Column(
+          child: SafeArea(
+            top: false,
+            child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -371,9 +374,10 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
               ],
             ],
           ),
-        );
-      },
-    );
+        ),
+      );
+    },
+  );
   }
 
   List<Widget> _buildCallActions() {
@@ -641,6 +645,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   Future<void> _showAttachOptions() async {
     final choice = await showModalBottomSheet<String>(
       context: context,
+      useSafeArea: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
@@ -1816,12 +1821,14 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
   // ==============================================================
 
   Widget _buildRecordingComposer() {
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-        color: Colors.white,
-        child: Row(
+    return Container(
+      color: Colors.white,
+      child: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+          color: Colors.white,
+          child: Row(
           children: [
             // Stop recording
             Container(
@@ -1881,8 +1888,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildRecordingWaveform() {
     return Row(
@@ -1918,12 +1926,14 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
         : (position.inMilliseconds / previewDuration.inMilliseconds)
             .clamp(0.0, 1.0);
 
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-        color: Colors.white,
-        child: Row(
+    return Container(
+      color: Colors.white,
+      child: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+          color: Colors.white,
+          child: Row(
           children: [
             Container(
               width: 42,
@@ -2036,8 +2046,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildComposer() {
     if (_isRecording) {
@@ -2047,12 +2058,14 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
     if (_recordedVoiceFile != null) {
       return _buildVoicePreviewComposer();
     }
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-        color: Colors.white,
-        child: Row(
+    return Container(
+      color: Colors.white,
+      child: SafeArea(
+        top: false,
+        child: Container(
+          padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
+          color: Colors.white,
+          child: Row(
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Container(
@@ -2156,8 +2169,9 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   // ==============================================================
   // STATUS
@@ -2366,6 +2380,7 @@ class _ChatDetailScreenState extends ConsumerState<ChatDetailScreen> {
 
     final choice = await showModalBottomSheet<String>(
       context: context,
+      useSafeArea: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),

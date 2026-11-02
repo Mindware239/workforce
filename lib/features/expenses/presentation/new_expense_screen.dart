@@ -102,6 +102,7 @@ class _NewExpenseScreenState extends ConsumerState<NewExpenseScreen> {
   Future<void> _chooseReceipt() async {
     final choice = await showModalBottomSheet<String>(
       context: context,
+      useSafeArea: true,
       showDragHandle: true,
       builder: (context) => SafeArea(
         child: Column(

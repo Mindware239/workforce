@@ -99,7 +99,7 @@ class _BarcodeScannerScreenState extends ConsumerState<BarcodeScannerScreen> {
           Positioned(
             left: 24,
             right: 24,
-            bottom: 40,
+            bottom: 40 + MediaQuery.viewPaddingOf(context).bottom,
             child: Text(
               ref.tr('wh.cameraHint'),
               textAlign: TextAlign.center,

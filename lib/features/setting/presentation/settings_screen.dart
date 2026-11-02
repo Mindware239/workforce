@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'package:workforce/app/routes/app_routes.dart';
 import 'package:workforce/core/localization/app_language.dart';
@@ -148,7 +149,16 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
                   _SettingsRow(
                     icon: Icons.description_outlined,
                     title: ref.tr('termsx.title'),
-                    onTap: () => context.push(AppRoutes.terms),
+                    onTap: () async {
+                      final uri = Uri.parse(
+                        'https://workforce.mindwareinfotech.com/terms',
+                      );
+
+                      await launchUrl(
+                        uri,
+                        mode: LaunchMode.externalApplication,
+                      );
+                    },
                   ),
 
                   _SettingsRow(

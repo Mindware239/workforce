@@ -271,6 +271,7 @@ class _AnnouncementCard extends ConsumerWidget {
     showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: AppColors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
@@ -280,9 +281,11 @@ class _AnnouncementCard extends ConsumerWidget {
         initialChildSize: 0.6,
         minChildSize: 0.3,
         maxChildSize: 0.95,
-        builder: (context, controller) => ListView(
-          controller: controller,
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
+        builder: (context, controller) => SafeArea(
+          top: false,
+          child: ListView(
+            controller: controller,
+            padding: const EdgeInsets.fromLTRB(20, 12, 20, 32),
           children: [
             Center(
               child: Container(
@@ -339,6 +342,7 @@ class _AnnouncementCard extends ConsumerWidget {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

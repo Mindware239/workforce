@@ -141,23 +141,24 @@ class _DashboardBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Container(
-        height: 80,
-        decoration: const BoxDecoration(
-          color: AppColors.whiteBackgroundColor,
-          border: Border(
-            top: BorderSide(
-              color: Color(0xFFD5D5D5),
-              width: 1,
-            ),
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.whiteBackgroundColor,
+        border: Border(
+          top: BorderSide(
+            color: Color(0xFFD5D5D5),
+            width: 1,
           ),
         ),
-        child: Row(
-          children: List.generate(
-            items.length,
-            (index) {
+      ),
+      child: SafeArea(
+        top: false,
+        child: SizedBox(
+          height: 64,
+          child: Row(
+            children: List.generate(
+              items.length,
+              (index) {
               final item = items[index];
 
               final bool isSelected =
@@ -284,7 +285,7 @@ class _DashboardBottomNav extends StatelessWidget {
           ),
         ),
       ),
-    );
+    ));
   }
 }
 

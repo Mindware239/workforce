@@ -164,6 +164,7 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
   Future<void> _addProof() async {
     final choice = await showModalBottomSheet<String>(
       context: context,
+      useSafeArea: true,
       builder: (context) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -348,35 +349,37 @@ class _TaskDetailScreenState extends ConsumerState<TaskDetailScreen> {
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
       appBar: featureAppBar(title: ref.tr('taskx.detailTitle')),
-      body: detail.when(
-        loading: () => const ShimmerDetailView(),
-        error: (error, _) => ListView(
-          padding: const EdgeInsets.all(16),
-          children: [
-            LoadErrorView(
-              message: cleanErrorMessage(error),
-              retryLabel: ref.tr('common.retry'),
-              onRetry: _refresh,
-            ),
-          ],
-        ),
-        data: (data) => Stack(
-          children: [
-            RefreshIndicator(
-              onRefresh: () async {
-                _refresh();
-                await ref.read(taskDetailProvider(_id).future);
-              },
-              child: _buildBody(data),
-            ),
-            if (_busy)
-              const Positioned(
-                top: 0,
-                left: 0,
-                right: 0,
-                child: LinearProgressIndicator(minHeight: 2),
+      body: SafeArea(
+        child: detail.when(
+          loading: () => const ShimmerDetailView(),
+          error: (error, _) => ListView(
+            padding: const EdgeInsets.all(16),
+            children: [
+              LoadErrorView(
+                message: cleanErrorMessage(error),
+                retryLabel: ref.tr('common.retry'),
+                onRetry: _refresh,
               ),
-          ],
+            ],
+          ),
+          data: (data) => Stack(
+            children: [
+              RefreshIndicator(
+                onRefresh: () async {
+                  _refresh();
+                  await ref.read(taskDetailProvider(_id).future);
+                },
+                child: _buildBody(data),
+              ),
+              if (_busy)
+                const Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: LinearProgressIndicator(minHeight: 2),
+                ),
+            ],
+          ),
         ),
       ),
     );

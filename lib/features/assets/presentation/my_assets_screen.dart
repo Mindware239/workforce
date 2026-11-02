@@ -50,6 +50,7 @@ class _MyAssetsScreenState extends ConsumerState<MyAssetsScreen> {
     final sent = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       showDragHandle: true,
       builder: (_) => _ReportProblemSheet(
         assignmentId: id,
@@ -630,13 +631,15 @@ class _ReportProblemSheetState extends ConsumerState<_ReportProblemSheet> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-      ),
-      child: SingleChildScrollView(
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+        ),
+        child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -710,6 +713,7 @@ class _ReportProblemSheetState extends ConsumerState<_ReportProblemSheet> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

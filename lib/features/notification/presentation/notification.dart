@@ -375,6 +375,7 @@ class _NotificationScreenState extends ConsumerState<NotificationScreen> {
     final sent = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: AppColors.white,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
@@ -989,14 +990,16 @@ class _ReplySheetState extends ConsumerState<_ReplySheet> {
     final elapsed =
         '${seconds ~/ 60}:${(seconds % 60).toString().padLeft(2, '0')}';
 
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        top: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-      ),
-      child: Column(
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          top: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+        ),
+        child: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1070,6 +1073,7 @@ class _ReplySheetState extends ConsumerState<_ReplySheet> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 }

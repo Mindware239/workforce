@@ -238,6 +238,7 @@ class _GoalsCard extends ConsumerWidget {
     final saved = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       showDragHandle: true,
       builder: (_) => _GoalForm(reviewId: reviewId, goal: goal),
     );
@@ -616,13 +617,15 @@ class _GoalFormState extends ConsumerState<_GoalForm> {
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: EdgeInsets.only(
-        left: 16,
-        right: 16,
-        bottom: MediaQuery.of(context).viewInsets.bottom + 16,
-      ),
-      child: SingleChildScrollView(
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: 16,
+          right: 16,
+          bottom: MediaQuery.of(context).viewInsets.bottom + 16,
+        ),
+        child: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -702,8 +705,9 @@ class _GoalFormState extends ConsumerState<_GoalForm> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 // ============================================================================

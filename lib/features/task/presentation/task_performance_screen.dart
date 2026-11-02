@@ -42,7 +42,8 @@ class _TaskPerformanceScreenState extends ConsumerState<TaskPerformanceScreen> {
     return Scaffold(
       backgroundColor: AppColors.whiteBackgroundColor,
       appBar: featureAppBar(title: ref.tr('taskx.perfTitle')),
-      body: RefreshIndicator(
+      body: SafeArea(
+        child: RefreshIndicator(
         onRefresh: () async {
           ref.invalidate(taskPerformanceProvider(query));
           await ref.read(taskPerformanceProvider(query).future).catchError(
@@ -85,7 +86,8 @@ class _TaskPerformanceScreenState extends ConsumerState<TaskPerformanceScreen> {
           ],
         ),
       ),
-    );
+    ),
+  );
   }
 
   List<Widget> _report(Map<String, dynamic> data) {
