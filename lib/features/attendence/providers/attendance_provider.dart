@@ -18,6 +18,7 @@ class AttendanceState {
 
   final bool isLoadingToday;
   final Map<String, dynamic>? today;
+  final Map<String, dynamic>? approvedLeaveToday;
   final Map<String, dynamic>? schedule;
   final List<Map<String, dynamic>> breaks;
   final int breakMinutes;
@@ -63,6 +64,7 @@ class AttendanceState {
     // Today
     this.isLoadingToday = false,
     this.today,
+    this.approvedLeaveToday,
     this.schedule,
     this.breaks = const [],
     this.breakMinutes = 0,
@@ -101,6 +103,8 @@ class AttendanceState {
     bool? isLoadingToday,
     Map<String, dynamic>? today,
     bool clearToday = false,
+    Map<String, dynamic>? approvedLeaveToday,
+    bool clearApprovedLeave = false,
     Map<String, dynamic>? schedule,
     bool clearSchedule = false,
     List<Map<String, dynamic>>? breaks,
@@ -143,6 +147,10 @@ class AttendanceState {
       isLoadingToday: isLoadingToday ?? this.isLoadingToday,
 
       today: clearToday ? null : today ?? this.today,
+
+      approvedLeaveToday: clearApprovedLeave
+          ? null
+          : approvedLeaveToday ?? this.approvedLeaveToday,
 
       schedule: clearSchedule ? null : schedule ?? this.schedule,
 
@@ -343,6 +351,11 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
         today: todayData is Map ? Map<String, dynamic>.from(todayData) : null,
         clearToday: todayData is! Map,
 
+        approvedLeaveToday: data['approvedLeaveToday'] is Map
+            ? Map<String, dynamic>.from(data['approvedLeaveToday'])
+            : null,
+        clearApprovedLeave: data['approvedLeaveToday'] is! Map,
+
         schedule: scheduleData is Map
             ? Map<String, dynamic>.from(scheduleData)
             : null,
@@ -447,6 +460,10 @@ class AttendanceNotifier extends Notifier<AttendanceState> {
         isLoadingToday: false,
         today: todayData is Map ? Map<String, dynamic>.from(todayData) : null,
         clearToday: todayData is! Map,
+        approvedLeaveToday: data['approvedLeaveToday'] is Map
+            ? Map<String, dynamic>.from(data['approvedLeaveToday'])
+            : null,
+        clearApprovedLeave: data['approvedLeaveToday'] is! Map,
         schedule: scheduleData is Map
             ? Map<String, dynamic>.from(scheduleData)
             : null,

@@ -223,6 +223,40 @@ class _AttendanceScreenState extends ConsumerState<AttendanceScreen> {
         ),
         child: Column(
           children: [
+            if (attendanceState.approvedLeaveToday != null && entryTime == null)
+              Container(
+                margin: const EdgeInsets.only(bottom: 14),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFF7ED),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFFFEDD5)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.event_busy,
+                      size: 18,
+                      color: Color(0xFFEA580C),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Approved leave today. Checking in will cancel it and restore your leave balance.',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFFC2410C),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
             _InfoRow(
               icon: Icons.login_rounded,
               label: ref.tr('attendance.checkIn'),

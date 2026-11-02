@@ -85,6 +85,55 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   }
 
   Future<void> _startShift(bool isStart) async {
+    if (isStart) {
+      final approvedLeave = ref.read(attendanceProvider).approvedLeaveToday;
+      if (approvedLeave != null) {
+        final category =
+            approvedLeave['leaveCategory']?.toString().toUpperCase() ?? 'LEAVE';
+        final proceed = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            title: const Row(
+              children: [
+                Icon(Icons.event_busy, color: AppColors.saffronDeep),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Approved Leave Today',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+            content: Text(
+              'You currently have an approved $category leave for today.\n\n'
+              'If you check in, today\'s leave will be automatically cancelled and 1 day will be credited back to your leave balance.\n\n'
+              'Do you want to proceed?',
+              style: const TextStyle(fontSize: 14, height: 1.4),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: const Text('Cancel'),
+              ),
+              FilledButton(
+                style: FilledButton.styleFrom(
+                  backgroundColor: AppColors.saffronDeep,
+                ),
+                onPressed: () => Navigator.pop(ctx, true),
+                child: const Text('Check In & Cancel Leave'),
+              ),
+            ],
+          ),
+        );
+        if (proceed != true) return;
+      }
+    }
+
     bool loadingShown = false;
 
     try {
@@ -558,13 +607,17 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         statusBackground = AppColors.primaryTintColor;
       }
     } else {
-      statusText = ref.tr('home.upcoming');
-
-      statusIcon = Icons.access_time;
-
-      statusColor = AppColors.saffronText;
-
-      statusBackground = AppColors.primaryTintColor;
+      if (attendanceState.approvedLeaveToday != null) {
+        statusText = 'On Leave';
+        statusIcon = Icons.event_busy;
+        statusColor = const Color(0xFFEA580C);
+        statusBackground = const Color(0xFFFFF7ED);
+      } else {
+        statusText = ref.tr('home.upcoming');
+        statusIcon = Icons.access_time;
+        statusColor = AppColors.saffronText;
+        statusBackground = AppColors.primaryTintColor;
+      }
     }
 
     return Container(
@@ -630,6 +683,37 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           ),
 
           const SizedBox(height: 10),
+
+          if (!hasCheckedIn && attendanceState.approvedLeaveToday != null)
+            Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF7ED),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFFFEDD5)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.info_outline,
+                    size: 18,
+                    color: Color(0xFFEA580C),
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Approved leave today. Checking in will cancel it and restore your leave balance.',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFFC2410C),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
 
           if (!hasCheckedIn)
             SizedBox(

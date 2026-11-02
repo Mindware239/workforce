@@ -81,6 +81,7 @@ class AuthNotifier
       user: user,
       onboardingStatus: onboardingStatus,
     );
+    AuthService.login();
 
     // Live chat (and calls) from app start, with the stored token.
     unawaited(RealtimeService.instance.connect());

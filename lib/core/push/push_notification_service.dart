@@ -183,7 +183,12 @@ class PushNotificationService {
 
   /// Asks for permission and registers this phone. Safe to call repeatedly.
   Future<void> registerDevice() async {
-    if (!_ready || _registering || !AuthService.isAuthenticated) return;
+    final storedToken = await SecureStorage().getToken();
+    final hasToken = storedToken != null && storedToken.isNotEmpty;
+    if (!_ready || _registering || (!AuthService.isAuthenticated && !hasToken)) return;
+    if (hasToken && !AuthService.isAuthenticated) {
+      AuthService.login();
+    }
     _registering = true;
     try {
       final messaging = FirebaseMessaging.instance;
