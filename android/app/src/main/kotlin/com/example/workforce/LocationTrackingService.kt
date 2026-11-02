@@ -266,6 +266,12 @@ class LocationTrackingService : Service() {
 
         val engine = FlutterEngine(applicationContext)
 
+        try {
+            io.flutter.plugins.GeneratedPluginRegistrant.registerWith(engine)
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to register plugins on background engine.", e)
+        }
+
         backgroundChannel =
             MethodChannel(
                 engine.dartExecutor.binaryMessenger,

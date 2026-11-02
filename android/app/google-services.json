@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "925142027973",
+    "project_id": "workforce-3fa21",
+    "storage_bucket": "workforce-3fa21.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:925142027973:android:a6f10817d9efac72246aac",
+        "android_client_info": {
+          "package_name": "com.mindware.workforce"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBCPUT2IOYpaNO4IQPEb8riL7N5S5_Upsc"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

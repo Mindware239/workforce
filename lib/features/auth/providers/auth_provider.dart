@@ -84,6 +84,7 @@ class AuthNotifier
 
     // Live chat (and calls) from app start, with the stored token.
     unawaited(RealtimeService.instance.connect());
+    unawaited(PushNotificationService.instance.registerDevice());
   } catch (e) {
     state = state.copyWith(
       isLoading: false,
@@ -129,6 +130,7 @@ class AuthNotifier
 
       // A fresh token: (re)open the socket with it.
       unawaited(RealtimeService.instance.reconnect());
+      unawaited(PushNotificationService.instance.registerDevice());
 
       return true;
     } catch (e) {

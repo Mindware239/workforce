@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'package:workforce/app/routes/app_routes.dart';
@@ -120,6 +121,31 @@ class PushNotificationService {
 
       NavigationService.router.routerDelegate.addListener(_onRouteChanged);
       _ready = true;
+
+      // Ask for notification permissions early (Android 13+ / iOS)
+      try {
+        final perm = await FirebaseMessaging.instance.requestPermission(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+        debugPrint('🔔 [FCM] Notification authorization status: ${perm.authorizationStatus}');
+      } catch (e) {
+        debugPrint('⚠️ [FCM] Notification permission request error: $e');
+      }
+
+      // Print FCM token to console on startup
+      FirebaseMessaging.instance.getToken().then((token) {
+        debugPrint('==================================================');
+        debugPrint('🔥 [FCM TOKEN]: $token');
+        debugPrint('==================================================');
+      }).catchError((e) {
+        debugPrint('⚠️ Could not fetch FCM token on init: $e');
+      });
+
+      if (AuthService.isAuthenticated) {
+        unawaited(registerDevice());
+      }
     } catch (e) {
       debugPrint('Push notifications could not start: $e');
     }
@@ -128,12 +154,11 @@ class PushNotificationService {
   Future<void> _initLocalNotifications() async {
     await _local.initialize(
       settings: const InitializationSettings(
-        android: AndroidInitializationSettings('@drawable/ic_stat_notification'),
-        // Permission is asked through Firebase in registerDevice, after sign-in.
+        android: AndroidInitializationSettings('ic_stat_notification'),
         iOS: DarwinInitializationSettings(
-          requestAlertPermission: false,
-          requestBadgePermission: false,
-          requestSoundPermission: false,
+          requestAlertPermission: true,
+          requestBadgePermission: true,
+          requestSoundPermission: true,
         ),
       ),
       onDidReceiveNotificationResponse: (response) =>
@@ -146,6 +171,9 @@ class PushNotificationService {
         >();
     for (final channel in _channels) {
       await android?.createNotificationChannel(channel);
+    }
+    if (Platform.isAndroid) {
+      await android?.requestNotificationsPermission();
     }
   }
 
@@ -183,9 +211,15 @@ class PushNotificationService {
       }
 
       final token = await messaging.getToken();
+      debugPrint('==================================================');
+      debugPrint('🔥 [FCM TOKEN (registerDevice)]: $token');
+      debugPrint('==================================================');
       if (token != null) await _sendToken(token);
 
-      _tokenRefresh ??= messaging.onTokenRefresh.listen(_sendToken);
+      _tokenRefresh ??= messaging.onTokenRefresh.listen((refreshedToken) {
+        debugPrint('🔥 [FCM TOKEN REFRESHED]: $refreshedToken');
+        _sendToken(refreshedToken);
+      });
     } catch (e) {
       debugPrint('Push registration failed: $e');
     } finally {
@@ -196,11 +230,13 @@ class PushNotificationService {
   Future<void> _sendToken(String token) async {
     if (!AuthService.isAuthenticated) return;
     try {
+      debugPrint('Syncing FCM token to backend: $token');
       await _api.post(
         '/notifications/push/fcm-tokens',
         data: {'token': token, 'platform': Platform.isIOS ? 'ios' : 'android'},
       );
       _registeredToken = token;
+      debugPrint('FCM token registered successfully with backend.');
     } catch (e) {
       debugPrint('Could not register the push token: $e');
     }
@@ -241,6 +277,10 @@ class PushNotificationService {
 
     final data = message.data;
     final type = data['type'];
+    final title = message.notification?.title ?? data['title'];
+    final body = message.notification?.body ?? data['body'];
+
+    debugPrint('🔔 [FCM FOREGROUND MESSAGE]: title="$title", body="$body", type="$type", data=$data');
 
     // The call screen is already ringing over the app.
     if (type == 'call' && data['callStatus'] == 'ringing') return;
@@ -251,8 +291,6 @@ class PushNotificationService {
       return;
     }
 
-    final title = message.notification?.title ?? data['title'];
-    final body = message.notification?.body ?? data['body'];
     if (title == null && body == null) return;
 
     final channel = switch (type) {
@@ -261,35 +299,42 @@ class PushNotificationService {
       _ => _channels[0],
     };
 
-    await _local.show(
-      // Same tag, same notification: a chat burst or a ring-then-missed
-      // replaces the earlier one instead of stacking.
-      id: (data['tag'] ?? message.messageId ?? '').hashCode & 0x7fffffff,
-      title: title,
-      body: body,
-      notificationDetails: NotificationDetails(
-        android: AndroidNotificationDetails(
-          channel.id,
-          channel.name,
-          channelDescription: channel.description,
-          importance: channel.importance,
-          priority: channel.importance == Importance.max
-              ? Priority.max
-              : Priority.high,
-          icon: '@drawable/ic_stat_notification',
-          styleInformation: BigTextStyleInformation(body ?? ''),
+    try {
+      await _local.show(
+        // Same tag, same notification: a chat burst or a ring-then-missed
+        // replaces the earlier one instead of stacking.
+        id: (data['tag'] ?? message.messageId ?? '').hashCode & 0x7fffffff,
+        title: title,
+        body: body,
+        notificationDetails: NotificationDetails(
+          android: AndroidNotificationDetails(
+            channel.id,
+            channel.name,
+            channelDescription: channel.description,
+            importance: channel.importance,
+            priority: channel.importance == Importance.max
+                ? Priority.max
+                : Priority.high,
+            icon: 'ic_stat_notification',
+            largeIcon: const DrawableResourceAndroidBitmap('app_logo'),
+            color: const Color(0xFF0055FF),
+            styleInformation: BigTextStyleInformation(body ?? ''),
+          ),
+          iOS: DarwinNotificationDetails(
+            presentAlert: true,
+            presentBanner: true,
+            presentSound: true,
+            threadIdentifier: type == 'chat'
+                ? 'chat-${data['conversationId']}'
+                : null,
+          ),
         ),
-        iOS: DarwinNotificationDetails(
-          presentAlert: true,
-          presentBanner: true,
-          presentSound: true,
-          threadIdentifier: type == 'chat'
-              ? 'chat-${data['conversationId']}'
-              : null,
-        ),
-      ),
-      payload: jsonEncode(data),
-    );
+        payload: jsonEncode(data),
+      );
+      debugPrint('🔔 Local notification shown successfully.');
+    } catch (e) {
+      debugPrint('⚠️ Error displaying local notification: $e');
+    }
   }
 
   // ----------------------------------------------------------

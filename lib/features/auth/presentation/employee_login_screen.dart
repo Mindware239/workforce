@@ -31,10 +31,17 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    ref.listen<AuthState>(authProvider, (previous, next) {
+    ref.listen<AuthState>(authProvider, (previous, next) async {
       // Login / onboarding request completed successfully.
       if (previous?.isLoading == true && !next.isLoading) {
         if (next.error == null && next.isAuthenticated) {
+          // Start background location tracking now that authentication is complete
+          try {
+            await LocationTrackingService.start();
+          } catch (e) {
+            debugPrint('Error starting LocationTrackingService: $e');
+          }
+
           if (next.onboardingPending) {
             context.go(AppRoutes.completeProfile);
           } else {
@@ -133,15 +140,42 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
       return;
     }
 
-    // Request notification permission.
+    // 1. Request notification permission (Android 13+)
     if (await Permission.notification.isDenied) {
       await Permission.notification.request();
     }
 
-    if (!mounted) return;
+    // 2. Request location permission before login
+    var locationStatus = await Permission.location.status;
+    if (!locationStatus.isGranted) {
+      locationStatus = await Permission.location.request();
+    }
 
-    // Start background location tracking.
-    await LocationTrackingService.start();
+    if (!locationStatus.isGranted) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Location permission is required for attendance tracking.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    // 3. Ensure device GPS hardware is turned ON
+    final isGpsEnabled = await Permission.location.serviceStatus.isEnabled;
+    if (!isGpsEnabled) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please enable GPS / Location in your device settings.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    if (!mounted) return;
 
     ref.read(authProvider.notifier).login(mobileNumber: mobileNumber);
   }

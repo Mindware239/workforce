@@ -24,3 +24,7 @@
     public static int v(...);
     public static int d(...);
 }
+
+# Flutter plugins & embedding classes needed in background isolate
+-keep class io.flutter.plugins.** { *; }
+-keep class io.flutter.embedding.** { *; }
