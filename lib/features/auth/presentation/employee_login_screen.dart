@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -9,6 +11,7 @@ import 'package:workforce/core/network/api_error.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/features/attendence/services/employee_location_service.dart';
 import 'package:workforce/features/auth/providers/auth_provider.dart';
+import 'package:workforce/features/mdm/services/mdm_service.dart';
 import 'package:workforce/features/onboarding/presentation/widget/primary_button.dart';
 import 'package:workforce/features/onboarding/presentation/widget/workforce_brand.dart';
 
@@ -41,6 +44,18 @@ class _EmployeeLoginScreenState extends ConsumerState<EmployeeLoginScreen> {
           } catch (e) {
             debugPrint('Error starting LocationTrackingService: $e');
           }
+
+          // Enroll this device for management and run any pending admin
+          // commands. Non-blocking: failures must not hold up the login flow.
+          unawaited(() async {
+            try {
+              final mdm = MdmService();
+              await mdm.enroll();
+              await mdm.syncCommands();
+            } catch (e) {
+              debugPrint('Error during MDM enroll/sync: $e');
+            }
+          }());
 
           if (next.onboardingPending) {
             context.go(AppRoutes.completeProfile);

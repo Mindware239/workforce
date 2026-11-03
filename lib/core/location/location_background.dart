@@ -28,6 +28,23 @@ void startLocationBackground() {
         '📡 Background isolate received: ${call.method}',
       );
 
+      // The native service saw location services switched off while the
+      // employee was checked in. Report it so the console shows the person as
+      // unavailable (reason 'gps-off') and the manager is alerted.
+      if (call.method == 'locationOff') {
+        try {
+          final args = call.arguments is Map
+              ? Map<String, dynamic>.from(call.arguments as Map)
+              : <String, dynamic>{};
+          await BackgroundLocationHandler.reportLocationOff(
+            args['occurredAt']?.toString(),
+          );
+        } catch (e) {
+          debugPrint('⚠️ locationOff report failed: $e');
+        }
+        return;
+      }
+
       if (call.method != 'locationUpdate') {
         return;
       }
@@ -99,6 +116,11 @@ class BackgroundLocationHandler {
 
       final recordedAt =
           location['recordedAt']?.toString();
+
+      final altitude = (location['altitude'] as num?)?.toDouble();
+      final altitudeAccuracy =
+          (location['altitudeAccuracy'] as num?)?.toDouble();
+      final pressureHpa = (location['pressureHpa'] as num?)?.toDouble();
 
       if (latitude == null || longitude == null) {
         debugPrint(
@@ -225,6 +247,9 @@ class BackgroundLocationHandler {
         speed: speed,
         heading: heading,
         recordedAt: timestamp,
+        altitude: altitude,
+        altitudeAccuracy: altitudeAccuracy,
+        pressureHpa: pressureHpa,
       );
 
       // --------------------------------------------------
@@ -302,6 +327,25 @@ class BackgroundLocationHandler {
   // CURRENT LOCATION API
   // ======================================================
 
+  /// Reports to the server that location services were switched off while the
+  /// employee was checked in, so the admin console shows them as unavailable.
+  static Future<void> reportLocationOff(String? occurredAt) async {
+    final storage = SecureStorage();
+    final token = await storage.getToken();
+    if (token == null || token.isEmpty) return;
+
+    final apiClient = ApiClient(secureStorage: storage);
+    await apiClient.post(
+      '/v1/employee/location/unavailable',
+      data: {
+        'reason': 'gps-off',
+        'detail': 'Location services switched off while checked in',
+        'occurredAt': occurredAt ?? DateTime.now().toUtc().toIso8601String(),
+      },
+    );
+    debugPrint('✅ Reported location off (gps-off).');
+  }
+
   static Future<bool> _sendCurrentLocation({
     required ApiClient apiClient,
     required double latitude,
@@ -310,6 +354,9 @@ class BackgroundLocationHandler {
     required double speed,
     required double heading,
     required String recordedAt,
+    double? altitude,
+    double? altitudeAccuracy,
+    double? pressureHpa,
   }) async {
     try {
       final response = await apiClient.post(
@@ -321,6 +368,9 @@ class BackgroundLocationHandler {
           'speed': speed,
           'heading': heading,
           'recordedAt': recordedAt,
+          if (altitude != null) 'altitude': altitude,
+          if (altitudeAccuracy != null) 'altitudeAccuracy': altitudeAccuracy,
+          if (pressureHpa != null) 'pressureHpa': pressureHpa,
         },
       );
 

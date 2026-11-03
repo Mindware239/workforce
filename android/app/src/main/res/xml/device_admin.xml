@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Policies the WorkForce device-admin component uses when provisioned as
+     Device Owner. See WorkforceDeviceAdminReceiver / DevicePolicyController. -->
+<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-policies>
+        <wipe-data />
+        <force-lock />
+        <disable-keyguard-features />
+    </uses-policies>
+</device-admin>

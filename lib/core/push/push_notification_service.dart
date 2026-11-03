@@ -13,6 +13,7 @@ import 'package:workforce/core/network/api_client.dart';
 import 'package:workforce/core/services/auth_service.dart';
 import 'package:workforce/core/services/navigation_service.dart';
 import 'package:workforce/core/services/secure_storage.dart';
+import 'package:workforce/features/mdm/services/mdm_service.dart';
 
 /// Runs in its own isolate when a push arrives with the app in the background
 /// or closed. Every push the backend sends carries a `notification` block, so
@@ -286,6 +287,13 @@ class PushNotificationService {
     final body = message.notification?.body ?? data['body'];
 
     debugPrint('🔔 [FCM FOREGROUND MESSAGE]: title="$title", body="$body", type="$type", data=$data');
+
+    // MDM: the admin issued a device command. Pull and run it immediately
+    // instead of waiting for the next poll. Silent -- no notification shown.
+    if (type == 'mdm-command') {
+      await MdmService().syncCommands();
+      return;
+    }
 
     // The call screen is already ringing over the app.
     if (type == 'call' && data['callStatus'] == 'ringing') return;

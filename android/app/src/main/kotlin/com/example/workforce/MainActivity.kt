@@ -60,6 +60,35 @@ class MainActivity : FlutterFragmentActivity() {
             }
         }
 
+        // MDM: Flutter polls the server for admin commands and runs each one
+        // through here, so the privileged DevicePolicyManager calls never cross
+        // into Dart. `isDeviceOwner` lets the app report provisioning state at
+        // enrollment.
+        MethodChannel(
+            flutterEngine.dartExecutor.binaryMessenger,
+            "workforce/mdm"
+        ).setMethodCallHandler { call, result ->
+            when (call.method) {
+                "isDeviceOwner" ->
+                    result.success(MdmCommandExecutor.isDeviceOwner(this))
+
+                "getDeviceInfo" ->
+                    result.success(MdmCommandExecutor.deviceInfo(this))
+
+                "executeCommand" -> {
+                    val command = call.argument<String>("command")
+                    if (command == null) {
+                        result.error("ARG", "command is required", null)
+                    } else {
+                        val outcome = MdmCommandExecutor.execute(this, command)
+                        result.success(mapOf("ok" to outcome.ok, "detail" to outcome.detail))
+                    }
+                }
+
+                else -> result.notImplemented()
+            }
+        }
+
         // Self-heal: if the employee is checked in but the service was
         // stopped (force stop, OEM battery killer), restart it now that
         // the app is in the foreground.
