@@ -14,6 +14,8 @@ import 'package:workforce/core/services/secure_storage.dart';
 import 'package:workforce/core/styles/app_colors.dart';
 import 'package:workforce/core/styles/tricolour_strip.dart';
 import 'package:workforce/features/attendence/services/employee_location_service.dart';
+import 'package:workforce/features/attendence/services/location_queue.dart';
+import 'package:workforce/features/attendence/services/location_sync_service.dart';
 import 'package:workforce/features/language/presentation/language_selection_screen.dart';
 import 'package:workforce/features/language/providers/language_provider.dart';
 import 'package:workforce/features/notification/presentation/notification.dart';
@@ -40,11 +42,23 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     // While the token is still stored: the backend forgets this phone.
     await PushNotificationService.instance.unregisterDevice();
 
+    // 1. Immediately stop the native foreground location tracking service
+    try {
+      await LocationTrackingService.stop();
+    } catch (_) {}
+
+    // 2. Dispose of any scheduled sync timers
+    LocationSyncService.dispose();
+
+    // 3. Clear pending cached tracking points from local storage
+    try {
+      final queue = LocationQueue(storage: secureStorage);
+      await queue.clear();
+    } catch (_) {}
+
     // Remove JWT and saved employee data
     await secureStorage.clearAuth();
 
-    // Update authentication state
-    await LocationTrackingService.stop();
     await FieldWorkTracker.clear();
     await ref.read(offlineSyncProvider.notifier).clearAll();
 
