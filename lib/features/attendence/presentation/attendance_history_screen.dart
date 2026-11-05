@@ -358,6 +358,13 @@ class _AttendanceHistoryScreenState
     return Row(
       children: [
         _LegendItem(
+          color: AppColors.indiaGreen,
+          text: ref.tr('attendanceHistory.present'),
+        ),
+
+        const Spacer(),
+
+        _LegendItem(
           color: AppColors.saffronDeep,
           text: ref.tr('attendanceHistory.holiday'),
         ),
@@ -786,6 +793,14 @@ class _CalendarDay extends StatelessWidget {
 
     final isException = status == 'late' || status == 'early_exit';
     final isHoliday = holiday != null;
+    final normalized = status?.toLowerCase();
+    final isPresent = hasRecord &&
+        !isAbsent &&
+        (normalized == 'present' ||
+            normalized == 'on_time' ||
+            normalized == 'on-time' ||
+            normalized == 'ontime' ||
+            (!isException && normalized != 'absent'));
 
     final Color bgColor;
     final Color textColor;
@@ -796,13 +811,18 @@ class _CalendarDay extends StatelessWidget {
           ? const Color(0xFFD32F2F)
           : isHoliday
               ? AppColors.saffronText
-              : AppColors.textColor;
+              : isPresent
+                  ? AppColors.indiaGreen
+                  : AppColors.textColor;
     } else if (isAbsent) {
       bgColor = const Color(0xFFFFEBEE);
       textColor = const Color(0xFFD32F2F);
     } else if (isHoliday) {
       bgColor = AppColors.saffronTint;
       textColor = AppColors.saffronText;
+    } else if (isPresent) {
+      bgColor = AppColors.indiaGreenLight;
+      textColor = AppColors.indiaGreen;
     } else if (isException && hasRecord) {
       bgColor = const Color(0xFFFFF3DB);
       textColor = AppColors.textColor;
@@ -822,7 +842,9 @@ class _CalendarDay extends StatelessWidget {
               ? Border.all(color: const Color(0xFF29262B), width: 2)
               : isHoliday
                   ? Border.all(color: AppColors.saffronLight, width: 1)
-                  : null,
+                  : isPresent
+                      ? Border.all(color: const Color(0xFFC2E7BF), width: 1)
+                      : null,
         ),
         child: Stack(
           alignment: Alignment.center,
@@ -831,7 +853,7 @@ class _CalendarDay extends StatelessWidget {
               '${date.day}',
               style: GoogleFonts.inter(
                 fontSize: 12,
-                fontWeight: isSelected || isToday || isHoliday
+                fontWeight: isSelected || isToday || isHoliday || isPresent
                     ? FontWeight.w700
                     : FontWeight.w400,
                 color: textColor,
@@ -845,6 +867,18 @@ class _CalendarDay extends StatelessWidget {
                   height: 4,
                   decoration: const BoxDecoration(
                     color: AppColors.saffronDeep,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              )
+            else if (isPresent)
+              Positioned(
+                bottom: 2,
+                child: Container(
+                  width: 4,
+                  height: 4,
+                  decoration: const BoxDecoration(
+                    color: AppColors.indiaGreen,
                     shape: BoxShape.circle,
                   ),
                 ),
